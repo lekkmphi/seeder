@@ -779,33 +779,35 @@ function ModalShell({
             maxWidthClassName,
           )}
         >
-          <button
-            type="button"
-            aria-label={locale === "vi" ? "Đóng modal" : "Close modal"}
-            onClick={onClose}
-            className="absolute right-4 top-4 z-10 inline-flex size-9 items-center justify-center rounded-md border border-border bg-surface text-muted transition hover:border-border-strong hover:bg-surface-strong hover:text-foreground sm:right-5 sm:top-5"
-          >
-            <X className="size-4" />
-            <span className="sr-only">
-              {locale === "vi" ? "Đóng modal" : "Close modal"}
-            </span>
-          </button>
-          <div className="mb-5 flex shrink-0 items-start justify-between gap-4 pr-12">
-            <div className="space-y-2">
-              <p className="font-mono text-[11px] font-medium uppercase tracking-[0.04em] text-muted">
-                {locale === "vi" ? "Modal không gian" : "Workspace modal"}
-              </p>
-              <div>
-                <h3 className="text-[20px] font-medium tracking-[-0.022em] text-foreground">
-                  {title}
-                </h3>
-                <p className="mt-1 max-w-2xl text-[13px] leading-6 text-muted">
-                  {description}
+          <div className="min-h-0 overflow-y-auto pr-1">
+            <div className="sticky top-0 z-20 -mx-1 mb-5 flex items-start justify-between gap-4 border-b border-border bg-surface-strong/95 px-1 pb-4 pr-12 pt-1 backdrop-blur">
+              <div className="space-y-2">
+                <p className="font-mono text-[11px] font-medium uppercase tracking-[0.04em] text-muted">
+                  {locale === "vi" ? "Modal không gian" : "Workspace modal"}
                 </p>
+                <div>
+                  <h3 className="text-[20px] font-medium tracking-[-0.022em] text-foreground">
+                    {title}
+                  </h3>
+                  <p className="mt-1 max-w-2xl text-[13px] leading-6 text-muted">
+                    {description}
+                  </p>
+                </div>
               </div>
+              <button
+                type="button"
+                aria-label={locale === "vi" ? "Đóng modal" : "Close modal"}
+                onClick={onClose}
+                className="absolute right-1 top-1 inline-flex size-9 items-center justify-center rounded-md border border-border bg-surface text-muted transition hover:border-border-strong hover:bg-surface-strong hover:text-foreground"
+              >
+                <X className="size-4" />
+                <span className="sr-only">
+                  {locale === "vi" ? "Đóng modal" : "Close modal"}
+                </span>
+              </button>
             </div>
+            {children}
           </div>
-          <div className="min-h-0 overflow-y-auto pr-1">{children}</div>
         </div>
       </div>
     </div>
