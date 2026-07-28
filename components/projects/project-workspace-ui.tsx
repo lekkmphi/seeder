@@ -46,6 +46,8 @@ import {
   createTaskCommentAction,
   deleteRequestCommentAction,
   deleteTaskCommentAction,
+  toggleRequestCommentReactionAction,
+  toggleTaskCommentReactionAction,
   updateRequestCommentAction,
   updateTaskCommentAction,
 } from "@/lib/actions";
@@ -689,6 +691,7 @@ function ActionButton({
   icon,
   onClick,
   autoFocus = false,
+  form,
 }: {
   children: React.ReactNode;
   type?: "button" | "submit";
@@ -698,6 +701,7 @@ function ActionButton({
   className?: string;
   icon?: React.ReactNode;
   onClick?: () => void | Promise<void>;
+  form?: string;
   // For confirm-style modals with no text field: focusing the action makes
   // Enter confirm it. Never set this on a form's Save button — the form
   // already handles Enter, and stealing focus from the first field is worse.
@@ -714,6 +718,7 @@ function ActionButton({
     <button
       autoFocus={autoFocus}
       type={type}
+      form={form}
       disabled={isPending}
       onClick={onClick}
       className={cn(
@@ -752,6 +757,15 @@ function ModalShell({
   maxWidthClassName?: string;
   locale: Locale;
 }) {
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [onClose]);
+
   return (
     <div className="fixed inset-0 z-50 p-4 sm:p-6">
       <button
@@ -760,39 +774,42 @@ function ModalShell({
         onClick={onClose}
         className="ui-modal-backdrop absolute inset-0 backdrop-blur-xs"
       />
-      <div className="relative flex min-h-full items-end justify-center sm:items-center">
+      <div className="pointer-events-none relative flex min-h-full items-end justify-center sm:items-center">
         <div
           className={cn(
-            "ui-modal-panel relative flex max-h-[calc(100dvh-2rem)] w-full flex-col overflow-hidden rounded-md border border-border bg-surface-strong p-5 shadow-xl sm:max-h-[calc(100dvh-3rem)] sm:p-6",
+            "ui-modal-panel pointer-events-auto relative flex max-h-[calc(100dvh-2rem)] w-full flex-col overflow-hidden rounded-md border border-border bg-surface-strong p-5 shadow-xl sm:max-h-[calc(100dvh-3rem)] sm:p-6",
             maxWidthClassName,
           )}
         >
-          <div className="mb-5 flex shrink-0 items-start justify-between gap-4">
-            <div className="space-y-2">
-              <p className="font-mono text-[11px] font-medium uppercase tracking-[0.04em] text-muted">
-                {locale === "vi" ? "Modal không gian" : "Workspace modal"}
-              </p>
-              <div>
-                <h3 className="text-[20px] font-medium tracking-[-0.022em] text-foreground">
-                  {title}
-                </h3>
-                <p className="mt-1 max-w-2xl text-[13px] leading-6 text-muted">
-                  {description}
+          <div data-modal-scroll className="min-h-0 overflow-y-auto pr-1">
+            <div className="sticky top-0 z-20 -mx-1 mb-5 flex items-start justify-between gap-4 border-b border-border bg-surface-strong/95 px-1 pb-4 pr-12 pt-1 backdrop-blur">
+              <div className="space-y-2">
+                <p className="font-mono text-[11px] font-medium uppercase tracking-[0.04em] text-muted">
+                  {locale === "vi" ? "Modal không gian" : "Workspace modal"}
                 </p>
+                <div>
+                  <h3 className="text-[20px] font-medium tracking-[-0.022em] text-foreground">
+                    {title}
+                  </h3>
+                  <p className="mt-1 max-w-2xl text-[13px] leading-6 text-muted">
+                    {description}
+                  </p>
+                </div>
               </div>
+              <button
+                type="button"
+                aria-label={locale === "vi" ? "Đóng modal" : "Close modal"}
+                onClick={onClose}
+                className="absolute right-1 top-1 inline-flex size-9 items-center justify-center rounded-md border border-border bg-surface text-muted transition hover:border-border-strong hover:bg-surface-strong hover:text-foreground"
+              >
+                <X className="size-4" />
+                <span className="sr-only">
+                  {locale === "vi" ? "Đóng modal" : "Close modal"}
+                </span>
+              </button>
             </div>
-            <button
-              type="button"
-              onClick={onClose}
-              className="inline-flex size-9 items-center justify-center rounded-md border border-border bg-surface text-muted transition hover:border-border-strong hover:bg-surface-strong hover:text-foreground"
-            >
-              <X className="size-4" />
-              <span className="sr-only">
-                {locale === "vi" ? "Đóng modal" : "Close modal"}
-              </span>
-            </button>
+            {children}
           </div>
-          <div className="min-h-0 overflow-y-auto pr-1">{children}</div>
         </div>
       </div>
     </div>
@@ -810,7 +827,13 @@ function ProjectWorkspaceModalHost({
 }: {
   workspace: ProjectWorkspace;
   currentPath: string;
-  viewer: { id: string; role: UserRole };
+  viewer: {
+    id: string;
+    email: string;
+    name: string;
+    role: UserRole;
+    image: string | null;
+  };
   modalState: WorkspaceModalState;
   onClose: () => void;
   openModal: (state: NonNullable<WorkspaceModalState>) => void;
@@ -1144,6 +1167,7 @@ function ProjectWorkspaceModalHost({
   }
 
   if (modalState.kind === "task" && selectedTask) {
+    const taskEditFormId = `task-edit-form-${selectedTask.id}`;
     const taskCode = formatTaskCode(
       workspace.project.slug,
       selectedTask.codeNumber,
@@ -1165,6 +1189,7 @@ function ProjectWorkspaceModalHost({
         maxWidthClassName="max-w-6xl"
       >
         <form
+          id={taskEditFormId}
           className="grid gap-5"
           onSubmit={async (event) => {
             event.preventDefault();
@@ -1290,10 +1315,10 @@ function ProjectWorkspaceModalHost({
                         refreshWorkspace();
                       }}
                       className={cn(
-                        "inline-flex size-7 items-center justify-center rounded-sm border transition disabled:cursor-not-allowed disabled:opacity-60",
+                        "inline-flex size-8 shrink-0 items-center justify-center rounded-md border transition disabled:cursor-not-allowed disabled:opacity-60",
                         item.isCompleted
                           ? "border-emerald/40 bg-emerald/10 text-emerald"
-                          : "border-border bg-background text-muted hover:border-border-strong hover:bg-surface-strong hover:text-foreground",
+                          : "border-border-strong bg-background text-transparent hover:border-emerald/40 hover:bg-emerald/5 hover:text-emerald",
                       )}
                     >
                       {pendingAction === `toggle-checklist-${item.id}` ? (
@@ -1301,7 +1326,7 @@ function ProjectWorkspaceModalHost({
                       ) : item.isCompleted ? (
                         <Check className="size-4" />
                       ) : (
-                        <span className="size-2 rounded-full bg-current" />
+                        <span aria-hidden className="size-4" />
                       )}
                       <span className="sr-only">
                         {item.isCompleted
@@ -1566,33 +1591,9 @@ function ProjectWorkspaceModalHost({
 
           {errorNotice}
 
-          <div className="grid gap-2 lg:grid-cols-[minmax(0,1fr)_280px]">
-            <ActionButton
-              type="submit"
-              isPending={pendingAction === "update-task"}
-              pendingLabel={locale === "vi" ? "Đang lưu công việc..." : "Saving task..."}
-              className="w-full"
-            >
-              {locale === "vi" ? "Lưu công việc" : "Save task"}
-            </ActionButton>
-            <button
-              type="button"
-              onClick={() =>
-                openModal({
-                  kind: "delete-task",
-                  taskId: selectedTask.id,
-                  taskIsTerminal: modalState.taskIsTerminal ?? selectedTask.isTerminal,
-                })
-              }
-              className="ui-button-danger w-full"
-            >
-              <Trash className="size-4" />
-              {locale === "vi" ? "Xóa công việc" : "Delete task"}
-            </button>
-          </div>
         </form>
 
-        <div className="mt-6 border-t border-border pt-5">
+        <div className="mt-4 border-t border-border pt-4">
           {taskDetail ? (
             <CommentThread
               comments={taskDetail.comments.map((c) => ({
@@ -1604,20 +1605,56 @@ function ProjectWorkspaceModalHost({
                 authorImage: c.authorImage,
                 createdAt: c.createdAt,
                 updatedAt: c.updatedAt,
+                reactions: c.reactions,
+                viewerReaction: c.viewerReaction,
               }))}
               projectId={workspace.project.id}
               parentId={selectedTask.id}
               viewerId={viewer.id}
+              viewerName={viewer.name}
+              viewerEmail={viewer.email}
+              viewerImage={viewer.image}
               viewerCanModerate={viewerCanModerate}
+              mentionUsers={workspace.members.map((member) => ({
+                id: member.userId,
+                name: member.name,
+                email: member.email,
+              }))}
               actions={{
                 create: withDetailRefresh(createTaskCommentAction),
                 update: withDetailRefresh(updateTaskCommentAction),
                 remove: withDetailRefresh(deleteTaskCommentAction),
+                react: withDetailRefresh(toggleTaskCommentReactionAction),
               }}
             />
           ) : (
             <CommentsLoading locale={locale} />
           )}
+        </div>
+        <div className="mt-4 grid gap-2 lg:grid-cols-[minmax(0,1fr)_280px]">
+          <ActionButton
+            type="submit"
+            form={taskEditFormId}
+            isPending={pendingAction === "update-task"}
+            pendingLabel={locale === "vi" ? "Đang lưu công việc..." : "Saving task..."}
+            className="w-full"
+          >
+            {locale === "vi" ? "Lưu công việc" : "Save task"}
+          </ActionButton>
+          <button
+            type="button"
+            onClick={() =>
+              openModal({
+                kind: "delete-task",
+                taskId: selectedTask.id,
+                taskIsTerminal: modalState.taskIsTerminal ?? selectedTask.isTerminal,
+              })
+            }
+            className="ui-button-danger w-full"
+          >
+            <Trash className="size-4" />
+            {locale === "vi" ? "Xóa công việc" : "Delete task"}
+          </button>
         </div>
       </ModalShell>
     );
@@ -2070,15 +2107,26 @@ function ProjectWorkspaceModalHost({
                 authorImage: c.authorImage,
                 createdAt: c.createdAt,
                 updatedAt: c.updatedAt,
+                reactions: c.reactions,
+                viewerReaction: c.viewerReaction,
               }))}
               projectId={workspace.project.id}
               parentId={selectedRequest.id}
               viewerId={viewer.id}
+              viewerName={viewer.name}
+              viewerEmail={viewer.email}
+              viewerImage={viewer.image}
               viewerCanModerate={viewerCanModerate}
+              mentionUsers={workspace.members.map((member) => ({
+                id: member.userId,
+                name: member.name,
+                email: member.email,
+              }))}
               actions={{
                 create: withDetailRefresh(createRequestCommentAction),
                 update: withDetailRefresh(updateRequestCommentAction),
                 remove: withDetailRefresh(deleteRequestCommentAction),
+                react: withDetailRefresh(toggleRequestCommentReactionAction),
               }}
             />
           ) : (
@@ -2230,7 +2278,13 @@ export function ProjectWorkspaceClientShell({
 }: {
   workspace: ProjectWorkspace;
   currentPath: string;
-  viewer: { id: string; role: UserRole };
+  viewer: {
+    id: string;
+    email: string;
+    name: string;
+    role: UserRole;
+    image: string | null;
+  };
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
@@ -2285,7 +2339,14 @@ export function ProjectWorkspaceClientShell({
       closeModal: () => {
         setModalState(null);
 
-        if (searchParams.get("modal")) {
+        const hasCommentHash =
+          typeof window !== "undefined" &&
+          window.location.hash.startsWith("#comment-");
+
+        if (searchParams.get("modal") || hasCommentHash) {
+          if (typeof window !== "undefined") {
+            window.history.replaceState(window.history.state, "", currentPath);
+          }
           router.replace(currentPath, { scroll: false });
         }
       },

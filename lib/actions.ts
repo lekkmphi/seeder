@@ -55,6 +55,8 @@ import {
   createTaskComment as createTaskCommentService,
   deleteRequestComment as deleteRequestCommentService,
   deleteTaskComment as deleteTaskCommentService,
+  toggleRequestCommentReaction as toggleRequestCommentReactionService,
+  toggleTaskCommentReaction as toggleTaskCommentReactionService,
   updateRequestComment as updateRequestCommentService,
   updateTaskComment as updateTaskCommentService,
 } from "@/lib/services/comments";
@@ -1488,6 +1490,11 @@ const commentDeleteSchema = z.object({
   commentId: z.string().min(1),
 });
 
+const commentReactionSchema = z.object({
+  commentId: z.string().min(1),
+  reaction: z.enum(["like", "dislike", "heart", "laugh", "wow", "sad", "angry"]),
+});
+
 // Short plain-text preview of rich-text content for an activity-log detail line.
 // Used by the checklist web actions below (comment excerpts now live in the
 // comments service).
@@ -1531,6 +1538,15 @@ export async function deleteTaskCommentAction(formData: FormData) {
   const { projectId } = await deleteTaskCommentService(viewer, payload);
 
   if (projectId) revalidateProjectViews(projectId, { overview: true, board: true });
+}
+
+export async function toggleTaskCommentReactionAction(formData: FormData) {
+  const viewer = await requireViewer();
+  const payload = commentReactionSchema.parse(toPayload(formData));
+
+  const { projectId } = await toggleTaskCommentReactionService(viewer, payload);
+
+  revalidateProjectViews(projectId, { overview: true, board: true });
 }
 
 /**
@@ -1589,6 +1605,15 @@ export async function deleteRequestCommentAction(formData: FormData) {
   const { projectId } = await deleteRequestCommentService(viewer, payload);
 
   if (projectId) revalidateProjectViews(projectId, { overview: true, requests: true });
+}
+
+export async function toggleRequestCommentReactionAction(formData: FormData) {
+  const viewer = await requireViewer();
+  const payload = commentReactionSchema.parse(toPayload(formData));
+
+  const { projectId } = await toggleRequestCommentReactionService(viewer, payload);
+
+  revalidateProjectViews(projectId, { overview: true, requests: true });
 }
 
 // ---- Task categories --------------------------------------------------------

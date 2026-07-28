@@ -667,12 +667,26 @@ select:disabled {
   width: auto;
   object-fit: contain;
 }
+.comment-prose {
+  display: inline;
+}
 .comment-prose .ProseMirror {
+  display: inline;
   min-height: 0;
   padding: 0;
   border: 0;
   background: transparent;
   line-height: 1.5;
+}
+.comment-prose .ProseMirror > p:first-child {
+  display: inline;
+}
+.comment-prose .ProseMirror > p:empty,
+.comment-prose .ProseMirror > p:has(> br.ProseMirror-trailingBreak:only-child) {
+  display: none;
+}
+.comment-prose .ProseMirror > p + p {
+  display: block;
 }
 .comment-prose .ProseMirror:focus {
   outline: none;
@@ -686,6 +700,35 @@ select:disabled {
 .comment-prose blockquote + p,
 .comment-prose pre + p {
   margin-top: 0.45rem;
+}
+.comment-composer-editor {
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 0.35rem;
+}
+.comment-composer-editor > div:first-child {
+  border: 0;
+  background: transparent;
+  padding: 0;
+}
+.comment-composer-editor > div:first-child button {
+  border-radius: 999px;
+}
+.comment-composer-editor .ProseMirror {
+  min-height: 2.25rem;
+}
+.comment-target-highlight {
+  animation: comment-target-pulse 1.6s ease-out;
+}
+@keyframes comment-target-pulse {
+  0%,
+  100% {
+    background-color: transparent;
+  }
+  18%,
+  70% {
+    background-color: color-mix(in srgb, var(--accent) 14%, transparent);
+  }
 }
 .ui-prose-table,
 .ui-prose table {

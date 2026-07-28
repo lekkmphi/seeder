@@ -62,7 +62,7 @@ export default async function ProjectRequestsPage({
     <ProjectWorkspaceClientShell
       workspace={workspace}
       currentPath={currentPath}
-      viewer={{ id: viewer.id, role: viewer.role }}
+      viewer={viewer}
     >
       <ProjectRequestsSurface workspace={workspace} locale={locale} />
     </ProjectWorkspaceClientShell>

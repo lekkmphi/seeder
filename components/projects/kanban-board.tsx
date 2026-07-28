@@ -719,9 +719,29 @@ function TaskCardSurface({
         backgroundColor: `color-mix(in srgb, ${tintBase} ${tintPercent}%, var(--surface))`,
       }
     : undefined;
+  const openHref = hrefBase
+    ? withSearchParams(hrefBase, {
+        modal: "task",
+        task: task.id,
+      })
+    : null;
+  const openContentClassName =
+    "block min-w-0 flex-1 rounded-sm text-left outline-none transition focus-visible:ring-2 focus-visible:ring-accent/35";
+  const openContentTitle = locale === "vi" ? "Mở chi tiết công việc" : "Open task details";
 
   // Compact overview card: badges + title only (no description/dates/footer).
   if (titleOnly) {
+    const content = (
+      <>
+        <CardBadges task={task} locale={locale} />
+        <h3 className="mt-2 text-[13px] font-medium leading-snug text-foreground">
+          {highlightTokens?.length
+            ? highlightMatches(task.title, highlightTokens)
+            : task.title}
+        </h3>
+      </>
+    );
+
     return (
       <article
         className={cn(
@@ -730,15 +750,78 @@ function TaskCardSurface({
         )}
         style={cardStyle}
       >
-        <CardBadges task={task} locale={locale} />
-        <h3 className="text-[13px] font-medium leading-snug text-foreground">
-          {highlightTokens?.length
-            ? highlightMatches(task.title, highlightTokens)
-            : task.title}
-        </h3>
+        {onOpen ? (
+          <div
+            role="button"
+            tabIndex={0}
+            onClick={onOpen}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault();
+                onOpen();
+              }
+            }}
+            className={cn(openContentClassName, "hover:text-accent")}
+            title={openContentTitle}
+          >
+            {content}
+          </div>
+        ) : openHref ? (
+          <Link
+            href={openHref}
+            scroll={false}
+            className={cn(openContentClassName, "hover:text-accent")}
+            title={openContentTitle}
+          >
+            {content}
+          </Link>
+        ) : (
+          <div>{content}</div>
+        )}
       </article>
     );
   }
+
+  const descriptionPreview = task.description
+    ? richTextToPlainText(parseRichText(task.description))
+    : "";
+  const mainContent = (
+    <>
+      <CardBadges task={task} locale={locale} />
+      {task.code ? (
+        <p className="mt-2 font-mono text-[10px] uppercase tracking-[0.06em] text-muted">
+          {task.code}
+        </p>
+      ) : null}
+      {(() => {
+        const entered = formatEnteredLabel(task.statusChangedAt);
+        if (!entered) return null;
+        return (
+          <p
+            className="mt-2 inline-flex items-center gap-1 font-mono text-[10px] uppercase tracking-[0.06em] text-muted"
+            title={
+              locale === "vi"
+                ? `Ở ${task.statusName} từ ${entered.full}`
+                : `In ${task.statusName} since ${entered.full}`
+            }
+          >
+            <Clock className="size-3" />
+            {locale === "vi" ? "Từ" : "Since"} {entered.short}
+          </p>
+        );
+      })()}
+      <h3 className="mt-2 text-[13px] font-medium leading-snug text-foreground">
+        {highlightTokens?.length
+          ? highlightMatches(task.title, highlightTokens)
+          : task.title}
+      </h3>
+      {descriptionPreview ? (
+        <p className="mt-2.5 line-clamp-3 break-words text-[13px] leading-6 text-muted">
+          {descriptionPreview}
+        </p>
+      ) : null}
+    </>
+  );
 
   return (
     <article
@@ -750,36 +833,34 @@ function TaskCardSurface({
       style={cardStyle}
     >
       <div className="flex items-start justify-between gap-3">
-        <div className="space-y-2">
-          <CardBadges task={task} locale={locale} />
-          {task.code ? (
-            <p className="font-mono text-[10px] uppercase tracking-[0.06em] text-muted">
-              {task.code}
-            </p>
-          ) : null}
-          {(() => {
-            const entered = formatEnteredLabel(task.statusChangedAt);
-            if (!entered) return null;
-            return (
-              <p
-                className="inline-flex items-center gap-1 font-mono text-[10px] uppercase tracking-[0.06em] text-muted"
-                title={
-                  locale === "vi"
-                    ? `Ở ${task.statusName} từ ${entered.full}`
-                    : `In ${task.statusName} since ${entered.full}`
-                }
-              >
-                <Clock className="size-3" />
-                {locale === "vi" ? "Từ" : "Since"} {entered.short}
-              </p>
-            );
-          })()}
-          <h3 className="text-[13px] font-medium leading-snug text-foreground">
-            {highlightTokens?.length
-              ? highlightMatches(task.title, highlightTokens)
-              : task.title}
-          </h3>
-        </div>
+        {onOpen ? (
+          <div
+            role="button"
+            tabIndex={0}
+            onClick={onOpen}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault();
+                onOpen();
+              }
+            }}
+            className={cn(openContentClassName, "group hover:text-accent")}
+            title={openContentTitle}
+          >
+            {mainContent}
+          </div>
+        ) : openHref ? (
+          <Link
+            href={openHref}
+            scroll={false}
+            className={cn(openContentClassName, "group hover:text-accent")}
+            title={openContentTitle}
+          >
+            {mainContent}
+          </Link>
+        ) : (
+          <div className="min-w-0 flex-1">{mainContent}</div>
+        )}
 
         <div className="flex items-center gap-1">
           {dragHandle}
@@ -821,10 +902,7 @@ function TaskCardSurface({
             </button>
           ) : hrefBase ? (
             <Link
-              href={withSearchParams(hrefBase, {
-                modal: "task",
-                task: task.id,
-              })}
+              href={openHref ?? "#"}
               onPointerDown={(event) => {
                 event.stopPropagation();
               }}
@@ -836,15 +914,6 @@ function TaskCardSurface({
           ) : null}
         </div>
       </div>
-
-      {task.description ? (() => {
-        const preview = richTextToPlainText(parseRichText(task.description));
-        return preview ? (
-          <p className="mt-2.5 line-clamp-3 break-words text-[13px] leading-6 text-muted">
-            {preview}
-          </p>
-        ) : null;
-      })() : null}
 
       <div className="mt-3 flex items-center justify-between gap-3 font-mono text-[11px] uppercase tracking-[0.04em] text-muted">
         <span className="inline-flex flex-wrap items-center gap-2">

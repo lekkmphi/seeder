@@ -22,12 +22,20 @@ import { parseRichText, type RichTextDoc } from "@/lib/rich-text";
 import { useLocale } from "@/lib/use-locale";
 import { cn } from "@/lib/utils";
 
+export type MentionUser = {
+  id: string;
+  name: string;
+  email?: string | null;
+};
+
 type Props = {
   value: string;
   onChange: (next: RichTextDoc) => void;
   placeholder?: string;
   className?: string;
   editorClassName?: string;
+  mentionUsers?: MentionUser[];
+  submitOnEnter?: () => void;
   uploadEndpoint?: string;
   ariaLabel?: string;
 };
@@ -56,6 +64,8 @@ export default function RichTextEditor({
   placeholder,
   className,
   editorClassName,
+  mentionUsers = [],
+  submitOnEnter,
   uploadEndpoint = "/api/uploads/image",
   ariaLabel,
 }: Props) {
@@ -65,6 +75,7 @@ export default function RichTextEditor({
   const fileInputId = useId();
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [mentionQuery, setMentionQuery] = useState<string | null>(null);
 
   const editor = useEditor({
     extensions: getRichTextExtensions(placeholder),
@@ -96,11 +107,57 @@ export default function RichTextEditor({
         void insertImageFromFile(file);
         return true;
       },
+      handleKeyDown(view, event) {
+        if (
+          submitOnEnter &&
+          event.key === "Enter" &&
+          !event.shiftKey &&
+          !event.metaKey &&
+          !event.ctrlKey &&
+          !event.altKey
+        ) {
+          event.preventDefault();
+          submitOnEnter();
+          return true;
+        }
+        return false;
+      },
     },
     onUpdate({ editor }) {
       onChange(editor.getJSON() as RichTextDoc);
+      setMentionQuery(readMentionQuery(editor));
+    },
+    onSelectionUpdate({ editor }) {
+      setMentionQuery(readMentionQuery(editor));
     },
   });
+
+  const mentionMatches =
+    mentionQuery === null
+      ? []
+      : mentionUsers
+          .filter((member) => {
+            const query = mentionQuery.trim().toLowerCase();
+            if (!query) return true;
+            return (
+              member.name.toLowerCase().includes(query) ||
+              (member.email ?? "").toLowerCase().includes(query)
+            );
+          })
+          .slice(0, 6);
+
+  const insertMention = (member: MentionUser) => {
+    if (!editor || mentionQuery === null) return;
+    const { from } = editor.state.selection;
+    const start = Math.max(0, from - mentionQuery.length - 1);
+    editor
+      .chain()
+      .focus()
+      .deleteRange({ from: start, to: from })
+      .insertContent(`@${member.name} `)
+      .run();
+    setMentionQuery(null);
+  };
 
   const insertImageFromFile = useCallback(
     async (file: File) => {
@@ -144,7 +201,7 @@ export default function RichTextEditor({
   }
 
   return (
-    <div className={cn("grid gap-1.5", className)}>
+    <div className={cn("relative grid gap-1.5", className)}>
       <Toolbar
         editor={editor}
         uploadEndpoint={uploadEndpoint}
@@ -166,6 +223,46 @@ export default function RichTextEditor({
         }}
       />
       <EditorContent editor={editor} />
+      {mentionMatches.length ? (
+        <div className="absolute left-0 right-0 top-full z-50 mt-1 overflow-hidden rounded-md border border-border bg-surface shadow-xl">
+          <p className="border-b border-border px-3 py-2 text-[11px] font-medium uppercase tracking-[0.04em] text-muted">
+            {vi ? "Gắn thẻ thành viên" : "Mention a member"}
+          </p>
+          <div className="max-h-56 overflow-y-auto p-1">
+            {mentionMatches.map((member) => (
+              <button
+                key={member.id}
+                type="button"
+                onMouseDown={(event) => {
+                  event.preventDefault();
+                  insertMention(member);
+                }}
+                className="flex w-full items-center gap-2 rounded-sm px-2 py-2 text-left transition hover:bg-surface-strong"
+              >
+                <span className="flex size-7 shrink-0 items-center justify-center rounded-full border border-border bg-background text-[11px] font-medium text-foreground">
+                  {member.name
+                    .split(/\s+/)
+                    .filter(Boolean)
+                    .slice(0, 2)
+                    .map((part) => part.charAt(0))
+                    .join("")
+                    .toUpperCase() || "?"}
+                </span>
+                <span className="min-w-0">
+                  <span className="block truncate text-[13px] font-medium text-foreground">
+                    @{member.name}
+                  </span>
+                  {member.email ? (
+                    <span className="block truncate text-[11px] text-muted">
+                      {member.email}
+                    </span>
+                  ) : null}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+      ) : null}
       {uploadError ? (
         <p className="font-mono text-[11px] uppercase tracking-[0.04em] text-danger">
           {uploadError}
@@ -173,6 +270,19 @@ export default function RichTextEditor({
       ) : null}
     </div>
   );
+}
+
+function readMentionQuery(editor: NonNullable<ReturnType<typeof useEditor>>) {
+  const { from, empty } = editor.state.selection;
+  if (!empty) return null;
+  const textBefore = editor.state.doc.textBetween(
+    Math.max(0, from - 48),
+    from,
+    "\n",
+    "\n",
+  );
+  const match = /(^|\s)@([\p{L}\p{N}._ -]{0,32})$/u.exec(textBefore);
+  return match ? match[2] : null;
 }
 
 function Toolbar({

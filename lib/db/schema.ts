@@ -864,6 +864,73 @@ export const requestComments = sqliteTable(
   ],
 );
 
+export const commentReactionValues = [
+  "like",
+  "dislike",
+  "heart",
+  "laugh",
+  "wow",
+  "sad",
+  "angry",
+] as const;
+export type CommentReactionType = (typeof commentReactionValues)[number];
+
+export const taskCommentReactions = sqliteTable(
+  "task_comment_reactions",
+  {
+    id: text("id").primaryKey(),
+    commentId: text("comment_id")
+      .notNull()
+      .references(() => taskComments.id, { onDelete: "cascade" }),
+    projectId: text("project_id")
+      .notNull()
+      .references(() => projects.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    reaction: text("reaction", { enum: commentReactionValues }).notNull(),
+    createdAt: integer("created_at", { mode: "timestamp_ms" })
+      .notNull()
+      .default(sql`(unixepoch() * 1000)`),
+  },
+  (table) => [
+    uniqueIndex("task_comment_reactions_user_idx").on(
+      table.commentId,
+      table.userId,
+    ),
+    index("task_comment_reactions_comment_idx").on(table.commentId),
+    index("task_comment_reactions_project_idx").on(table.projectId),
+  ],
+);
+
+export const requestCommentReactions = sqliteTable(
+  "request_comment_reactions",
+  {
+    id: text("id").primaryKey(),
+    commentId: text("comment_id")
+      .notNull()
+      .references(() => requestComments.id, { onDelete: "cascade" }),
+    projectId: text("project_id")
+      .notNull()
+      .references(() => projects.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    reaction: text("reaction", { enum: commentReactionValues }).notNull(),
+    createdAt: integer("created_at", { mode: "timestamp_ms" })
+      .notNull()
+      .default(sql`(unixepoch() * 1000)`),
+  },
+  (table) => [
+    uniqueIndex("request_comment_reactions_user_idx").on(
+      table.commentId,
+      table.userId,
+    ),
+    index("request_comment_reactions_comment_idx").on(table.commentId),
+    index("request_comment_reactions_project_idx").on(table.projectId),
+  ],
+);
+
 export const notificationReads = sqliteTable(
   "notification_reads",
   {

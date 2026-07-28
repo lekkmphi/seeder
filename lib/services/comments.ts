@@ -19,10 +19,14 @@ import { canAccessProject } from "@/lib/authz";
 import { getDb } from "@/lib/db";
 import {
   clientRequests,
+  commentReactionValues,
+  requestCommentReactions,
   requestComments,
+  taskCommentReactions,
   taskComments,
   tasks,
   user,
+  type CommentReactionType,
 } from "@/lib/db/schema";
 import { createNotifications, type NotificationInput } from "@/lib/notifications";
 import {
@@ -71,6 +75,14 @@ export type DeleteTaskCommentInput = z.infer<
   typeof deleteTaskCommentInputSchema
 >;
 
+export const toggleTaskCommentReactionInputSchema = z.object({
+  commentId: z.string().min(1),
+  reaction: z.enum(commentReactionValues),
+});
+export type ToggleTaskCommentReactionInput = z.infer<
+  typeof toggleTaskCommentReactionInputSchema
+>;
+
 export const listRequestCommentsInputSchema = z.object({
   projectId: z.string().min(1),
   requestId: z.string().min(1),
@@ -104,6 +116,14 @@ export type DeleteRequestCommentInput = z.infer<
   typeof deleteRequestCommentInputSchema
 >;
 
+export const toggleRequestCommentReactionInputSchema = z.object({
+  commentId: z.string().min(1),
+  reaction: z.enum(commentReactionValues),
+});
+export type ToggleRequestCommentReactionInput = z.infer<
+  typeof toggleRequestCommentReactionInputSchema
+>;
+
 export type CommentSummary = {
   id: string;
   parentCommentId: string | null;
@@ -112,6 +132,11 @@ export type CommentSummary = {
   text: string;
   createdAt: string;
   updatedAt: string;
+};
+
+export type CommentReactionSummary = {
+  reaction: CommentReactionType;
+  count: number;
 };
 
 // --- Helpers -----------------------------------------------------------------
@@ -293,7 +318,7 @@ export async function createTaskComment(
         ? `${viewer.name} replied to a comment`
         : `${viewer.name} commented on a task`,
       body: `${task.title}: ${commentExcerpt(content)}`,
-      href: `/projects/${input.projectId}/board?modal=task&task=${task.id}`,
+      href: `/projects/${input.projectId}/board?modal=task&task=${task.id}#comment-${commentId}`,
       entityType: "task",
       entityId: task.id,
     })),
@@ -389,6 +414,60 @@ export async function deleteTaskComment(
     detail: commentExcerpt(comment.content),
     createdAt: new Date(),
   });
+
+  return { commentId: comment.id, projectId: comment.projectId };
+}
+
+export async function toggleTaskCommentReaction(
+  viewer: Viewer,
+  input: ToggleTaskCommentReactionInput,
+): Promise<{ commentId: string; projectId: string }> {
+  const db = getDb();
+  const [comment] = await db
+    .select({
+      id: taskComments.id,
+      projectId: taskComments.projectId,
+    })
+    .from(taskComments)
+    .where(eq(taskComments.id, input.commentId))
+    .limit(1);
+  if (!comment) throw new Error("Comment not found.");
+
+  await assertProjectCapability(viewer, comment.projectId, "comment.write");
+
+  const [existing] = await db
+    .select({
+      id: taskCommentReactions.id,
+      reaction: taskCommentReactions.reaction,
+    })
+    .from(taskCommentReactions)
+    .where(
+      and(
+        eq(taskCommentReactions.commentId, comment.id),
+        eq(taskCommentReactions.userId, viewer.id),
+      ),
+    )
+    .limit(1);
+
+  if (existing?.reaction === input.reaction) {
+    await db
+      .delete(taskCommentReactions)
+      .where(eq(taskCommentReactions.id, existing.id));
+  } else if (existing) {
+    await db
+      .update(taskCommentReactions)
+      .set({ reaction: input.reaction, createdAt: new Date() })
+      .where(eq(taskCommentReactions.id, existing.id));
+  } else {
+    await db.insert(taskCommentReactions).values({
+      id: crypto.randomUUID(),
+      commentId: comment.id,
+      projectId: comment.projectId,
+      userId: viewer.id,
+      reaction: input.reaction,
+      createdAt: new Date(),
+    });
+  }
 
   return { commentId: comment.id, projectId: comment.projectId };
 }
@@ -531,7 +610,7 @@ export async function createRequestComment(
         ? `${viewer.name} replied to a comment`
         : `${viewer.name} commented on a request`,
       body: `${request.title}: ${commentExcerpt(content)}`,
-      href: `/projects/${input.projectId}/requests?modal=request&request=${request.id}`,
+      href: `/projects/${input.projectId}/requests?modal=request&request=${request.id}#comment-${commentId}`,
       entityType: "request",
       entityId: request.id,
     })),
@@ -629,6 +708,60 @@ export async function deleteRequestComment(
     detail: commentExcerpt(comment.content),
     createdAt: new Date(),
   });
+
+  return { commentId: comment.id, projectId: comment.projectId };
+}
+
+export async function toggleRequestCommentReaction(
+  viewer: Viewer,
+  input: ToggleRequestCommentReactionInput,
+): Promise<{ commentId: string; projectId: string }> {
+  const db = getDb();
+  const [comment] = await db
+    .select({
+      id: requestComments.id,
+      projectId: requestComments.projectId,
+    })
+    .from(requestComments)
+    .where(eq(requestComments.id, input.commentId))
+    .limit(1);
+  if (!comment) throw new Error("Comment not found.");
+
+  await assertProjectCapability(viewer, comment.projectId, "comment.write");
+
+  const [existing] = await db
+    .select({
+      id: requestCommentReactions.id,
+      reaction: requestCommentReactions.reaction,
+    })
+    .from(requestCommentReactions)
+    .where(
+      and(
+        eq(requestCommentReactions.commentId, comment.id),
+        eq(requestCommentReactions.userId, viewer.id),
+      ),
+    )
+    .limit(1);
+
+  if (existing?.reaction === input.reaction) {
+    await db
+      .delete(requestCommentReactions)
+      .where(eq(requestCommentReactions.id, existing.id));
+  } else if (existing) {
+    await db
+      .update(requestCommentReactions)
+      .set({ reaction: input.reaction, createdAt: new Date() })
+      .where(eq(requestCommentReactions.id, existing.id));
+  } else {
+    await db.insert(requestCommentReactions).values({
+      id: crypto.randomUUID(),
+      commentId: comment.id,
+      projectId: comment.projectId,
+      userId: viewer.id,
+      reaction: input.reaction,
+      createdAt: new Date(),
+    });
+  }
 
   return { commentId: comment.id, projectId: comment.projectId };
 }
