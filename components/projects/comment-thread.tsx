@@ -1,7 +1,12 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
-import { ArrowBendUpLeft, CircleNotch, X } from "@phosphor-icons/react";
+import {
+  ArrowBendUpLeft,
+  CircleNotch,
+  PaperPlaneTilt,
+  X,
+} from "@phosphor-icons/react";
 
 import { RichTextEditor, RichTextRenderer } from "@/components/rich-text";
 import type { MentionUser } from "@/components/rich-text/rich-text-editor";
@@ -27,13 +32,44 @@ export type CommentItem = {
   authorImage: string | null;
   createdAt: Date;
   updatedAt: Date;
+  reactions: Array<{ reaction: string; count: number }>;
+  viewerReaction: string | null;
 };
 
 type Actions = {
   create: (formData: FormData) => Promise<void>;
   update: (formData: FormData) => Promise<void>;
   remove: (formData: FormData) => Promise<void>;
+  react: (formData: FormData) => Promise<void>;
 };
+
+type ReactionType =
+  | "like"
+  | "dislike"
+  | "heart"
+  | "laugh"
+  | "wow"
+  | "sad"
+  | "angry";
+
+const reactionOptions: Array<{
+  value: ReactionType;
+  icon: string;
+  labelVi: string;
+  labelEn: string;
+}> = [
+  { value: "like", icon: "👍", labelVi: "Thích", labelEn: "Like" },
+  { value: "dislike", icon: "👎", labelVi: "Không thích", labelEn: "Dislike" },
+  { value: "heart", icon: "❤️", labelVi: "Thả tim", labelEn: "Love" },
+  { value: "laugh", icon: "😂", labelVi: "Haha", labelEn: "Haha" },
+  { value: "wow", icon: "😮", labelVi: "Wow", labelEn: "Wow" },
+  { value: "sad", icon: "😢", labelVi: "Buồn", labelEn: "Sad" },
+  { value: "angry", icon: "😡", labelVi: "Phẫn nộ", labelEn: "Angry" },
+];
+
+const hoverReactionOptions = reactionOptions.filter(
+  (option) => option.value !== "dislike",
+);
 
 function timeAgo(date: Date, locale: Locale) {
   const diff = Date.now() - date.getTime();
@@ -61,6 +97,9 @@ export function CommentThread({
   projectId,
   parentId,
   viewerId,
+  viewerName,
+  viewerEmail,
+  viewerImage,
   viewerCanModerate,
   mentionUsers,
   actions,
@@ -69,6 +108,9 @@ export function CommentThread({
   projectId: string;
   parentId: string;
   viewerId: string;
+  viewerName: string;
+  viewerEmail: string;
+  viewerImage: string | null;
   viewerCanModerate: boolean;
   mentionUsers: MentionUser[];
   actions: Actions;
@@ -168,6 +210,9 @@ export function CommentThread({
               projectId={projectId}
               parentId={parentId}
               viewerId={viewerId}
+              viewerName={viewerName}
+              viewerEmail={viewerEmail}
+              viewerImage={viewerImage}
               viewerCanModerate={viewerCanModerate}
               editingId={editingId}
               replyingToId={replyingToId}
@@ -192,6 +237,9 @@ export function CommentThread({
         createAction={actions.create}
         locale={locale}
         mentionUsers={mentionUsers}
+        viewerName={viewerName}
+        viewerEmail={viewerEmail}
+        viewerImage={viewerImage}
         onDone={() => setReplyingToId(null)}
       />
     </section>
@@ -206,6 +254,9 @@ function CommentNode({
   projectId,
   parentId,
   viewerId,
+  viewerName,
+  viewerEmail,
+  viewerImage,
   viewerCanModerate,
   editingId,
   replyingToId,
@@ -222,6 +273,9 @@ function CommentNode({
   projectId: string;
   parentId: string;
   viewerId: string;
+  viewerName: string;
+  viewerEmail: string;
+  viewerImage: string | null;
   viewerCanModerate: boolean;
   editingId: string | null;
   replyingToId: string | null;
@@ -282,33 +336,25 @@ function CommentNode({
                 </div>
               </div>
 
-              <div className="mt-1 flex items-center gap-3 px-3 text-[12px] font-medium text-muted">
-                <button
-                  type="button"
-                  onClick={() => onReply(replyingToId === comment.id ? null : comment.id)}
-                  className="inline-flex items-center gap-1 transition hover:text-foreground"
-                >
-                  <ArrowBendUpLeft className="size-3.5" />
-                  {locale === "vi" ? "Trả lời" : "Reply"}
-                </button>
-                {canEdit ? (
-                  <button
-                    type="button"
-                    onClick={() => onEdit(comment.id)}
-                    className="transition hover:text-foreground"
-                    title={locale === "vi" ? "Sửa bình luận" : "Edit comment"}
-                  >
-                    {locale === "vi" ? "Sửa" : "Edit"}
-                  </button>
-                ) : null}
-                {canDelete ? (
-                  <DeleteCommentButton
-                    commentId={comment.id}
-                    deleteAction={actions.remove}
-                    locale={locale}
-                  />
-                ) : null}
-              </div>
+              <ReactionBar
+                comment={comment}
+                reactAction={actions.react}
+                locale={locale}
+                isReplying={replyingToId === comment.id}
+                onReply={() =>
+                  onReply(replyingToId === comment.id ? null : comment.id)
+                }
+                onEdit={canEdit ? () => onEdit(comment.id) : null}
+                deleteButton={
+                  canDelete ? (
+                    <DeleteCommentButton
+                      commentId={comment.id}
+                      deleteAction={actions.remove}
+                      locale={locale}
+                    />
+                  ) : null
+                }
+              />
             </>
           )}
         </div>
@@ -325,6 +371,9 @@ function CommentNode({
             createAction={actions.create}
             locale={locale}
             mentionUsers={mentionUsers}
+            viewerName={viewerName}
+            viewerEmail={viewerEmail}
+            viewerImage={viewerImage}
             replyingToName={comment.authorName}
             onDone={() => onReply(null)}
           />
@@ -343,6 +392,9 @@ function CommentNode({
               projectId={projectId}
               parentId={parentId}
               viewerId={viewerId}
+              viewerName={viewerName}
+              viewerEmail={viewerEmail}
+              viewerImage={viewerImage}
               viewerCanModerate={viewerCanModerate}
               editingId={editingId}
               replyingToId={replyingToId}
@@ -366,6 +418,9 @@ function ComposeForm({
   createAction,
   locale,
   mentionUsers,
+  viewerName,
+  viewerEmail,
+  viewerImage,
   replyingToName,
   onDone,
 }: {
@@ -375,6 +430,9 @@ function ComposeForm({
   createAction: (formData: FormData) => Promise<void>;
   locale: Locale;
   mentionUsers: MentionUser[];
+  viewerName: string;
+  viewerEmail: string;
+  viewerImage: string | null;
   replyingToName?: string;
   onDone?: () => void;
 }) {
@@ -415,7 +473,7 @@ function ComposeForm({
   return (
     // Enter posts; Shift+Enter inserts a newline.
     <div
-      className="flex gap-2.5"
+      className="flex items-start gap-2.5"
       onKeyDown={(event) => {
         if (event.key === "Enter" && !event.shiftKey) {
           event.preventDefault();
@@ -423,54 +481,219 @@ function ComposeForm({
         }
       }}
     >
-      <div className="size-8 shrink-0 rounded-full border border-border bg-surface-subtle" />
-      <div className="grid min-w-0 flex-1 gap-2 rounded-2xl bg-surface-subtle p-2">
+      <Avatar
+        name={viewerName}
+        email={viewerEmail}
+        image={viewerImage}
+        px={32}
+        className="mt-0.5 size-8 rounded-full text-[11px]"
+      />
+      <div className="min-w-0 flex-1 rounded-[22px] bg-surface-subtle px-3 py-2 shadow-sm ring-1 ring-border/70">
         {parentCommentId ? (
-          <p className="px-1 text-[12px] font-medium text-muted">
+          <p className="mb-1 px-1 text-[12px] font-medium text-muted">
             {locale === "vi"
               ? `Trả lời ${replyingToName ?? ""}`
               : `Reply to ${replyingToName ?? "comment"}`}
           </p>
         ) : null}
-        <RichTextEditor
-          key={resetKey}
-          value={serializeRichText(parseRichText(null))}
-          onChange={setDoc}
-          mentionUsers={mentionUsers}
-          submitOnEnter={post}
-          placeholder={
-            parentCommentId
-              ? locale === "vi" ? "Viết phản hồi..." : "Write a reply..."
-              : locale === "vi" ? "Viết bình luận..." : "Write a comment..."
-          }
-          editorClassName="min-h-16 max-h-64 rounded-xl border-transparent bg-background/70 px-3 py-2 leading-5 focus:border-border"
-          ariaLabel={
-            parentCommentId
-              ? locale === "vi" ? "Trả lời bình luận" : "Reply to comment"
-              : locale === "vi" ? "Bình luận mới" : "New comment"
-          }
-        />
+        <div className="relative">
+          <RichTextEditor
+            key={resetKey}
+            value={serializeRichText(parseRichText(null))}
+            onChange={setDoc}
+            mentionUsers={mentionUsers}
+            submitOnEnter={post}
+            placeholder={
+              parentCommentId
+                ? locale === "vi" ? "Viết phản hồi..." : "Write a reply..."
+                : locale === "vi" ? "Viết bình luận..." : "Write a comment..."
+            }
+            className="comment-composer-editor"
+            editorClassName="min-h-10 max-h-40 rounded-none border-0 bg-transparent py-1 pl-0 pr-11 text-[14px] leading-6 focus:border-0"
+            ariaLabel={
+              parentCommentId
+                ? locale === "vi" ? "Trả lời bình luận" : "Reply to comment"
+                : locale === "vi" ? "Bình luận mới" : "New comment"
+            }
+          />
+          <button
+            type="button"
+            onClick={post}
+            disabled={isPending || richTextIsEmpty(doc)}
+            className={cn(
+              "absolute right-0 top-1 inline-flex size-8 items-center justify-center rounded-full bg-emerald text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-45",
+            )}
+            title={
+              locale === "vi"
+                ? "Enter để đăng, Shift+Enter để xuống dòng"
+                : "Enter to post, Shift+Enter for a new line"
+            }
+          >
+            {isPending ? (
+              <CircleNotch className="size-4 animate-spin" />
+            ) : (
+              <PaperPlaneTilt className="size-4" weight="fill" />
+            )}
+            <span className="sr-only">
+              {isPending
+                ? locale === "vi" ? "Đang đăng..." : "Posting..."
+                : parentCommentId
+                  ? locale === "vi" ? "Trả lời" : "Reply"
+                  : locale === "vi" ? "Bình luận" : "Comment"}
+            </span>
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ReactionBar({
+  comment,
+  reactAction,
+  locale,
+  isReplying,
+  onReply,
+  onEdit,
+  deleteButton,
+}: {
+  comment: CommentItem;
+  reactAction: (formData: FormData) => Promise<void>;
+  locale: Locale;
+  isReplying: boolean;
+  onReply: () => void;
+  onEdit: (() => void) | null;
+  deleteButton: React.ReactNode;
+}) {
+  const [isPending, startTransition] = useTransition();
+  const counts = new Map(
+    comment.reactions.map((reaction) => [reaction.reaction, reaction.count]),
+  );
+  const total = comment.reactions.reduce(
+    (sum, reaction) => sum + reaction.count,
+    0,
+  );
+  const selectedReaction = reactionOptions.find(
+    (option) => option.value === comment.viewerReaction,
+  );
+  const likeSelected =
+    comment.viewerReaction !== null && comment.viewerReaction !== "dislike";
+  const dislikeSelected = comment.viewerReaction === "dislike";
+
+  const react = (reaction: ReactionType) => {
+    if (isPending) return;
+    const formData = new FormData();
+    formData.set("commentId", comment.id);
+    formData.set("reaction", reaction);
+    startTransition(async () => {
+      try {
+        await reactAction(formData);
+      } catch (error: unknown) {
+        toast(
+          error instanceof Error
+            ? error.message
+            : locale === "vi" ? "Không thể thả cảm xúc" : "Could not react",
+          "danger",
+        );
+      }
+    });
+  };
+
+  return (
+    <div className="mt-1 flex flex-wrap items-center gap-3 px-3 text-[12px] font-semibold text-muted">
+      <div className="group/reactions relative -ml-1">
+        <div className="pointer-events-none absolute bottom-full left-0 z-30 -mb-1 pb-2 opacity-0 transition duration-150 group-hover/reactions:pointer-events-auto group-hover/reactions:opacity-100 group-focus-within/reactions:pointer-events-auto group-focus-within/reactions:opacity-100">
+          <div className="flex translate-y-1 items-center gap-1 rounded-full border border-border bg-surface-strong px-1.5 py-1 shadow-lg ring-1 ring-black/5 transition duration-150 group-hover/reactions:translate-y-0 group-focus-within/reactions:translate-y-0">
+            {hoverReactionOptions.map((option) => {
+              const selected = comment.viewerReaction === option.value;
+              const count = counts.get(option.value) ?? 0;
+              return (
+                <button
+                  key={option.value}
+                  type="button"
+                  disabled={isPending}
+                  onClick={() => react(option.value)}
+                  aria-pressed={selected}
+                  title={locale === "vi" ? option.labelVi : option.labelEn}
+                  className={cn(
+                    "inline-flex size-9 items-center justify-center rounded-full text-[22px] transition hover:-translate-y-1 hover:scale-110 disabled:cursor-not-allowed disabled:opacity-60",
+                    selected && "bg-accent-soft ring-2 ring-accent/40",
+                  )}
+                >
+                  <span aria-hidden>{option.icon}</span>
+                  {count ? <span className="sr-only">{count}</span> : null}
+                </button>
+              );
+            })}
+          </div>
+        </div>
         <button
           type="button"
-          onClick={post}
-          disabled={isPending || richTextIsEmpty(doc)}
+          disabled={isPending}
+          onClick={() => react("like")}
+          aria-pressed={likeSelected}
           className={cn(
-            "ui-button-primary justify-self-end px-4 disabled:cursor-not-allowed disabled:opacity-60",
+            "inline-flex items-center gap-1 rounded-full px-1 py-0.5 transition hover:text-foreground disabled:cursor-not-allowed disabled:opacity-60",
+            likeSelected && "text-accent",
           )}
-          title={
-            locale === "vi"
-              ? "Enter để đăng, Shift+Enter để xuống dòng"
-              : "Enter to post, Shift+Enter for a new line"
-          }
         >
-          {isPending ? <CircleNotch className="size-4 animate-spin" /> : null}
-          {isPending
-            ? locale === "vi" ? "Đang đăng..." : "Posting..."
-            : parentCommentId
-              ? locale === "vi" ? "Trả lời" : "Reply"
-              : locale === "vi" ? "Bình luận" : "Comment"}
+          <span aria-hidden>{likeSelected ? selectedReaction?.icon : "👍"}</span>
+          <span className="sr-only">{locale === "vi" ? "Thích" : "Like"}</span>
         </button>
       </div>
+      <button
+        type="button"
+        disabled={isPending}
+        onClick={() => react("dislike")}
+        aria-pressed={dislikeSelected}
+        className={cn(
+          "inline-flex items-center gap-1 rounded-full px-1 py-0.5 transition hover:text-foreground disabled:cursor-not-allowed disabled:opacity-60",
+          dislikeSelected && "text-accent",
+        )}
+      >
+        <span aria-hidden>👎</span>
+        <span className="sr-only">
+          {locale === "vi" ? "Không thích" : "Dislike"}
+        </span>
+      </button>
+      <button
+        type="button"
+        onClick={onReply}
+        aria-pressed={isReplying}
+        className={cn(
+          "inline-flex items-center gap-1 rounded-full px-1 py-0.5 transition hover:text-foreground",
+          isReplying && "text-accent",
+        )}
+      >
+        <ArrowBendUpLeft className="size-3.5" />
+        {locale === "vi" ? "Trả lời" : "Reply"}
+      </button>
+      {onEdit ? (
+        <button
+          type="button"
+          onClick={onEdit}
+          className="rounded-full px-1 py-0.5 transition hover:text-foreground"
+          title={locale === "vi" ? "Sửa bình luận" : "Edit comment"}
+        >
+          {locale === "vi" ? "Sửa" : "Edit"}
+        </button>
+      ) : null}
+      {deleteButton}
+      {total ? (
+        <span className="inline-flex items-center gap-1 text-[11px] font-medium text-muted">
+          {comment.reactions.slice(0, 3).map((reaction) => {
+            const option = reactionOptions.find(
+              (item) => item.value === reaction.reaction,
+            );
+            return option ? (
+              <span key={reaction.reaction} aria-hidden>
+                {option.icon}
+              </span>
+            ) : null;
+          })}
+          {total}
+        </span>
+      ) : null}
     </div>
   );
 }

@@ -110,7 +110,7 @@ export default async function ProjectHistoryPage({
     <ProjectWorkspaceClientShell
       workspace={workspace}
       currentPath={currentPath}
-      viewer={{ id: viewer.id, role: viewer.role }}
+      viewer={viewer}
     >
       <div className="grid grid-cols-[minmax(0,1fr)] gap-4">
         <ProjectHistoryFilters

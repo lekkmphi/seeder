@@ -42,7 +42,7 @@ export default async function ProjectOverviewPage({
     <ProjectWorkspaceClientShell
       workspace={workspace}
       currentPath={currentPath}
-      viewer={{ id: viewer.id, role: viewer.role }}
+      viewer={viewer}
     >
       <ProjectMetricsStrip workspace={workspace} locale={locale} />
 

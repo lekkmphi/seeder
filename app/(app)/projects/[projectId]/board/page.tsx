@@ -65,7 +65,7 @@ export default async function ProjectBoardPage({
     <ProjectWorkspaceClientShell
       workspace={workspace}
       currentPath={currentPath}
-      viewer={{ id: viewer.id, role: viewer.role }}
+      viewer={viewer}
     >
       <ProjectMetricsStrip workspace={workspace} locale={locale} />
       <ProjectBoardSurface

@@ -38,7 +38,7 @@ export default async function ProjectNotesPage({
     <ProjectWorkspaceClientShell
       workspace={workspace}
       currentPath={currentPath}
-      viewer={{ id: viewer.id, role: viewer.role }}
+      viewer={viewer}
     >
       <ProjectNotesSurface
         workspace={workspace}

@@ -701,6 +701,22 @@ select:disabled {
 .comment-prose pre + p {
   margin-top: 0.45rem;
 }
+.comment-composer-editor {
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 0.35rem;
+}
+.comment-composer-editor > div:first-child {
+  border: 0;
+  background: transparent;
+  padding: 0;
+}
+.comment-composer-editor > div:first-child button {
+  border-radius: 999px;
+}
+.comment-composer-editor .ProseMirror {
+  min-height: 2.25rem;
+}
 .comment-target-highlight {
   animation: comment-target-pulse 1.6s ease-out;
 }

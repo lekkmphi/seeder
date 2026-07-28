@@ -30,7 +30,7 @@ export default async function ProjectSettingsPage({
     <ProjectWorkspaceClientShell
       workspace={workspace}
       currentPath={currentPath}
-      viewer={{ id: viewer.id, role: viewer.role }}
+      viewer={viewer}
     >
       <ProjectSettingsSurface
         workspace={workspace}

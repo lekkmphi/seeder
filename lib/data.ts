@@ -33,9 +33,11 @@ import {
   projectNotes,
   projectStatusUpdates,
   projects,
+  requestCommentReactions,
   requestComments,
   taskCategories,
   taskChecklistItems,
+  taskCommentReactions,
   taskComments,
   taskLabels,
   taskStatuses,
@@ -1442,7 +1444,7 @@ export async function getTaskModalDetail(
 ) {
   if (!(await canAccessProject(viewer, projectId))) return null;
   const db = getDb();
-  const [checklistItems, comments, statusUpdateRows] = await Promise.all([
+  const [checklistItems, comments, commentReactions, statusUpdateRows] = await Promise.all([
     db
       .select()
       .from(taskChecklistItems)
@@ -1478,6 +1480,14 @@ export async function getTaskModalDetail(
       )
       .orderBy(asc(taskComments.createdAt)),
     db
+      .select({
+        commentId: taskCommentReactions.commentId,
+        userId: taskCommentReactions.userId,
+        reaction: taskCommentReactions.reaction,
+      })
+      .from(taskCommentReactions)
+      .where(eq(taskCommentReactions.projectId, projectId)),
+    db
       .select()
       .from(projectStatusUpdates)
       .where(
@@ -1489,9 +1499,31 @@ export async function getTaskModalDetail(
       .orderBy(desc(projectStatusUpdates.createdAt))
       .limit(1),
   ]);
+  const reactionsByComment = new Map<
+    string,
+    {
+      counts: Record<string, number>;
+      viewerReaction: string | null;
+    }
+  >();
+  for (const reaction of commentReactions) {
+    const entry =
+      reactionsByComment.get(reaction.commentId) ??
+      { counts: {}, viewerReaction: null };
+    entry.counts[reaction.reaction] = (entry.counts[reaction.reaction] ?? 0) + 1;
+    if (reaction.userId === viewer.id) entry.viewerReaction = reaction.reaction;
+    reactionsByComment.set(reaction.commentId, entry);
+  }
+
   return {
     checklistItems,
-    comments,
+    comments: comments.map((comment) => ({
+      ...comment,
+      reactions: Object.entries(reactionsByComment.get(comment.id)?.counts ?? {}).map(
+        ([reaction, count]) => ({ reaction, count }),
+      ),
+      viewerReaction: reactionsByComment.get(comment.id)?.viewerReaction ?? null,
+    })),
     publishedUpdate: statusUpdateRows[0] ?? null,
   };
 }
@@ -1507,28 +1539,63 @@ export async function getRequestModalDetail(
 ) {
   if (!(await canAccessProject(viewer, projectId))) return null;
   const db = getDb();
-  const comments = await db
-    .select({
-      id: requestComments.id,
-      parentCommentId: requestComments.parentCommentId,
-      requestId: requestComments.requestId,
-      content: requestComments.content,
-      authorId: requestComments.authorId,
-      authorName: user.name,
-      authorImage: user.image,
-      createdAt: requestComments.createdAt,
-      updatedAt: requestComments.updatedAt,
-    })
-    .from(requestComments)
-    .innerJoin(user, eq(user.id, requestComments.authorId))
-    .where(
-      and(
-        eq(requestComments.projectId, projectId),
-        eq(requestComments.requestId, requestId),
+  const [comments, commentReactions] = await Promise.all([
+    db
+      .select({
+        id: requestComments.id,
+        parentCommentId: requestComments.parentCommentId,
+        requestId: requestComments.requestId,
+        content: requestComments.content,
+        authorId: requestComments.authorId,
+        authorName: user.name,
+        authorImage: user.image,
+        createdAt: requestComments.createdAt,
+        updatedAt: requestComments.updatedAt,
+      })
+      .from(requestComments)
+      .innerJoin(user, eq(user.id, requestComments.authorId))
+      .where(
+        and(
+          eq(requestComments.projectId, projectId),
+          eq(requestComments.requestId, requestId),
+        ),
+      )
+      .orderBy(asc(requestComments.createdAt)),
+    db
+      .select({
+        commentId: requestCommentReactions.commentId,
+        userId: requestCommentReactions.userId,
+        reaction: requestCommentReactions.reaction,
+      })
+      .from(requestCommentReactions)
+      .where(eq(requestCommentReactions.projectId, projectId)),
+  ]);
+
+  const reactionsByComment = new Map<
+    string,
+    {
+      counts: Record<string, number>;
+      viewerReaction: string | null;
+    }
+  >();
+  for (const reaction of commentReactions) {
+    const entry =
+      reactionsByComment.get(reaction.commentId) ??
+      { counts: {}, viewerReaction: null };
+    entry.counts[reaction.reaction] = (entry.counts[reaction.reaction] ?? 0) + 1;
+    if (reaction.userId === viewer.id) entry.viewerReaction = reaction.reaction;
+    reactionsByComment.set(reaction.commentId, entry);
+  }
+
+  return {
+    comments: comments.map((comment) => ({
+      ...comment,
+      reactions: Object.entries(reactionsByComment.get(comment.id)?.counts ?? {}).map(
+        ([reaction, count]) => ({ reaction, count }),
       ),
-    )
-    .orderBy(asc(requestComments.createdAt));
-  return { comments };
+      viewerReaction: reactionsByComment.get(comment.id)?.viewerReaction ?? null,
+    })),
+  };
 }
 
 export type TaskModalDetail = NonNullable<

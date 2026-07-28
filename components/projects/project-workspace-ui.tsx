@@ -46,6 +46,8 @@ import {
   createTaskCommentAction,
   deleteRequestCommentAction,
   deleteTaskCommentAction,
+  toggleRequestCommentReactionAction,
+  toggleTaskCommentReactionAction,
   updateRequestCommentAction,
   updateTaskCommentAction,
 } from "@/lib/actions";
@@ -825,7 +827,13 @@ function ProjectWorkspaceModalHost({
 }: {
   workspace: ProjectWorkspace;
   currentPath: string;
-  viewer: { id: string; role: UserRole };
+  viewer: {
+    id: string;
+    email: string;
+    name: string;
+    role: UserRole;
+    image: string | null;
+  };
   modalState: WorkspaceModalState;
   onClose: () => void;
   openModal: (state: NonNullable<WorkspaceModalState>) => void;
@@ -1307,10 +1315,10 @@ function ProjectWorkspaceModalHost({
                         refreshWorkspace();
                       }}
                       className={cn(
-                        "inline-flex size-7 items-center justify-center rounded-sm border transition disabled:cursor-not-allowed disabled:opacity-60",
+                        "inline-flex size-8 shrink-0 items-center justify-center rounded-md border transition disabled:cursor-not-allowed disabled:opacity-60",
                         item.isCompleted
                           ? "border-emerald/40 bg-emerald/10 text-emerald"
-                          : "border-border bg-background text-muted hover:border-border-strong hover:bg-surface-strong hover:text-foreground",
+                          : "border-border-strong bg-background text-transparent hover:border-emerald/40 hover:bg-emerald/5 hover:text-emerald",
                       )}
                     >
                       {pendingAction === `toggle-checklist-${item.id}` ? (
@@ -1318,7 +1326,7 @@ function ProjectWorkspaceModalHost({
                       ) : item.isCompleted ? (
                         <Check className="size-4" />
                       ) : (
-                        <span className="size-2 rounded-full bg-current" />
+                        <span aria-hidden className="size-4" />
                       )}
                       <span className="sr-only">
                         {item.isCompleted
@@ -1597,10 +1605,15 @@ function ProjectWorkspaceModalHost({
                 authorImage: c.authorImage,
                 createdAt: c.createdAt,
                 updatedAt: c.updatedAt,
+                reactions: c.reactions,
+                viewerReaction: c.viewerReaction,
               }))}
               projectId={workspace.project.id}
               parentId={selectedTask.id}
               viewerId={viewer.id}
+              viewerName={viewer.name}
+              viewerEmail={viewer.email}
+              viewerImage={viewer.image}
               viewerCanModerate={viewerCanModerate}
               mentionUsers={workspace.members.map((member) => ({
                 id: member.userId,
@@ -1611,6 +1624,7 @@ function ProjectWorkspaceModalHost({
                 create: withDetailRefresh(createTaskCommentAction),
                 update: withDetailRefresh(updateTaskCommentAction),
                 remove: withDetailRefresh(deleteTaskCommentAction),
+                react: withDetailRefresh(toggleTaskCommentReactionAction),
               }}
             />
           ) : (
@@ -2093,10 +2107,15 @@ function ProjectWorkspaceModalHost({
                 authorImage: c.authorImage,
                 createdAt: c.createdAt,
                 updatedAt: c.updatedAt,
+                reactions: c.reactions,
+                viewerReaction: c.viewerReaction,
               }))}
               projectId={workspace.project.id}
               parentId={selectedRequest.id}
               viewerId={viewer.id}
+              viewerName={viewer.name}
+              viewerEmail={viewer.email}
+              viewerImage={viewer.image}
               viewerCanModerate={viewerCanModerate}
               mentionUsers={workspace.members.map((member) => ({
                 id: member.userId,
@@ -2107,6 +2126,7 @@ function ProjectWorkspaceModalHost({
                 create: withDetailRefresh(createRequestCommentAction),
                 update: withDetailRefresh(updateRequestCommentAction),
                 remove: withDetailRefresh(deleteRequestCommentAction),
+                react: withDetailRefresh(toggleRequestCommentReactionAction),
               }}
             />
           ) : (
@@ -2258,7 +2278,13 @@ export function ProjectWorkspaceClientShell({
 }: {
   workspace: ProjectWorkspace;
   currentPath: string;
-  viewer: { id: string; role: UserRole };
+  viewer: {
+    id: string;
+    email: string;
+    name: string;
+    role: UserRole;
+    image: string | null;
+  };
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
