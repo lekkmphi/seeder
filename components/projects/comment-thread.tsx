@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { ArrowBendUpLeft, CircleNotch, X } from "@phosphor-icons/react";
 
 import { RichTextEditor, RichTextRenderer } from "@/components/rich-text";
@@ -78,6 +78,7 @@ export function CommentThread({
   const [replyingToId, setReplyingToId] = useState<string | null>(null);
   const repliesByParent = new Map<string, CommentItem[]>();
   const roots: CommentItem[] = [];
+  const commentTargetKey = comments.map((comment) => comment.id).join(",");
 
   for (const comment of comments) {
     if (comment.parentCommentId) {
@@ -88,6 +89,43 @@ export function CommentThread({
       roots.push(comment);
     }
   }
+
+  useEffect(() => {
+    if (!comments.length) return;
+
+    let highlightedTarget: HTMLElement | null = null;
+    let highlightTimer: number | undefined;
+
+    const scrollToHashComment = () => {
+      if (!window.location.hash.startsWith("#comment-")) return;
+
+      const targetId = decodeURIComponent(window.location.hash.slice(1));
+      const target = document.getElementById(targetId);
+      if (!target) return;
+
+      requestAnimationFrame(() => {
+        target.scrollIntoView({ behavior: "smooth", block: "center" });
+        highlightedTarget?.classList.remove("comment-target-highlight");
+        highlightedTarget = target;
+        target.classList.add("comment-target-highlight");
+        window.clearTimeout(highlightTimer);
+        highlightTimer = window.setTimeout(() => {
+          target.classList.remove("comment-target-highlight");
+        }, 1800);
+      });
+    };
+
+    scrollToHashComment();
+    window.addEventListener("hashchange", scrollToHashComment);
+
+    return () => {
+      window.removeEventListener("hashchange", scrollToHashComment);
+      if (highlightTimer) {
+        window.clearTimeout(highlightTimer);
+      }
+      highlightedTarget?.classList.remove("comment-target-highlight");
+    };
+  }, [commentTargetKey, comments.length]);
 
   return (
     <section className="grid gap-4">
@@ -181,7 +219,7 @@ function CommentNode({
   const replies = repliesByParent.get(comment.id) ?? [];
 
   return (
-    <li>
+    <li id={`comment-${comment.id}`} className="scroll-mt-24 rounded-[20px]">
       <div className="flex gap-2.5">
         <Avatar
           name={comment.authorName}

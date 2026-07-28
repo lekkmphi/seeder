@@ -293,7 +293,7 @@ export async function createTaskComment(
         ? `${viewer.name} replied to a comment`
         : `${viewer.name} commented on a task`,
       body: `${task.title}: ${commentExcerpt(content)}`,
-      href: `/projects/${input.projectId}/board?modal=task&task=${task.id}`,
+      href: `/projects/${input.projectId}/board?modal=task&task=${task.id}#comment-${commentId}`,
       entityType: "task",
       entityId: task.id,
     })),
@@ -531,7 +531,7 @@ export async function createRequestComment(
         ? `${viewer.name} replied to a comment`
         : `${viewer.name} commented on a request`,
       body: `${request.title}: ${commentExcerpt(content)}`,
-      href: `/projects/${input.projectId}/requests?modal=request&request=${request.id}`,
+      href: `/projects/${input.projectId}/requests?modal=request&request=${request.id}#comment-${commentId}`,
       entityType: "request",
       entityId: request.id,
     })),
