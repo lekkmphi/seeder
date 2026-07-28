@@ -35,6 +35,7 @@ type Props = {
   className?: string;
   editorClassName?: string;
   mentionUsers?: MentionUser[];
+  submitOnEnter?: () => void;
   uploadEndpoint?: string;
   ariaLabel?: string;
 };
@@ -64,6 +65,7 @@ export default function RichTextEditor({
   className,
   editorClassName,
   mentionUsers = [],
+  submitOnEnter,
   uploadEndpoint = "/api/uploads/image",
   ariaLabel,
 }: Props) {
@@ -104,6 +106,21 @@ export default function RichTextEditor({
         event.preventDefault();
         void insertImageFromFile(file);
         return true;
+      },
+      handleKeyDown(view, event) {
+        if (
+          submitOnEnter &&
+          event.key === "Enter" &&
+          !event.shiftKey &&
+          !event.metaKey &&
+          !event.ctrlKey &&
+          !event.altKey
+        ) {
+          event.preventDefault();
+          submitOnEnter();
+          return true;
+        }
+        return false;
       },
     },
     onUpdate({ editor }) {

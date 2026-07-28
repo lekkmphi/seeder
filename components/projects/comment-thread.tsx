@@ -356,11 +356,11 @@ function ComposeForm({
   };
 
   return (
-    // Enter inserts a newline in the editor, so Cmd/Ctrl+Enter posts.
+    // Enter posts; Shift+Enter inserts a newline.
     <div
       className="flex gap-2.5"
       onKeyDown={(event) => {
-        if (event.key === "Enter" && (event.metaKey || event.ctrlKey)) {
+        if (event.key === "Enter" && !event.shiftKey) {
           event.preventDefault();
           post();
         }
@@ -380,6 +380,7 @@ function ComposeForm({
           value={serializeRichText(parseRichText(null))}
           onChange={setDoc}
           mentionUsers={mentionUsers}
+          submitOnEnter={post}
           placeholder={
             parentCommentId
               ? locale === "vi" ? "Viết phản hồi..." : "Write a reply..."
@@ -401,8 +402,8 @@ function ComposeForm({
           )}
           title={
             locale === "vi"
-              ? "Đăng bình luận (⌘/Ctrl + Enter)"
-              : "Post comment (⌘/Ctrl + Enter)"
+              ? "Enter để đăng, Shift+Enter để xuống dòng"
+              : "Enter to post, Shift+Enter for a new line"
           }
         >
           {isPending ? <CircleNotch className="size-4 animate-spin" /> : null}
