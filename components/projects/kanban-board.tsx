@@ -1295,11 +1295,9 @@ export function KanbanBoard({
     );
   }
 
-  // Shared column-track classes: exactly 3 columns fill the width on first
-  // look; any extra statuses scroll horizontally. Each column is shrink-0 so
-  // flex never squeezes them, and basis grows to fill so 3 always span the
-  // track (no upper cap). The 17.5rem floor keeps columns readable on narrow
-  // viewports, where 3 then overflow into the horizontal scroll.
+  // Shared column-track classes. On smaller screens the board keeps readable
+  // column widths and scrolls horizontally; on desktop, fit the common 4/5
+  // status setups so users don't think extra statuses disappeared.
   // The track hides its own (bottom) scrollbar; BoardScroll renders a synced
   // proxy bar above the board so the horizontal scrollbar sits at the top.
   const trackClass = "board-scroll-hide flex items-stretch gap-4 overflow-x-auto";
@@ -1318,8 +1316,17 @@ export function KanbanBoard({
   // handover file path) forces that one column wider than its basis — the Done
   // column rendered ~64px wider than the others. min-w-0 pins every column to
   // its basis; the card text wraps via `break-words` instead of overflowing.
-  const columnWidthClass =
-    "flex min-w-0 max-h-[calc(100dvh_-_12rem)] flex-col shrink-0 basis-[85%] sm:basis-[max(17.5rem,calc((100%_-_2rem)/3))]";
+  const visibleColumnCount = statuses.length;
+  const responsiveColumnBasis =
+    visibleColumnCount >= 5
+      ? "sm:basis-[max(17.5rem,calc((100%_-_2rem)/3))] lg:basis-[max(15rem,calc((100%_-_3rem)/4))] 2xl:basis-[max(13rem,calc((100%_-_4rem)/5))]"
+      : visibleColumnCount === 4
+        ? "sm:basis-[max(17.5rem,calc((100%_-_2rem)/3))] lg:basis-[max(15rem,calc((100%_-_3rem)/4))]"
+        : "sm:basis-[max(17.5rem,calc((100%_-_2rem)/3))]";
+  const columnWidthClass = cn(
+    "flex min-w-0 max-h-[calc(100dvh_-_12rem)] flex-col shrink-0 basis-[85%]",
+    responsiveColumnBasis,
+  );
 
   // Drag is only live on the full, owner-owned, unfiltered, non-preview board.
   const canDrag = !readOnly && !isFiltered && previewLimit == null;
