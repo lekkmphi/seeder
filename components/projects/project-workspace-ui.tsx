@@ -2295,7 +2295,14 @@ export function ProjectWorkspaceClientShell({
       closeModal: () => {
         setModalState(null);
 
-        if (searchParams.get("modal")) {
+        const hasCommentHash =
+          typeof window !== "undefined" &&
+          window.location.hash.startsWith("#comment-");
+
+        if (searchParams.get("modal") || hasCommentHash) {
+          if (typeof window !== "undefined") {
+            window.history.replaceState(window.history.state, "", currentPath);
+          }
           router.replace(currentPath, { scroll: false });
         }
       },
