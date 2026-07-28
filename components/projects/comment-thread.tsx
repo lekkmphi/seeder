@@ -104,7 +104,26 @@ export function CommentThread({
       if (!target) return;
 
       requestAnimationFrame(() => {
-        target.scrollIntoView({ behavior: "smooth", block: "center" });
+        const scrollContainer = target.closest<HTMLElement>("[data-modal-scroll]");
+
+        if (scrollContainer) {
+          const targetRect = target.getBoundingClientRect();
+          const containerRect = scrollContainer.getBoundingClientRect();
+          const stickyHeaderOffset = 96;
+          const nextScrollTop =
+            scrollContainer.scrollTop +
+            targetRect.top -
+            containerRect.top -
+            stickyHeaderOffset;
+
+          scrollContainer.scrollTo({
+            top: Math.max(0, nextScrollTop),
+            behavior: "smooth",
+          });
+        } else {
+          target.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+
         highlightedTarget?.classList.remove("comment-target-highlight");
         highlightedTarget = target;
         target.classList.add("comment-target-highlight");

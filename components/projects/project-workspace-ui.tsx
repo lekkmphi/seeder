@@ -779,7 +779,7 @@ function ModalShell({
             maxWidthClassName,
           )}
         >
-          <div className="min-h-0 overflow-y-auto pr-1">
+          <div data-modal-scroll className="min-h-0 overflow-y-auto pr-1">
             <div className="sticky top-0 z-20 -mx-1 mb-5 flex items-start justify-between gap-4 border-b border-border bg-surface-strong/95 px-1 pb-4 pr-12 pt-1 backdrop-blur">
               <div className="space-y-2">
                 <p className="font-mono text-[11px] font-medium uppercase tracking-[0.04em] text-muted">
