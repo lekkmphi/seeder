@@ -9,7 +9,7 @@
 // text, identical to typing in the editor. Authz mirrors the web exactly: any
 // project member can read or add a comment; editing is author-only; deleting is
 // author-or-admin.
-import { and, asc, eq } from "drizzle-orm";
+import { and, asc, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 
 import { logProjectActivity } from "@/lib/activity";
@@ -24,6 +24,7 @@ import {
   tasks,
   user,
 } from "@/lib/db/schema";
+import { createNotifications, type NotificationInput } from "@/lib/notifications";
 import {
   normalizeRichTextInput,
   parseRichText,
@@ -51,6 +52,7 @@ export const addTaskCommentInputSchema = z.object({
   projectId: z.string().min(1),
   taskId: z.string().min(1),
   content: commentContent,
+  parentCommentId: z.string().min(1).optional(),
 });
 export type AddTaskCommentInput = z.infer<typeof addTaskCommentInputSchema>;
 
@@ -81,6 +83,7 @@ export const addRequestCommentInputSchema = z.object({
   projectId: z.string().min(1),
   requestId: z.string().min(1),
   content: commentContent,
+  parentCommentId: z.string().min(1).optional(),
 });
 export type AddRequestCommentInput = z.infer<
   typeof addRequestCommentInputSchema
@@ -103,6 +106,7 @@ export type DeleteRequestCommentInput = z.infer<
 
 export type CommentSummary = {
   id: string;
+  parentCommentId: string | null;
   authorId: string;
   author: string;
   text: string;
@@ -127,6 +131,33 @@ function normalizeComment(content: string): string {
   return normalized;
 }
 
+function uniqueRecipients(ids: Array<string | null | undefined>, actorId: string) {
+  return [...new Set(ids.filter((id): id is string => Boolean(id) && id !== actorId))];
+}
+
+function collectDescendantCommentIds(
+  rows: Array<{ id: string; parentCommentId: string | null }>,
+  rootId: string,
+) {
+  const childrenByParent = new Map<string, string[]>();
+  for (const row of rows) {
+    if (!row.parentCommentId) continue;
+    const children = childrenByParent.get(row.parentCommentId) ?? [];
+    children.push(row.id);
+    childrenByParent.set(row.parentCommentId, children);
+  }
+
+  const ids: string[] = [];
+  const stack = [...(childrenByParent.get(rootId) ?? [])];
+  while (stack.length) {
+    const id = stack.pop();
+    if (!id) continue;
+    ids.push(id);
+    stack.push(...(childrenByParent.get(id) ?? []));
+  }
+  return ids;
+}
+
 // --- Task comments -----------------------------------------------------------
 
 export async function listTaskComments(
@@ -138,6 +169,7 @@ export async function listTaskComments(
   const rows = await db
     .select({
       id: taskComments.id,
+      parentCommentId: taskComments.parentCommentId,
       authorId: taskComments.authorId,
       author: user.name,
       content: taskComments.content,
@@ -157,6 +189,7 @@ export async function listTaskComments(
 
   return rows.map((row) => ({
     id: row.id,
+    parentCommentId: row.parentCommentId,
     authorId: row.authorId,
     author: row.author,
     text: richTextToPlainText(parseRichText(row.content)),
@@ -175,11 +208,46 @@ export async function createTaskComment(
   const content = normalizeComment(input.content);
 
   const [task] = await db
-    .select({ id: tasks.id, title: tasks.title })
+    .select({
+      id: tasks.id,
+      title: tasks.title,
+      ownerId: tasks.ownerId,
+      assigneeId: tasks.assigneeId,
+    })
     .from(tasks)
     .where(and(eq(tasks.id, input.taskId), eq(tasks.projectId, input.projectId)))
     .limit(1);
   if (!task) throw new Error("Task not found.");
+
+  const parentCommentId = input.parentCommentId ?? null;
+  const [parentComment, threadAuthors] = await Promise.all([
+    parentCommentId
+      ? db
+          .select({ id: taskComments.id, authorId: taskComments.authorId })
+          .from(taskComments)
+          .where(
+            and(
+              eq(taskComments.id, parentCommentId),
+              eq(taskComments.projectId, input.projectId),
+              eq(taskComments.taskId, task.id),
+            ),
+          )
+          .limit(1)
+          .then((rows) => rows[0] ?? null)
+      : Promise.resolve(null),
+    db
+      .select({ authorId: taskComments.authorId })
+      .from(taskComments)
+      .where(
+        and(
+          eq(taskComments.projectId, input.projectId),
+          eq(taskComments.taskId, task.id),
+        ),
+      ),
+  ]);
+  if (parentCommentId && !parentComment) {
+    throw new Error("Parent comment not found.");
+  }
 
   const commentId = crypto.randomUUID();
   await db.insert(taskComments).values({
@@ -187,6 +255,7 @@ export async function createTaskComment(
     projectId: input.projectId,
     taskId: task.id,
     authorId: viewer.id,
+    parentCommentId,
     content,
     createdAt: now,
     updatedAt: now,
@@ -204,6 +273,32 @@ export async function createTaskComment(
     createdAt: now,
   });
 
+  const recipients = uniqueRecipients(
+    [
+      task.ownerId,
+      task.assigneeId,
+      parentComment?.authorId,
+      ...threadAuthors.map((row) => row.authorId),
+    ],
+    viewer.id,
+  );
+  await createNotifications(
+    db,
+    recipients.map((recipientId): NotificationInput => ({
+      recipientId,
+      actorId: viewer.id,
+      type: parentCommentId ? "task_comment_reply" : "task_comment",
+      tone: "default",
+      title: parentCommentId
+        ? `${viewer.name} replied to a comment`
+        : `${viewer.name} commented on a task`,
+      body: `${task.title}: ${commentExcerpt(content)}`,
+      href: `/projects/${input.projectId}/board?modal=task&task=${task.id}`,
+      entityType: "task",
+      entityId: task.id,
+    })),
+  );
+
   return { commentId, projectId: input.projectId };
 }
 
@@ -219,7 +314,7 @@ export async function updateTaskComment(
     .where(eq(taskComments.id, input.commentId))
     .limit(1);
   if (!comment) throw new Error("Comment not found.");
-  if (comment.authorId !== viewer.id) {
+  if (comment.authorId !== viewer.id && !isAdminTier(viewer.role)) {
     throw new Error("You can only edit your own comment.");
   }
   await assertProjectCapability(viewer, comment.projectId, "comment.write");
@@ -266,7 +361,23 @@ export async function deleteTaskComment(
   }
   await assertProjectCapability(viewer, comment.projectId, "comment.write");
 
-  await db.delete(taskComments).where(eq(taskComments.id, comment.id));
+  const threadComments = await db
+    .select({
+      id: taskComments.id,
+      parentCommentId: taskComments.parentCommentId,
+    })
+    .from(taskComments)
+    .where(
+      and(
+        eq(taskComments.projectId, comment.projectId),
+        eq(taskComments.taskId, comment.taskId),
+      ),
+    );
+  const commentIdsToDelete = [
+    comment.id,
+    ...collectDescendantCommentIds(threadComments, comment.id),
+  ];
+  await db.delete(taskComments).where(inArray(taskComments.id, commentIdsToDelete));
 
   await logProjectActivity(db, {
     ownerId: viewer.id,
@@ -293,6 +404,7 @@ export async function listRequestComments(
   const rows = await db
     .select({
       id: requestComments.id,
+      parentCommentId: requestComments.parentCommentId,
       authorId: requestComments.authorId,
       author: user.name,
       content: requestComments.content,
@@ -312,6 +424,7 @@ export async function listRequestComments(
 
   return rows.map((row) => ({
     id: row.id,
+    parentCommentId: row.parentCommentId,
     authorId: row.authorId,
     author: row.author,
     text: richTextToPlainText(parseRichText(row.content)),
@@ -330,7 +443,11 @@ export async function createRequestComment(
   const content = normalizeComment(input.content);
 
   const [request] = await db
-    .select({ id: clientRequests.id, title: clientRequests.title })
+    .select({
+      id: clientRequests.id,
+      title: clientRequests.title,
+      ownerId: clientRequests.ownerId,
+    })
     .from(clientRequests)
     .where(
       and(
@@ -341,12 +458,43 @@ export async function createRequestComment(
     .limit(1);
   if (!request) throw new Error("Request not found.");
 
+  const parentCommentId = input.parentCommentId ?? null;
+  const [parentComment, threadAuthors] = await Promise.all([
+    parentCommentId
+      ? db
+          .select({ id: requestComments.id, authorId: requestComments.authorId })
+          .from(requestComments)
+          .where(
+            and(
+              eq(requestComments.id, parentCommentId),
+              eq(requestComments.projectId, input.projectId),
+              eq(requestComments.requestId, request.id),
+            ),
+          )
+          .limit(1)
+          .then((rows) => rows[0] ?? null)
+      : Promise.resolve(null),
+    db
+      .select({ authorId: requestComments.authorId })
+      .from(requestComments)
+      .where(
+        and(
+          eq(requestComments.projectId, input.projectId),
+          eq(requestComments.requestId, request.id),
+        ),
+      ),
+  ]);
+  if (parentCommentId && !parentComment) {
+    throw new Error("Parent comment not found.");
+  }
+
   const commentId = crypto.randomUUID();
   await db.insert(requestComments).values({
     id: commentId,
     projectId: input.projectId,
     requestId: request.id,
     authorId: viewer.id,
+    parentCommentId,
     content,
     createdAt: now,
     updatedAt: now,
@@ -363,6 +511,31 @@ export async function createRequestComment(
     detail: commentExcerpt(content) || request.title,
     createdAt: now,
   });
+
+  const recipients = uniqueRecipients(
+    [
+      request.ownerId,
+      parentComment?.authorId,
+      ...threadAuthors.map((row) => row.authorId),
+    ],
+    viewer.id,
+  );
+  await createNotifications(
+    db,
+    recipients.map((recipientId): NotificationInput => ({
+      recipientId,
+      actorId: viewer.id,
+      type: parentCommentId ? "request_comment_reply" : "request_comment",
+      tone: "default",
+      title: parentCommentId
+        ? `${viewer.name} replied to a comment`
+        : `${viewer.name} commented on a request`,
+      body: `${request.title}: ${commentExcerpt(content)}`,
+      href: `/projects/${input.projectId}/requests?modal=request&request=${request.id}`,
+      entityType: "request",
+      entityId: request.id,
+    })),
+  );
 
   return { commentId, projectId: input.projectId };
 }
@@ -421,12 +594,30 @@ export async function deleteRequestComment(
     .where(eq(requestComments.id, input.commentId))
     .limit(1);
   if (!comment) return { commentId: input.commentId, projectId: null };
-  if (comment.authorId !== viewer.id && !isAdminTier(viewer.role)) {
+  if (comment.authorId !== viewer.id) {
     throw new Error("You can only delete your own comment.");
   }
   await assertProjectCapability(viewer, comment.projectId, "comment.write");
 
-  await db.delete(requestComments).where(eq(requestComments.id, comment.id));
+  const threadComments = await db
+    .select({
+      id: requestComments.id,
+      parentCommentId: requestComments.parentCommentId,
+    })
+    .from(requestComments)
+    .where(
+      and(
+        eq(requestComments.projectId, comment.projectId),
+        eq(requestComments.requestId, comment.requestId),
+      ),
+    );
+  const commentIdsToDelete = [
+    comment.id,
+    ...collectDescendantCommentIds(threadComments, comment.id),
+  ];
+  await db
+    .delete(requestComments)
+    .where(inArray(requestComments.id, commentIdsToDelete));
 
   await logProjectActivity(db, {
     ownerId: viewer.id,

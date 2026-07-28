@@ -11,7 +11,9 @@ import {
 } from "@phosphor-icons/react";
 
 import { BrandLogo } from "@/components/app/brand-logo";
+import { LanguageToggle } from "@/components/app/language-toggle";
 import { authClient } from "@/lib/auth-client";
+import { t, type Locale } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
 type SignInPanelProps = {
@@ -23,6 +25,7 @@ type SignInPanelProps = {
   logoDarkUrl: string | null;
   logoLightUrl: string | null;
   initialError?: string | null;
+  locale: Locale;
 };
 
 type Mode = "sign-in" | "create-account" | "accept-invite";
@@ -36,6 +39,7 @@ export function SignInPanel({
   logoDarkUrl,
   logoLightUrl,
   initialError = null,
+  locale,
 }: SignInPanelProps) {
   const router = useRouter();
   const [mode] = useState<Mode>(
@@ -54,10 +58,12 @@ export function SignInPanel({
 
   const submitLabel =
     mode === "sign-in"
-      ? "Access workspace"
+      ? locale === "vi"
+        ? "Vào không gian làm việc"
+        : "Access workspace"
       : mode === "accept-invite"
-        ? "Create account & sign in"
-        : "Create owner account";
+        ? t(locale, "createAccountAndSignIn")
+        : t(locale, "createOwnerAccount");
 
   const handleEmailFlow = async () => {
     setErrorMessage(null);
@@ -78,7 +84,10 @@ export function SignInPanel({
       );
 
       if (result.error) {
-        setErrorMessage(result.error.message ?? "Unable to sign in.");
+        setErrorMessage(
+          result.error.message ??
+            (locale === "vi" ? "Không thể đăng nhập." : "Unable to sign in."),
+        );
       }
 
       return;
@@ -97,7 +106,12 @@ export function SignInPanel({
 
       if (!response.ok) {
         const data = await response.json().catch(() => ({}));
-        setErrorMessage(data.error ?? "Unable to accept invitation.");
+        setErrorMessage(
+          data.error ??
+            (locale === "vi"
+              ? "Không thể nhận lời mời."
+              : "Unable to accept invitation."),
+        );
         return;
       }
 
@@ -117,7 +131,10 @@ export function SignInPanel({
 
       if (result.error) {
         setErrorMessage(
-          result.error.message ?? "Account created but sign-in failed. Try signing in.",
+          result.error.message ??
+            (locale === "vi"
+              ? "Tài khoản đã tạo nhưng đăng nhập thất bại. Hãy thử đăng nhập lại."
+              : "Account created but sign-in failed. Try signing in."),
         );
       }
 
@@ -140,31 +157,50 @@ export function SignInPanel({
     );
 
     if (result.error) {
-      setErrorMessage(result.error.message ?? "Unable to create the account.");
+      setErrorMessage(
+        result.error.message ??
+          (locale === "vi"
+            ? "Không thể tạo tài khoản."
+            : "Unable to create the account."),
+      );
     }
   };
 
   const heading =
     mode === "sign-in"
-      ? "Access your workspace"
+      ? locale === "vi"
+        ? "Vào không gian làm việc"
+        : "Access your workspace"
       : mode === "accept-invite"
-        ? "Accept your invitation"
-        : "Create the owner account";
+        ? locale === "vi"
+          ? "Nhận lời mời"
+          : "Accept your invitation"
+        : locale === "vi"
+          ? "Tạo tài khoản chủ sở hữu"
+          : "Create the owner account";
 
   const subheading =
     mode === "accept-invite" && invite ? (
       <>
-        You were invited as{" "}
-        <span className="font-medium text-foreground">{invite.email}</span>. Set a
-        password to finish.
+        {locale === "vi" ? "Bạn được mời bằng email " : "You were invited as "}
+        <span className="font-medium text-foreground">{invite.email}</span>.
+        {locale === "vi"
+          ? " Đặt mật khẩu để hoàn tất."
+          : " Set a password to finish."}
       </>
     ) : mode === "create-account" ? (
       <>
-        First run — create the owner account for{" "}
+        {locale === "vi"
+          ? "Lần chạy đầu tiên - tạo tài khoản chủ sở hữu cho "
+          : "First run - create the owner account for "}
         <span className="font-medium text-foreground">{ownerEmail}</span>.
       </>
     ) : (
-      <>Sign in to your workspace.</>
+      <>
+        {locale === "vi"
+          ? "Đăng nhập vào không gian làm việc."
+          : "Sign in to your workspace."}
+      </>
     );
 
   const showNameField = mode === "create-account" || mode === "accept-invite";
@@ -182,14 +218,24 @@ export function SignInPanel({
               imgClassName="h-9"
             />
             <div className="max-w-xl space-y-3">
-              <p className="font-mono text-[11px] uppercase tracking-[0.04em] text-muted">
-                Project workspace
-              </p>
+              <div className="flex items-center justify-between gap-3">
+                <p className="font-mono text-[11px] uppercase tracking-[0.04em] text-muted">
+                  {t(locale, "projectWorkspace")}
+                </p>
+                <LanguageToggle
+                  locale={locale}
+                  className="inline-flex size-8 items-center justify-center rounded-md border border-border bg-surface text-muted transition hover:border-border-strong hover:bg-surface-strong hover:text-foreground"
+                />
+              </div>
               <h1 className="text-[2.5rem] font-medium tracking-[-0.022em] text-foreground sm:text-5xl">
-                Run client work in one quiet system.
+                {locale === "vi"
+                  ? "Vận hành công việc khách hàng trong một hệ thống yên tĩnh."
+                  : "Run client work in one quiet system."}
               </h1>
               <p className="max-w-lg text-sm leading-7 text-muted sm:text-[15px]">
-                Requests, execution, notes, and public updates stay in one shared workspace with a board that is easy to trust.
+                {locale === "vi"
+                  ? "Yêu cầu, triển khai, ghi chú và cập nhật công khai nằm chung trong một không gian dễ tin cậy."
+                  : "Requests, execution, notes, and public updates stay in one shared workspace with a board that is easy to trust."}
               </p>
             </div>
           </div>
@@ -217,7 +263,9 @@ export function SignInPanel({
               <div className="space-y-3">
                 {showNameField ? (
                   <label className="flex flex-col gap-2">
-                    <span className="text-[13px] font-medium text-foreground">Display name</span>
+                    <span className="text-[13px] font-medium text-foreground">
+                      {t(locale, "displayName")}
+                    </span>
                     <div className="flex items-center gap-2 rounded-md border border-border bg-background px-3 py-2.5">
                       <UserCircle className="size-4 text-muted" />
                       <input
@@ -226,14 +274,16 @@ export function SignInPanel({
                         value={name}
                         onChange={(event) => setName(event.target.value)}
                         className="min-w-0 flex-1 bg-transparent text-[13px] text-foreground outline-none placeholder:text-muted"
-                        placeholder="Your name"
+                        placeholder={locale === "vi" ? "Tên của bạn" : "Your name"}
                       />
                     </div>
                   </label>
                 ) : null}
 
                 <label className="flex flex-col gap-2">
-                  <span className="text-[13px] font-medium text-foreground">Email</span>
+                  <span className="text-[13px] font-medium text-foreground">
+                    {t(locale, "email")}
+                  </span>
                   <div
                     className={cn(
                       "flex items-center gap-2 rounded-md border border-border bg-background px-3 py-2.5",
@@ -255,7 +305,9 @@ export function SignInPanel({
                 </label>
 
                 <label className="flex flex-col gap-2">
-                  <span className="text-[13px] font-medium text-foreground">Password</span>
+                  <span className="text-[13px] font-medium text-foreground">
+                    {t(locale, "password")}
+                  </span>
                   <div className="flex items-center gap-2 rounded-md border border-border bg-background px-3 py-2.5">
                     <LockKey className="size-4 text-muted" />
                     <input
@@ -267,7 +319,9 @@ export function SignInPanel({
                       value={password}
                       onChange={(event) => setPassword(event.target.value)}
                       className="min-w-0 flex-1 bg-transparent text-[13px] text-foreground outline-none placeholder:text-muted"
-                      placeholder="Minimum 8 characters"
+                      placeholder={
+                        locale === "vi" ? "Tối thiểu 8 ký tự" : "Minimum 8 characters"
+                      }
                     />
                   </div>
                 </label>
@@ -307,7 +361,7 @@ export function SignInPanel({
                     className="ui-button-secondary w-full"
                   >
                     <GoogleLogo className="size-4" />
-                    Continue with Google
+                    {t(locale, "continueWithGoogle")}
                   </button>
                 ) : null}
               </div>

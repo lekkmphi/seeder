@@ -14,6 +14,7 @@ import {
 import { Avatar } from "@/components/ui/avatar";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { toast } from "@/lib/toast";
+import { useLocale } from "@/lib/use-locale";
 import { cn } from "@/lib/utils";
 
 type Member = {
@@ -49,6 +50,8 @@ type Op =
 
 export function SpaceDetailView({ detail }: { detail: Detail }) {
   const router = useRouter();
+  const locale = useLocale();
+  const vi = locale === "vi";
   const [isPending, startTransition] = useTransition();
   const [email, setEmail] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -65,7 +68,7 @@ export function SpaceDetailView({ detail }: { detail: Detail }) {
         error?: string;
       };
       if (!res.ok || !data.ok) {
-        toast(data.error ?? "Something went wrong.", "danger");
+        toast(data.error ?? (vi ? "Đã có lỗi xảy ra." : "Something went wrong."), "danger");
         return;
       }
       toast(successMessage, "success");
@@ -80,7 +83,7 @@ export function SpaceDetailView({ detail }: { detail: Detail }) {
       {/* Projects */}
       <section className="ui-panel-soft p-5">
         <p className="font-mono text-[11px] uppercase tracking-[0.04em] text-muted">
-          Projects · {detail.projects.length}
+          {vi ? "Dự án" : "Projects"} · {detail.projects.length}
         </p>
         <div className="mt-3 grid gap-2">
           {detail.projects.map((p) => {
@@ -96,7 +99,7 @@ export function SpaceDetailView({ detail }: { detail: Detail }) {
                 {p.name}
                 {p.archivedAt ? (
                   <span className="ml-2 font-mono text-[10px] uppercase tracking-[0.04em] text-muted">
-                    archived
+                    {vi ? "đã lưu trữ" : "archived"}
                   </span>
                 ) : null}
               </span>
@@ -108,7 +111,11 @@ export function SpaceDetailView({ detail }: { detail: Detail }) {
               return (
                 <div
                   key={p.id}
-                  title="You're not a member of this project — ask the project owner or a lead to add you."
+                  title={
+                    vi
+                      ? "Bạn chưa phải thành viên của dự án này — hãy nhờ chủ dự án hoặc trưởng nhóm thêm bạn vào."
+                      : "You're not a member of this project — ask the project owner or a lead to add you."
+                  }
                   className={cn(
                     "flex cursor-default items-center gap-3 rounded-md border border-border px-3 py-2.5 opacity-60",
                     p.color ? null : "bg-surface",
@@ -118,7 +125,7 @@ export function SpaceDetailView({ detail }: { detail: Detail }) {
                   {label}
                   <span className="inline-flex shrink-0 items-center gap-1 font-mono text-[10px] uppercase tracking-[0.04em] text-muted">
                     <Lock className="size-3.5" />
-                    No access
+                    {vi ? "Không có quyền" : "No access"}
                   </span>
                 </div>
               );
@@ -141,7 +148,7 @@ export function SpaceDetailView({ detail }: { detail: Detail }) {
           })}
           {detail.projects.length === 0 ? (
             <p className="py-6 text-center text-[13px] text-muted">
-              No projects in this team yet.
+              {vi ? "Nhóm này chưa có dự án nào." : "No projects in this team yet."}
             </p>
           ) : null}
         </div>
@@ -150,7 +157,7 @@ export function SpaceDetailView({ detail }: { detail: Detail }) {
       {/* Members */}
       <section className="ui-panel-soft p-5">
         <p className="font-mono text-[11px] uppercase tracking-[0.04em] text-muted">
-          Members · {detail.members.length}
+          {vi ? "Thành viên" : "Members"} · {detail.members.length}
         </p>
 
         {canManage ? (
@@ -161,7 +168,7 @@ export function SpaceDetailView({ detail }: { detail: Detail }) {
               if (isPending || !email.trim()) return;
               call(
                 { op: "addMember", spaceId: detail.id, email: email.trim() },
-                "Member added",
+                vi ? "Đã thêm thành viên" : "Member added",
                 () => setEmail(""),
               );
             }}
@@ -180,7 +187,7 @@ export function SpaceDetailView({ detail }: { detail: Detail }) {
               className="ui-button-secondary shrink-0 disabled:cursor-not-allowed disabled:opacity-60"
             >
               <UserPlus className="size-4" />
-              Add
+              {vi ? "Thêm" : "Add"}
             </button>
           </form>
         ) : null}
@@ -203,7 +210,7 @@ export function SpaceDetailView({ detail }: { detail: Detail }) {
                   {m.isLead ? (
                     <span className="inline-flex items-center gap-1 rounded-sm border border-emerald/30 bg-emerald/10 px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-[0.04em] text-emerald">
                       <Crown className="size-3" />
-                      lead
+                      {vi ? "trưởng nhóm" : "lead"}
                     </span>
                   ) : null}
                 </div>
@@ -219,12 +226,12 @@ export function SpaceDetailView({ detail }: { detail: Detail }) {
                     onClick={() =>
                       call(
                         { op: "setLead", spaceId: detail.id, userId: m.userId },
-                        `${m.name} is now lead`,
+                        vi ? `${m.name} giờ là trưởng nhóm` : `${m.name} is now lead`,
                       )
                     }
                     className="text-[12px] text-muted transition hover:text-foreground"
                   >
-                    Make lead
+                    {vi ? "Đặt làm trưởng nhóm" : "Make lead"}
                   </button>
                   <button
                     type="button"
@@ -236,12 +243,12 @@ export function SpaceDetailView({ detail }: { detail: Detail }) {
                           spaceId: detail.id,
                           userId: m.userId,
                         },
-                        "Member removed",
+                        vi ? "Đã xóa thành viên" : "Member removed",
                       )
                     }
                     className="ui-button-ghost"
-                    title="Remove member"
-                    aria-label={`Remove ${m.name}`}
+                    title={vi ? "Xóa thành viên" : "Remove member"}
+                    aria-label={vi ? `Xóa ${m.name}` : `Remove ${m.name}`}
                   >
                     <Trash className="size-4" />
                   </button>
@@ -250,7 +257,9 @@ export function SpaceDetailView({ detail }: { detail: Detail }) {
             </div>
           ))}
           {detail.members.length === 0 ? (
-            <p className="py-2 text-[12px] text-muted">No members yet.</p>
+            <p className="py-2 text-[12px] text-muted">
+              {vi ? "Chưa có thành viên nào." : "No members yet."}
+            </p>
           ) : null}
         </div>
 
@@ -263,7 +272,7 @@ export function SpaceDetailView({ detail }: { detail: Detail }) {
               className="ui-button-danger"
             >
               <Trash className="size-4" />
-              Delete team
+              {vi ? "Xóa nhóm" : "Delete team"}
             </button>
           </div>
         ) : null}
@@ -271,17 +280,21 @@ export function SpaceDetailView({ detail }: { detail: Detail }) {
 
       <ConfirmDialog
         open={confirmDelete}
-        title={`Delete "${detail.name}"?`}
+        title={vi ? `Xóa "${detail.name}"?` : `Delete "${detail.name}"?`}
         description={
           detail.projects.length > 0
-            ? `This team still has ${detail.projects.length} project${detail.projects.length === 1 ? "" : "s"} — move them out first; deletion will be refused.`
-            : "This removes the team and its membership. Cannot be undone."
+            ? vi
+              ? `Nhóm này vẫn còn ${detail.projects.length} dự án — hãy chuyển chúng ra trước; thao tác xóa sẽ bị từ chối.`
+              : `This team still has ${detail.projects.length} project${detail.projects.length === 1 ? "" : "s"} — move them out first; deletion will be refused.`
+            : vi
+              ? "Thao tác này xóa nhóm và toàn bộ thành viên. Không thể hoàn tác."
+              : "This removes the team and its membership. Cannot be undone."
         }
-        confirmLabel="Delete team"
+        confirmLabel={vi ? "Xóa nhóm" : "Delete team"}
         variant="danger"
         isPending={isPending}
         onConfirm={() =>
-          call({ op: "delete", spaceId: detail.id }, "Team deleted", () => {
+          call({ op: "delete", spaceId: detail.id }, vi ? "Đã xóa nhóm" : "Team deleted", () => {
             setConfirmDelete(false);
             router.push("/team");
           })

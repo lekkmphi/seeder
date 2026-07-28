@@ -7,6 +7,7 @@ import { CheckCircle, CircleNotch, Trash, UploadSimple } from "@phosphor-icons/r
 import { Avatar } from "@/components/ui/avatar";
 import { authClient } from "@/lib/auth-client";
 import { toast } from "@/lib/toast";
+import { useLocale } from "@/lib/use-locale";
 
 type Props = {
   name: string;
@@ -18,6 +19,7 @@ type Props = {
 // (the account identity / login). Name + avatar go through Better Auth's
 // updateUser; the avatar file is uploaded to R2 first to get a served URL.
 export function UserInfoForm({ name: initialName, email, image: initialImage }: Props) {
+  const locale = useLocale();
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [name, setName] = useState(initialName);
@@ -39,11 +41,11 @@ export function UserInfoForm({ name: initialName, email, image: initialImage }: 
         error?: string;
       };
       if (!res.ok || !data.url) {
-        throw new Error(data.error || "Upload failed");
+        throw new Error(data.error || (locale === "vi" ? "Tải lên thất bại" : "Upload failed"));
       }
       setImage(data.url);
     } catch (error) {
-      toast(error instanceof Error ? error.message : "Upload failed", "danger");
+      toast(error instanceof Error ? error.message : locale === "vi" ? "Tải lên thất bại" : "Upload failed", "danger");
     } finally {
       setUploading(false);
     }
@@ -56,10 +58,10 @@ export function UserInfoForm({ name: initialName, email, image: initialImage }: 
         image: image ?? "",
       });
       if (result.error) {
-        toast(result.error.message ?? "Could not save changes.", "danger");
+        toast(result.error.message ?? (locale === "vi" ? "Không thể lưu thay đổi." : "Could not save changes."), "danger");
         return;
       }
-      toast("Profile updated", "success");
+      toast(locale === "vi" ? "Đã cập nhật hồ sơ" : "Profile updated", "success");
       router.refresh();
     });
   }
@@ -104,7 +106,7 @@ export function UserInfoForm({ name: initialName, email, image: initialImage }: 
             ) : (
               <UploadSimple className="size-4" />
             )}
-            {uploading ? "Uploading…" : "Change photo"}
+            {uploading ? locale === "vi" ? "Đang tải lên..." : "Uploading…" : locale === "vi" ? "Đổi ảnh" : "Change photo"}
           </button>
           {image ? (
             <button
@@ -112,10 +114,10 @@ export function UserInfoForm({ name: initialName, email, image: initialImage }: 
               onClick={() => setImage(null)}
               disabled={uploading || isPending}
               className="ui-button-ghost text-muted hover:text-danger disabled:cursor-not-allowed disabled:opacity-60"
-              title="Remove photo"
+              title={locale === "vi" ? "Gỡ ảnh" : "Remove photo"}
             >
               <Trash className="size-4" />
-              Remove
+              {locale === "vi" ? "Gỡ" : "Remove"}
             </button>
           ) : null}
         </div>
@@ -123,14 +125,14 @@ export function UserInfoForm({ name: initialName, email, image: initialImage }: 
 
       {/* Name */}
       <label className="grid gap-2">
-        <span className="text-sm font-medium text-foreground">Name</span>
+        <span className="text-sm font-medium text-foreground">{locale === "vi" ? "Tên" : "Name"}</span>
         <input
           value={name}
           onChange={(event) => setName(event.target.value)}
           required
           maxLength={120}
           className="ui-input"
-          placeholder="Your name"
+          placeholder={locale === "vi" ? "Tên của bạn" : "Your name"}
         />
       </label>
 
@@ -144,7 +146,9 @@ export function UserInfoForm({ name: initialName, email, image: initialImage }: 
           className="ui-input cursor-not-allowed opacity-70"
         />
         <span className="text-[12px] text-muted">
-          Your email is your sign-in identity and can&apos;t be changed here.
+          {locale === "vi"
+            ? "Email là danh tính đăng nhập của bạn và không thể đổi tại đây."
+            : "Your email is your sign-in identity and can't be changed here."}
         </span>
       </label>
 
@@ -159,7 +163,7 @@ export function UserInfoForm({ name: initialName, email, image: initialImage }: 
           ) : (
             <CheckCircle className="size-4" />
           )}
-          Save changes
+          {locale === "vi" ? "Lưu thay đổi" : "Save changes"}
         </button>
       </div>
     </form>

@@ -3,6 +3,9 @@
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { type Locale } from "@/lib/i18n";
+import { useLocale } from "@/lib/use-locale";
+
 const CHORD_TIMEOUT_MS = 1000;
 const PROJECT_PATH_PATTERN = /^\/projects\/([^/]+)/;
 
@@ -33,6 +36,7 @@ function getProjectIdFromPath(pathname: string | null): string | null {
 }
 
 export function KeyboardShortcuts() {
+  const locale = useLocale();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -127,10 +131,21 @@ export function KeyboardShortcuts() {
 
   if (!showCheatsheet) return null;
 
-  return <CheatsheetModal onClose={() => setShowCheatsheet(false)} />;
+  return (
+    <CheatsheetModal
+      locale={locale}
+      onClose={() => setShowCheatsheet(false)}
+    />
+  );
 }
 
-function CheatsheetModal({ onClose }: { onClose: () => void }) {
+function CheatsheetModal({
+  locale,
+  onClose,
+}: {
+  locale: Locale;
+  onClose: () => void;
+}) {
   return (
     <div
       className="ui-modal-backdrop fixed inset-0 z-50 flex items-center justify-center p-4"
@@ -143,30 +158,58 @@ function CheatsheetModal({ onClose }: { onClose: () => void }) {
       >
         <div className="flex items-baseline justify-between">
           <h2 className="font-mono text-[11px] font-medium uppercase tracking-[0.04em] text-muted">
-            Keyboard shortcuts
+            {locale === "vi" ? "Phím tắt bàn phím" : "Keyboard shortcuts"}
           </h2>
           <button
             type="button"
             onClick={onClose}
             className="font-mono text-[11px] uppercase tracking-[0.04em] text-muted transition hover:text-foreground"
           >
-            Close
+            {locale === "vi" ? "Đóng" : "Close"}
           </button>
         </div>
         <dl className="mt-4 grid gap-3">
-          <ShortcutRow keys={["n"]} description="New task (in current project)" />
-          <ShortcutRow keys={["g", "d"]} description="Go to Dashboard" />
-          <ShortcutRow keys={["g", "t"]} description="Go to Today" />
-          <ShortcutRow keys={["g", "p"]} description="Go to Projects" />
+          <ShortcutRow
+            keys={["n"]}
+            description={
+              locale === "vi"
+                ? "Tạo công việc mới (trong dự án hiện tại)"
+                : "New task (in current project)"
+            }
+          />
+          <ShortcutRow
+            keys={["g", "d"]}
+            description={locale === "vi" ? "Đến Bảng điều khiển" : "Go to Dashboard"}
+          />
+          <ShortcutRow
+            keys={["g", "t"]}
+            description={locale === "vi" ? "Đến Hôm nay" : "Go to Today"}
+          />
+          <ShortcutRow
+            keys={["g", "p"]}
+            description={locale === "vi" ? "Đến Dự án" : "Go to Projects"}
+          />
           <ShortcutRow
             keys={["g", "k"]}
-            description="Go to current project's Board"
+            description={
+              locale === "vi"
+                ? "Đến bảng của dự án hiện tại"
+                : "Go to current project's Board"
+            }
           />
-          <ShortcutRow keys={["?"]} description="Show this cheatsheet" />
-          <ShortcutRow keys={["Esc"]} description="Close this cheatsheet" />
+          <ShortcutRow
+            keys={["?"]}
+            description={locale === "vi" ? "Hiện bảng phím tắt" : "Show this cheatsheet"}
+          />
+          <ShortcutRow
+            keys={["Esc"]}
+            description={locale === "vi" ? "Đóng bảng phím tắt" : "Close this cheatsheet"}
+          />
         </dl>
         <p className="mt-5 font-mono text-[11px] uppercase tracking-[0.04em] text-muted">
-          Disabled while typing in inputs · Chords time out after 1s
+          {locale === "vi"
+            ? "Tắt khi đang nhập liệu · Tổ hợp phím hết hạn sau 1 giây"
+            : "Disabled while typing in inputs · Chords time out after 1s"}
         </p>
       </div>
     </div>

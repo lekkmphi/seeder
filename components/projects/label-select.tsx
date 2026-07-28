@@ -1,6 +1,16 @@
 "use client";
 
-import { useMemo, useRef, useState, useTransition } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  useTransition,
+  type CSSProperties,
+} from "react";
+import { createPortal } from "react-dom";
 import {
   CaretDown,
   Check,
@@ -13,6 +23,7 @@ import {
 import { createTaskLabelAction } from "@/lib/actions";
 import { PROJECT_SWATCHES } from "@/lib/swatches";
 import { toast } from "@/lib/toast";
+import { useLocale } from "@/lib/use-locale";
 import { cn } from "@/lib/utils";
 
 export type LabelOption = {
@@ -36,14 +47,17 @@ export function LabelSelect({
   labels: LabelOption[];
   defaultValues: string[];
 }) {
+  const locale = useLocale();
   const [localLabels, setLocalLabels] = useState(labels);
   const [selected, setSelected] = useState<string[]>(defaultValues);
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [isCreating, setIsCreating] = useState(false);
   const [newColor, setNewColor] = useState(PROJECT_SWATCHES[0].value);
+  const [menuStyle, setMenuStyle] = useState<CSSProperties | null>(null);
   const [isPending, startTransition] = useTransition();
   const rootRef = useRef<HTMLDivElement | null>(null);
+  const menuRef = useRef<HTMLDivElement | null>(null);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -87,20 +101,70 @@ export function LabelSelect({
           [...current, created].sort((a, b) => a.name.localeCompare(b.name)),
         );
         setSelected((current) => [...current, created.id]);
-        toast(`Created label "${created.name}"`, "success");
+        toast(
+          locale === "vi"
+            ? `Đã tạo nhãn "${created.name}"`
+            : `Created label "${created.name}"`,
+          "success",
+        );
         setQuery("");
         setIsCreating(false);
       } catch (error: unknown) {
         toast(
-          error instanceof Error ? error.message : "Could not create label",
+          error instanceof Error
+            ? error.message
+            : locale === "vi" ? "Không thể tạo nhãn" : "Could not create label",
           "danger",
         );
       }
     });
   }
 
+  const close = useCallback(() => {
+    setOpen(false);
+    setQuery("");
+    setIsCreating(false);
+  }, []);
+
+  const updateMenuPosition = useCallback(() => {
+    const rect = rootRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    setMenuStyle({
+      left: rect.left,
+      top: rect.bottom + 4,
+      width: rect.width,
+      maxHeight: Math.max(180, window.innerHeight - rect.bottom - 16),
+    });
+  }, []);
+
+  useLayoutEffect(() => {
+    if (!open) return;
+    updateMenuPosition();
+    window.addEventListener("resize", updateMenuPosition);
+    window.addEventListener("scroll", updateMenuPosition, true);
+    return () => {
+      window.removeEventListener("resize", updateMenuPosition);
+      window.removeEventListener("scroll", updateMenuPosition, true);
+    };
+  }, [open, updateMenuPosition]);
+
+  useEffect(() => {
+    if (!open) return;
+    function onDown(event: MouseEvent) {
+      const target = event.target as Node;
+      if (
+        !rootRef.current?.contains(target) &&
+        !menuRef.current?.contains(target)
+      ) {
+        close();
+      }
+    }
+    document.addEventListener("mousedown", onDown);
+    return () => document.removeEventListener("mousedown", onDown);
+  }, [close, open]);
+
   return (
-    <div ref={rootRef} className="relative">
+    <div ref={rootRef} className={cn("relative", open && "z-[90]")}>
       <input type="hidden" name={name} value={selected.join(",")} />
 
       <button
@@ -126,13 +190,19 @@ export function LabelSelect({
             ))}
           </span>
         ) : (
-          <span className="text-muted">No labels</span>
+          <span className="text-muted">
+            {locale === "vi" ? "Chưa có nhãn" : "No labels"}
+          </span>
         )}
         <CaretDown className="size-4 text-muted" />
       </button>
 
-      {open ? (
-        <div className="absolute left-0 right-0 top-[calc(100%+4px)] z-30 grid gap-2 rounded-md border border-border bg-surface-strong p-2 shadow-md">
+      {open && menuStyle && typeof document !== "undefined" ? createPortal(
+        <div
+          ref={menuRef}
+          className="ui-menu-surface fixed z-[1000] grid gap-2 overflow-y-auto rounded-md p-2"
+          style={menuStyle}
+        >
           {!isCreating ? (
             <>
               <div className="relative">
@@ -158,7 +228,11 @@ export function LabelSelect({
                       setIsCreating(true);
                     }
                   }}
-                  placeholder="Search or type to create…"
+                  placeholder={
+                    locale === "vi"
+                      ? "Tìm hoặc nhập để tạo..."
+                      : "Search or type to create..."
+                  }
                   className="ui-input"
                   style={{ paddingLeft: 32 }}
                 />
@@ -172,7 +246,7 @@ export function LabelSelect({
                       <button
                         type="button"
                         onClick={() => toggle(label.id)}
-                        className="flex w-full items-center justify-between rounded-sm px-2 py-1.5 text-left text-[13px] text-foreground hover:bg-surface"
+                        className="flex w-full items-center justify-between rounded-sm px-2 py-1.5 text-left text-[13px] text-foreground hover:bg-menu-hover"
                       >
                         <span className="inline-flex items-center gap-2">
                           <span
@@ -189,7 +263,9 @@ export function LabelSelect({
                 })}
                 {filtered.length === 0 && !canCreate ? (
                   <li className="px-2 py-2 text-[12px] text-muted">
-                    No labels. Type a name to create one.
+                    {locale === "vi"
+                      ? "Chưa có nhãn. Nhập tên để tạo mới."
+                      : "No labels. Type a name to create one."}
                   </li>
                 ) : null}
               </ul>
@@ -201,7 +277,7 @@ export function LabelSelect({
                   className="ui-button-secondary justify-start text-left"
                 >
                   <Plus className="size-4" />
-                  Create &quot;{trimmedQuery}&quot;
+                  {locale === "vi" ? "Tạo" : "Create"} &quot;{trimmedQuery}&quot;
                 </button>
               ) : null}
             </>
@@ -209,13 +285,13 @@ export function LabelSelect({
             <div className="grid gap-2">
               <div className="flex items-center justify-between">
                 <span className="font-mono text-[11px] uppercase tracking-[0.04em] text-muted">
-                  New label
+                  {locale === "vi" ? "Nhãn mới" : "New label"}
                 </span>
                 <button
                   type="button"
                   onClick={() => setIsCreating(false)}
                   className="inline-flex size-6 items-center justify-center rounded-sm text-muted hover:bg-surface hover:text-foreground"
-                  aria-label="Back"
+                  aria-label={locale === "vi" ? "Quay lại" : "Back"}
                 >
                   <X className="size-3.5" />
                 </button>
@@ -260,11 +336,14 @@ export function LabelSelect({
                 ) : (
                   <Plus className="size-4" />
                 )}
-                {isPending ? "Creating…" : "Create label"}
+                {isPending
+                  ? locale === "vi" ? "Đang tạo..." : "Creating..."
+                  : locale === "vi" ? "Tạo nhãn" : "Create label"}
               </button>
             </div>
           )}
-        </div>
+        </div>,
+        document.body,
       ) : null}
     </div>
   );

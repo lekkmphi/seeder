@@ -11,7 +11,10 @@ import {
   type ClientStatusUpdate,
 } from "@/components/projects/client-status-updates";
 import { ThemeToggle } from "@/components/app/theme-toggle";
+import { LanguageToggle } from "@/components/app/language-toggle";
 import { getPublicProjectBoard } from "@/lib/data";
+import { t, type Locale } from "@/lib/i18n";
+import { getRequestLocale } from "@/lib/i18n-server";
 import { formatProjectStatus } from "@/lib/project-status";
 import { formatDate } from "@/lib/utils";
 
@@ -21,8 +24,8 @@ export const metadata = {
   robots: { index: false, follow: false },
 };
 
-function formatDateLabel(value: Date | null) {
-  return formatDate(value, "No deadline set");
+function formatDateLabel(value: Date | null, locale: Locale) {
+  return formatDate(value, t(locale, "noDeadlineSet"));
 }
 
 function formatDayLabel(value: Date) {
@@ -43,7 +46,10 @@ export default async function ClientProjectBoardPage({
   params: Promise<{ token: string }>;
 }) {
   const { token } = await params;
-  const publicBoard = await getPublicProjectBoard(token);
+  const [publicBoard, locale] = await Promise.all([
+    getPublicProjectBoard(token),
+    getRequestLocale(),
+  ]);
 
   if (!publicBoard) {
     notFound();
@@ -83,6 +89,10 @@ export default async function ClientProjectBoardPage({
       <div className="mb-3 flex justify-end">
         <div className="rounded-md border border-border bg-surface p-0.5">
           <ThemeToggle />
+          <LanguageToggle
+            locale={locale}
+            className="inline-flex size-7 items-center justify-center rounded-sm text-muted transition hover:bg-surface-strong hover:text-foreground"
+          />
         </div>
       </div>
       <div className="grid grid-cols-[minmax(0,1fr)] gap-4">
@@ -91,7 +101,7 @@ export default async function ClientProjectBoardPage({
             <div className="max-w-3xl space-y-3">
               <div className="inline-flex items-center gap-2 rounded-md border border-border bg-surface px-2.5 py-1.5 font-mono text-[11px] font-medium uppercase tracking-[0.04em] text-foreground">
                 <StackSimple className="size-4" />
-                Client board
+                {locale === "vi" ? "Bảng khách hàng" : "Client board"}
               </div>
 
               <div>
@@ -100,14 +110,16 @@ export default async function ClientProjectBoardPage({
                 </h1>
                 <p className="mt-2 max-w-3xl text-[13px] leading-6 text-muted sm:text-[15px]">
                   {publicBoard.project.summary ||
-                    "A simple view of the current kanban board for this project."}
+                    (locale === "vi"
+                      ? "Một góc nhìn đơn giản về bảng kanban hiện tại của dự án."
+                      : "A simple view of the current kanban board for this project.")}
                 </p>
               </div>
 
               <div className="flex flex-wrap gap-x-4 gap-y-1 font-mono text-[11px] uppercase tracking-[0.04em] text-muted">
-                <span>{formatProjectStatus(publicBoard.project.status)}</span>
-                <span>{publicBoard.project.clientName || "Shared"}</span>
-                <span>{formatDateLabel(publicBoard.project.deadline)}</span>
+                <span>{formatProjectStatus(publicBoard.project.status, locale)}</span>
+                <span>{publicBoard.project.clientName || (locale === "vi" ? "Đã chia sẻ" : "Shared")}</span>
+                <span>{formatDateLabel(publicBoard.project.deadline, locale)}</span>
               </div>
             </div>
 
@@ -116,7 +128,7 @@ export default async function ClientProjectBoardPage({
                 <>
                   <div>
                     <p className="font-mono text-[11px] font-medium uppercase tracking-[0.04em] text-muted">
-                      Open
+                      {t(locale, "open")}
                     </p>
                     <p className="mt-1 font-mono text-base font-medium text-foreground">
                       {taskCounts.open}
@@ -124,7 +136,7 @@ export default async function ClientProjectBoardPage({
                   </div>
                   <div>
                     <p className="font-mono text-[11px] font-medium uppercase tracking-[0.04em] text-muted">
-                      Done
+                      {t(locale, "done")}
                     </p>
                     <p className="mt-1 font-mono text-base font-medium text-foreground">
                       {taskCounts.done}
@@ -134,7 +146,7 @@ export default async function ClientProjectBoardPage({
               ) : null}
               <div className="inline-flex items-center gap-1.5 font-mono text-[11px] uppercase tracking-[0.04em] text-muted">
                 <CalendarDots className="size-3.5" />
-                Updated {formatDate(publicBoard.project.updatedAt)}
+                {locale === "vi" ? "Cập nhật" : "Updated"} {formatDate(publicBoard.project.updatedAt)}
               </div>
             </div>
           </div>
@@ -145,18 +157,20 @@ export default async function ClientProjectBoardPage({
             <div className="mb-4 flex flex-wrap items-start justify-between gap-4">
               <div>
                 <p className="font-mono text-[11px] font-medium uppercase tracking-[0.04em] text-muted">
-                  Board
+                  {locale === "vi" ? "Bảng" : "Board"}
                 </p>
                 <h2 className="mt-1 text-[17px] font-medium tracking-[-0.022em] text-foreground">
-                  Current project board
+                  {locale === "vi" ? "Bảng dự án hiện tại" : "Current project board"}
                 </h2>
                 <p className="mt-1 max-w-2xl text-[13px] leading-6 text-muted">
-                  Read-only view of the current task flow.
+                  {locale === "vi"
+                    ? "Góc nhìn chỉ đọc của luồng công việc hiện tại."
+                    : "Read-only view of the current task flow."}
                 </p>
               </div>
 
               <Link href="/sign-in" className="ui-button-secondary">
-                Owner sign in
+                {locale === "vi" ? "Chủ sở hữu đăng nhập" : "Owner sign in"}
               </Link>
             </div>
 
@@ -179,17 +193,19 @@ export default async function ClientProjectBoardPage({
             <div className="mb-4 flex flex-wrap items-start justify-between gap-4">
               <div>
                 <p className="font-mono text-[11px] font-medium uppercase tracking-[0.04em] text-muted">
-                  Updates
+                  {locale === "vi" ? "Cập nhật" : "Updates"}
                 </p>
                 <h2 className="mt-1 text-[17px] font-medium tracking-[-0.022em] text-foreground">
-                  Client status log
+                  {locale === "vi" ? "Nhật ký trạng thái khách hàng" : "Client status log"}
                 </h2>
                 <p className="mt-1 max-w-2xl text-[13px] leading-6 text-muted">
-                  Published notes from completed tasks, formatted like a clean commit history.
+                  {locale === "vi"
+                    ? "Ghi chú đã đăng từ công việc hoàn tất, trình bày như lịch sử commit gọn gàng."
+                    : "Published notes from completed tasks, formatted like a clean commit history."}
                 </p>
               </div>
               <span className="ui-badge">
-                {publicBoard.statusUpdates.length} updates
+                {publicBoard.statusUpdates.length} {locale === "vi" ? "cập nhật" : "updates"}
               </span>
             </div>
 

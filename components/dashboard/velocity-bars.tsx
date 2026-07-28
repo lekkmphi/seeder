@@ -12,17 +12,28 @@ import {
 } from "recharts";
 
 import type { DashboardData } from "@/lib/data";
+import type { Locale } from "@/lib/i18n";
 
-export function VelocityBars({ data }: { data: DashboardData["velocityByProject"] }) {
+export function VelocityBars({
+  data,
+  locale = "en",
+}: {
+  data: DashboardData["velocityByProject"];
+  locale?: Locale;
+}) {
   if (data.length === 0) {
     return (
       <div className="rounded-md border border-dashed border-border bg-surface px-5 py-10 text-center">
         <div className="mx-auto inline-flex size-10 items-center justify-center rounded-md border border-border bg-background text-muted">
           <ListBullets className="size-5" />
         </div>
-        <p className="mt-3 text-[13px] font-medium text-foreground">No velocity yet</p>
+        <p className="mt-3 text-[13px] font-medium text-foreground">
+          {locale === "vi" ? "Chưa có tốc độ" : "No velocity yet"}
+        </p>
         <p className="mx-auto mt-1 max-w-sm text-[13px] leading-6 text-muted">
-          No projects shipped updates in the last 30 days. Publish one from a finished task.
+          {locale === "vi"
+            ? "Chưa có dự án nào đăng cập nhật trong 30 ngày gần đây. Hãy đăng một cập nhật từ công việc đã xong."
+            : "No projects shipped updates in the last 30 days. Publish one from a finished task."}
         </p>
       </div>
     );
@@ -67,7 +78,10 @@ export function VelocityBars({ data }: { data: DashboardData["velocityByProject"
             }}
             labelStyle={{ color: "var(--foreground)", fontWeight: 500 }}
             itemStyle={{ color: "var(--foreground)" }}
-            formatter={(value: number) => [`${value} shipped`, ""]}
+            formatter={(value: number) => [
+              locale === "vi" ? `${value} đã bàn giao` : `${value} shipped`,
+              "",
+            ]}
           />
           <Bar dataKey="shippedCount" fill="var(--accent)" radius={[0, 2, 2, 0]} />
         </BarChart>

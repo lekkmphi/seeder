@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { GitCommit } from "@phosphor-icons/react";
 
+import { useLocale } from "@/lib/use-locale";
 import { cn } from "@/lib/utils";
 
 const INITIAL_VISIBLE = 5;
@@ -22,6 +23,8 @@ export function ClientStatusUpdates({
 }: {
   updates: ClientStatusUpdate[];
 }) {
+  const locale = useLocale();
+  const vi = locale === "vi";
   const [visibleCount, setVisibleCount] = useState(INITIAL_VISIBLE);
   const visible = updates.slice(0, visibleCount);
   const remaining = updates.length - visible.length;
@@ -43,8 +46,9 @@ export function ClientStatusUpdates({
   if (updates.length === 0) {
     return (
       <div className="rounded-md border border-dashed border-border bg-surface px-5 py-10 text-center text-[13px] leading-7 text-muted">
-        No public status updates yet. Completed tasks can be published from the
-        internal task modal.
+        {vi
+          ? "Chưa có cập nhật trạng thái công khai nào. Các việc đã hoàn tất có thể được đăng từ cửa sổ việc nội bộ."
+          : "No public status updates yet. Completed tasks can be published from the internal task modal."}
       </div>
     );
   }
@@ -89,7 +93,9 @@ export function ClientStatusUpdates({
                       <p className="font-mono text-[11px] uppercase tracking-[0.04em] text-muted">
                         {update.timeLabel}
                       </p>
-                      <p className="mt-1 font-mono text-[11px] text-muted">Done</p>
+                      <p className="mt-1 font-mono text-[11px] text-muted">
+                        {vi ? "Hoàn tất" : "Done"}
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -108,9 +114,11 @@ export function ClientStatusUpdates({
             }
             className="ui-button-secondary"
           >
-            Load {Math.min(remaining, LOAD_MORE_INCREMENT)} more
+            {vi
+              ? `Tải thêm ${Math.min(remaining, LOAD_MORE_INCREMENT)}`
+              : `Load ${Math.min(remaining, LOAD_MORE_INCREMENT)} more`}
             <span className="ml-2 font-mono text-[11px] text-muted">
-              {remaining} remaining
+              {vi ? `còn ${remaining}` : `${remaining} remaining`}
             </span>
           </button>
         </div>

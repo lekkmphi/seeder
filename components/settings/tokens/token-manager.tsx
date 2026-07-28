@@ -15,6 +15,7 @@ import {
 
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { toast } from "@/lib/toast";
+import { useLocale } from "@/lib/use-locale";
 import { cn } from "@/lib/utils";
 import type { TokenListItem } from "@/lib/data-tokens";
 import type { TokenScope } from "@/lib/db/schema";
@@ -23,11 +24,6 @@ const scopeStyles: Record<TokenScope, string> = {
   readwrite: "border-accent/30 bg-accent-soft text-accent",
   read: "border-border bg-surface text-muted",
 };
-const scopeLabel: Record<TokenScope, string> = {
-  read: "Read",
-  readwrite: "Read · Write",
-};
-
 const EXPIRY_OPTIONS: { label: string; days: number | null }[] = [
   { label: "No expiry", days: null },
   { label: "7 days", days: 7 },
@@ -36,13 +32,19 @@ const EXPIRY_OPTIONS: { label: string; days: number | null }[] = [
   { label: "1 year", days: 365 },
 ];
 
-function formatRelative(date: Date | null) {
-  if (!date) return "Never";
+function scopeLabel(scope: TokenScope, locale: "vi" | "en") {
+  return scope === "read"
+    ? locale === "vi" ? "Đọc" : "Read"
+    : locale === "vi" ? "Đọc · Ghi" : "Read · Write";
+}
+
+function formatRelative(date: Date | null, locale: "vi" | "en") {
+  if (!date) return locale === "vi" ? "Chưa từng" : "Never";
   const diff = Date.now() - date.getTime();
   const day = 86_400_000;
-  if (diff < day) return "Today";
-  if (diff < 2 * day) return "Yesterday";
-  if (diff < 30 * day) return `${Math.floor(diff / day)}d ago`;
+  if (diff < day) return locale === "vi" ? "Hôm nay" : "Today";
+  if (diff < 2 * day) return locale === "vi" ? "Hôm qua" : "Yesterday";
+  if (diff < 30 * day) return locale === "vi" ? `${Math.floor(diff / day)} ngày trước` : `${Math.floor(diff / day)}d ago`;
   return date.toLocaleDateString();
 }
 
@@ -56,6 +58,7 @@ export function TokenManager({
   // compact section header so there aren't two stacked titles.
   embedded?: boolean;
 }) {
+  const locale = useLocale();
   const router = useRouter();
   const [creating, setCreating] = useState(false);
   const [revoking, setRevoking] = useState<TokenListItem | null>(null);
@@ -71,11 +74,11 @@ export function TokenManager({
       const data = (await response.json().catch(() => ({}))) as {
         error?: string;
       };
-      if (!response.ok) throw new Error(data.error || "Revoke failed");
-      toast("Token revoked and deleted", "success");
+      if (!response.ok) throw new Error(data.error || (locale === "vi" ? "Thu hồi thất bại" : "Revoke failed"));
+      toast(locale === "vi" ? "Đã thu hồi và xóa token" : "Token revoked and deleted", "success");
       startTransition(() => router.refresh());
     } catch (error) {
-      toast(error instanceof Error ? error.message : "Revoke failed", "danger");
+      toast(error instanceof Error ? error.message : locale === "vi" ? "Thu hồi thất bại" : "Revoke failed", "danger");
     } finally {
       setPendingId(null);
       setRevoking(null);
@@ -88,13 +91,14 @@ export function TokenManager({
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <h2 className="text-[17px] font-medium tracking-[-0.022em] text-foreground">
-              Personal access tokens
+              {locale === "vi" ? "Token truy cập cá nhân" : "Personal access tokens"}
             </h2>
             <p className="mt-1 max-w-prose text-[13px] leading-6 text-muted">
-              Let an AI assistant or script act as you through the MCP endpoint
-              (<code className="font-mono text-[12px]">/api/mcp</code>). A token
-              can never do more than you can, and is shown only once — treat it
-              like a password.
+              {locale === "vi" ? (
+                <>Cho phép trợ lý AI hoặc script thao tác thay bạn qua endpoint MCP (<code className="font-mono text-[12px]">/api/mcp</code>). Token không thể vượt quyền của bạn và chỉ hiển thị một lần, hãy xem như mật khẩu.</>
+              ) : (
+                <>Let an AI assistant or script act as you through the MCP endpoint (<code className="font-mono text-[12px]">/api/mcp</code>). A token can never do more than you can, and is shown only once — treat it like a password.</>
+              )}
             </p>
           </div>
           <button
@@ -103,7 +107,7 @@ export function TokenManager({
             className="ui-button-primary shrink-0"
           >
             <Plus className="size-4" />
-            New token
+            {locale === "vi" ? "Token mới" : "New token"}
           </button>
         </div>
       ) : (
@@ -114,15 +118,14 @@ export function TokenManager({
                 Settings · API tokens
               </p>
               <h1 className="mt-2 text-[24px] font-medium tracking-[-0.022em] text-foreground">
-                Personal access tokens
+                {locale === "vi" ? "Token truy cập cá nhân" : "Personal access tokens"}
               </h1>
               <p className="mt-1 max-w-prose text-[13px] leading-6 text-muted">
-                Let an AI assistant or script act as you through the MCP endpoint
-                (<code className="font-mono text-[12px]">/api/mcp</code>) — read or
-                edit projects, tasks, categories, labels, requests, comments,
-                notes, members, and settings. A token can
-                never do more than you can, and is shown only once — treat it like a
-                password.
+                {locale === "vi" ? (
+                  <>Cho phép trợ lý AI hoặc script thao tác thay bạn qua endpoint MCP (<code className="font-mono text-[12px]">/api/mcp</code>), gồm đọc hoặc sửa dự án, công việc, danh mục, nhãn, yêu cầu, bình luận, ghi chú, thành viên và cài đặt. Token không thể vượt quyền của bạn và chỉ hiển thị một lần.</>
+                ) : (
+                  <>Let an AI assistant or script act as you through the MCP endpoint (<code className="font-mono text-[12px]">/api/mcp</code>) — read or edit projects, tasks, categories, labels, requests, comments, notes, members, and settings. A token can never do more than you can, and is shown only once — treat it like a password.</>
+                )}
               </p>
             </div>
             <button
@@ -131,7 +134,7 @@ export function TokenManager({
               className="ui-button-primary shrink-0"
             >
               <Plus className="size-4" />
-              New token
+              {locale === "vi" ? "Token mới" : "New token"}
             </button>
           </div>
         </section>
@@ -140,7 +143,7 @@ export function TokenManager({
       <div className="ui-panel-soft divide-y divide-border">
         {tokens.length === 0 ? (
           <div className="px-5 py-10 text-center text-[13px] leading-7 text-muted">
-            No tokens yet. Create one to connect an MCP client.
+            {locale === "vi" ? "Chưa có token. Tạo một token để kết nối MCP client." : "No tokens yet. Create one to connect an MCP client."}
           </div>
         ) : (
           tokens.map((token) => {
@@ -170,15 +173,15 @@ export function TokenManager({
                         scopeStyles[token.scope],
                       )}
                     >
-                      {scopeLabel[token.scope]}
+                      {scopeLabel(token.scope, locale)}
                     </span>
                     {revoked ? (
                       <span className="inline-flex items-center rounded-sm border border-danger/30 bg-danger/10 px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-[0.04em] text-danger">
-                        Revoked
+                        {locale === "vi" ? "Đã thu hồi" : "Revoked"}
                       </span>
                     ) : expired ? (
                       <span className="inline-flex items-center rounded-sm border border-border bg-surface px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-[0.04em] text-muted">
-                        Expired
+                        {locale === "vi" ? "Hết hạn" : "Expired"}
                       </span>
                     ) : null}
                   </div>
@@ -190,18 +193,18 @@ export function TokenManager({
                 <div className="grid grid-cols-2 gap-4 text-left font-mono sm:gap-6 sm:text-right">
                   <div>
                     <p className="text-[11px] uppercase tracking-[0.04em] text-muted">
-                      Last used
+                      {locale === "vi" ? "Dùng lần cuối" : "Last used"}
                     </p>
                     <p className="text-[13px] font-medium text-foreground">
-                      {formatRelative(token.lastUsedAt)}
+                      {formatRelative(token.lastUsedAt, locale)}
                     </p>
                   </div>
                   <div>
                     <p className="text-[11px] uppercase tracking-[0.04em] text-muted">
-                      Expires
+                      {locale === "vi" ? "Hết hạn" : "Expires"}
                     </p>
                     <p className="text-[13px] font-medium text-foreground">
-                      {token.expiresAt ? token.expiresAt.toLocaleDateString() : "Never"}
+                      {token.expiresAt ? token.expiresAt.toLocaleDateString() : locale === "vi" ? "Không bao giờ" : "Never"}
                     </p>
                   </div>
                 </div>
@@ -212,8 +215,8 @@ export function TokenManager({
                       type="button"
                       onClick={() => setRevoking(token)}
                       disabled={busy}
-                      aria-label={`Revoke ${token.name}`}
-                      title="Revoke"
+                      aria-label={locale === "vi" ? `Thu hồi ${token.name}` : `Revoke ${token.name}`}
+                      title={locale === "vi" ? "Thu hồi" : "Revoke"}
                       className="inline-flex size-8 items-center justify-center rounded-md border border-border bg-surface text-muted transition hover:border-danger/40 hover:bg-danger/10 hover:text-danger disabled:cursor-not-allowed disabled:opacity-40"
                     >
                       {busy ? (
@@ -234,15 +237,20 @@ export function TokenManager({
         <CreateTokenModal
           onClose={() => setCreating(false)}
           onCreated={() => startTransition(() => router.refresh())}
+          locale={locale}
         />
       ) : null}
 
       <ConfirmDialog
         open={Boolean(revoking)}
-        title={`Revoke ${revoking?.name ?? "token"}?`}
-        description="Any client using this token loses access immediately, and the token is permanently deleted — it won't be kept in the list. Create a new token to reconnect."
-        confirmLabel="Revoke"
-        cancelLabel="Keep"
+        title={locale === "vi" ? `Thu hồi ${revoking?.name ?? "token"}?` : `Revoke ${revoking?.name ?? "token"}?`}
+        description={
+          locale === "vi"
+            ? "Mọi client dùng token này sẽ mất quyền truy cập ngay lập tức và token bị xóa vĩnh viễn khỏi danh sách. Tạo token mới để kết nối lại."
+            : "Any client using this token loses access immediately, and the token is permanently deleted — it won't be kept in the list. Create a new token to reconnect."
+        }
+        confirmLabel={locale === "vi" ? "Thu hồi" : "Revoke"}
+        cancelLabel={locale === "vi" ? "Giữ lại" : "Keep"}
         variant="danger"
         isPending={Boolean(pendingId)}
         onCancel={() => setRevoking(null)}
@@ -255,9 +263,11 @@ export function TokenManager({
 function CreateTokenModal({
   onClose,
   onCreated,
+  locale,
 }: {
   onClose: () => void;
   onCreated: () => void;
+  locale: "vi" | "en";
 }) {
   const [name, setName] = useState("");
   const [scope, setScope] = useState<TokenScope>("read");
@@ -288,13 +298,13 @@ function CreateTokenModal({
         error?: string;
       };
       if (!response.ok || !data.token) {
-        throw new Error(data.error || "Could not create token");
+        throw new Error(data.error || (locale === "vi" ? "Không thể tạo token" : "Could not create token"));
       }
       setCreated(data.token);
       onCreated(); // refresh the list behind the modal
     } catch (error) {
       toast(
-        error instanceof Error ? error.message : "Could not create token",
+        error instanceof Error ? error.message : locale === "vi" ? "Không thể tạo token" : "Could not create token",
         "danger",
       );
     } finally {
@@ -307,10 +317,15 @@ function CreateTokenModal({
     try {
       await navigator.clipboard.writeText(created);
       setCopied(true);
-      toast("Token copied", "success");
+      toast(locale === "vi" ? "Đã sao chép token" : "Token copied", "success");
       window.setTimeout(() => setCopied(false), 2000);
     } catch {
-      toast("Copy failed — select the text and copy manually", "danger");
+      toast(
+        locale === "vi"
+          ? "Sao chép thất bại, hãy chọn văn bản và sao chép thủ công"
+          : "Copy failed — select the text and copy manually",
+        "danger",
+      );
     }
   }
 
@@ -333,7 +348,7 @@ function CreateTokenModal({
     <div className="fixed inset-0 z-[55] p-4 sm:p-6">
       <button
         type="button"
-        aria-label="Close"
+        aria-label={locale === "vi" ? "Đóng" : "Close"}
         onClick={onClose}
         className="ui-modal-backdrop absolute inset-0 bg-[rgba(10,10,10,0.44)] backdrop-blur-xs"
       />
@@ -342,10 +357,12 @@ function CreateTokenModal({
           <div className="mb-5 flex items-start justify-between gap-4">
             <div>
               <p className="font-mono text-[11px] font-medium uppercase tracking-[0.04em] text-muted">
-                Settings · API tokens
+                {locale === "vi" ? "Cài đặt · API token" : "Settings · API tokens"}
               </p>
               <h3 className="mt-2 text-[1.2rem] font-medium tracking-[-0.022em] text-foreground">
-                {created ? "Copy your token" : "New token"}
+                {created
+                  ? locale === "vi" ? "Sao chép token của bạn" : "Copy your token"
+                  : locale === "vi" ? "Token mới" : "New token"}
               </h3>
             </div>
             <button
@@ -354,7 +371,7 @@ function CreateTokenModal({
               className="inline-flex size-9 items-center justify-center rounded-md border border-border bg-surface text-muted transition hover:border-border-strong hover:bg-surface-strong hover:text-foreground"
             >
               <X className="size-4" />
-              <span className="sr-only">Close</span>
+              <span className="sr-only">{locale === "vi" ? "Đóng" : "Close"}</span>
             </button>
           </div>
 
@@ -363,9 +380,9 @@ function CreateTokenModal({
               <div className="flex items-start gap-2 rounded-md border border-accent/30 bg-accent-soft p-3 text-[12px] leading-5 text-foreground">
                 <CheckCircle className="mt-0.5 size-4 shrink-0 text-accent" />
                 <span>
-                  Copy this token now — for security it{" "}
-                  <strong>won&apos;t be shown again</strong>. Store it in your MCP
-                  client config.
+                  {locale === "vi" ? "Sao chép token này ngay bây giờ, vì lý do bảo mật token " : "Copy this token now — for security it "}
+                  <strong>{locale === "vi" ? "sẽ không hiển thị lại" : "won't be shown again"}</strong>
+                  {locale === "vi" ? ". Lưu nó trong cấu hình MCP client." : ". Store it in your MCP client config."}
                 </span>
               </div>
               <div className="flex items-center gap-2">
@@ -385,12 +402,14 @@ function CreateTokenModal({
                   ) : (
                     <Copy className="size-4" />
                   )}
-                  {copied ? "Copied" : "Copy"}
+                  {copied
+                    ? locale === "vi" ? "Đã sao chép" : "Copied"
+                    : locale === "vi" ? "Sao chép" : "Copy"}
                 </button>
               </div>
               <div className="min-w-0 rounded-md border border-border bg-surface p-3">
                 <p className="font-mono text-[11px] uppercase tracking-[0.04em] text-muted">
-                  MCP client config (Claude, Cursor, …)
+                  {locale === "vi" ? "Cấu hình MCP client (Claude, Cursor, ...)" : "MCP client config (Claude, Cursor, …)"}
                 </p>
                 <pre className="mt-2 max-w-full overflow-x-auto whitespace-pre font-mono text-[11px] leading-5 text-foreground">
                   {snippet}
@@ -401,47 +420,57 @@ function CreateTokenModal({
                 onClick={onClose}
                 className="ui-button-primary mt-1 w-full px-4"
               >
-                Done
+                {locale === "vi" ? "Xong" : "Done"}
               </button>
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="grid gap-4">
               <label className="grid gap-2">
-                <span className="text-sm font-medium text-foreground">Name</span>
+                <span className="text-sm font-medium text-foreground">
+                  {locale === "vi" ? "Tên" : "Name"}
+                </span>
                 <input
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   required
                   maxLength={80}
                   className="ui-input"
-                  placeholder="e.g. Claude desktop"
+                  placeholder={locale === "vi" ? "VD: Claude desktop" : "e.g. Claude desktop"}
                   autoFocus
                 />
               </label>
 
               <label className="grid gap-2">
-                <span className="text-sm font-medium text-foreground">Scope</span>
+                <span className="text-sm font-medium text-foreground">
+                  {locale === "vi" ? "Phạm vi" : "Scope"}
+                </span>
                 <select
                   value={scope}
                   onChange={(e) => setScope(e.target.value as TokenScope)}
                   className="ui-select"
                 >
                   <option value="read">
-                    Read — browse projects, tasks, requests, and activity
+                    {locale === "vi"
+                      ? "Đọc - xem dự án, công việc, yêu cầu và hoạt động"
+                      : "Read — browse projects, tasks, requests, and activity"}
                   </option>
                   <option value="readwrite">
-                    Read &amp; write — also manage tasks, projects, members &amp;
-                    invites
+                    {locale === "vi"
+                      ? "Đọc & ghi - quản lý thêm công việc, dự án, thành viên và lời mời"
+                      : "Read & write — also manage tasks, projects, members & invites"}
                   </option>
                 </select>
                 <span className="text-[12px] text-muted">
-                  A token can never exceed your own access. Editing project
-                  settings, members, and invites still needs owner or admin rights.
+                  {locale === "vi"
+                    ? "Token không thể vượt quyền của bạn. Sửa cài đặt dự án, thành viên và lời mời vẫn cần quyền chủ sở hữu hoặc quản trị."
+                    : "A token can never exceed your own access. Editing project settings, members, and invites still needs owner or admin rights."}
                 </span>
               </label>
 
               <label className="grid gap-2">
-                <span className="text-sm font-medium text-foreground">Expiry</span>
+                <span className="text-sm font-medium text-foreground">
+                  {locale === "vi" ? "Hết hạn" : "Expiry"}
+                </span>
                 <select
                   value={expiryDays === null ? "" : String(expiryDays)}
                   onChange={(e) =>
@@ -456,7 +485,13 @@ function CreateTokenModal({
                       key={opt.label}
                       value={opt.days === null ? "" : String(opt.days)}
                     >
-                      {opt.label}
+                      {locale === "vi"
+                        ? opt.days === null
+                          ? "Không hết hạn"
+                          : opt.days === 365
+                            ? "1 năm"
+                            : `${opt.days} ngày`
+                        : opt.label}
                     </option>
                   ))}
                 </select>
@@ -468,7 +503,9 @@ function CreateTokenModal({
                 className="ui-button-primary mt-2 w-full px-4 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {saving ? <CircleNotch className="size-4 animate-spin" /> : null}
-                {saving ? "Creating…" : "Create token"}
+                {saving
+                  ? locale === "vi" ? "Đang tạo..." : "Creating…"
+                  : locale === "vi" ? "Tạo token" : "Create token"}
               </button>
             </form>
           )}

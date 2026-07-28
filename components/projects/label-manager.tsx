@@ -11,6 +11,8 @@ import {
 } from "@/lib/actions";
 import { PROJECT_SWATCHES } from "@/lib/swatches";
 import { toast } from "@/lib/toast";
+import { t } from "@/lib/i18n";
+import { useLocale } from "@/lib/use-locale";
 import { cn } from "@/lib/utils";
 
 export type ManagedLabel = {
@@ -27,6 +29,7 @@ export function LabelManager({
   projectId: string;
   labels: ManagedLabel[];
 }) {
+  const locale = useLocale();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
@@ -38,7 +41,9 @@ export function LabelManager({
 
       {labels.length === 0 ? (
         <div className="rounded-md border border-dashed border-border bg-surface px-5 py-6 text-center text-[13px] leading-7 text-muted">
-          No labels yet. Create one above, then tag tasks from the task modal.
+          {locale === "vi"
+            ? "Chưa có nhãn. Tạo nhãn ở trên, rồi gắn vào công việc từ modal công việc."
+            : "No labels yet. Create one above, then tag tasks from the task modal."}
         </div>
       ) : (
         <ul className="grid gap-2">
@@ -66,7 +71,9 @@ export function LabelManager({
                     {label.name}
                   </span>
                   <span className="ui-badge">
-                    {label.taskCount} task{label.taskCount === 1 ? "" : "s"}
+                    {locale === "vi"
+                      ? `${label.taskCount} công việc`
+                      : `${label.taskCount} task${label.taskCount === 1 ? "" : "s"}`}
                   </span>
                 </div>
                 <div className="flex items-center gap-1">
@@ -74,19 +81,23 @@ export function LabelManager({
                     type="button"
                     onClick={() => setEditingId(label.id)}
                     className="inline-flex size-7 items-center justify-center rounded-sm text-muted transition hover:bg-background hover:text-foreground"
-                    title="Edit label"
+                    title={locale === "vi" ? "Sửa nhãn" : "Edit label"}
                   >
                     <Pencil className="size-3.5" />
-                    <span className="sr-only">Edit label</span>
+                    <span className="sr-only">
+                      {locale === "vi" ? "Sửa nhãn" : "Edit label"}
+                    </span>
                   </button>
                   <button
                     type="button"
                     onClick={() => setConfirmDeleteId(label.id)}
                     className="inline-flex size-7 items-center justify-center rounded-sm text-muted transition hover:bg-danger/10 hover:text-danger"
-                    title="Delete label"
+                    title={locale === "vi" ? "Xóa nhãn" : "Delete label"}
                   >
                     <Trash className="size-3.5" />
-                    <span className="sr-only">Delete label</span>
+                    <span className="sr-only">
+                      {locale === "vi" ? "Xóa nhãn" : "Delete label"}
+                    </span>
                   </button>
                 </div>
               </li>
@@ -103,6 +114,7 @@ export function LabelManager({
 }
 
 function LabelCreateForm({ projectId }: { projectId: string }) {
+  const locale = useLocale();
   const [name, setName] = useState("");
   const [color, setColor] = useState(PROJECT_SWATCHES[0].value);
   const [isPending, startTransition] = useTransition();
@@ -117,11 +129,16 @@ function LabelCreateForm({ projectId }: { projectId: string }) {
     startTransition(async () => {
       try {
         await createTaskLabelAction(formData);
-        toast(`Created label "${trimmed}"`, "success");
+        toast(
+          locale === "vi" ? `Đã tạo nhãn "${trimmed}"` : `Created label "${trimmed}"`,
+          "success",
+        );
         setName("");
       } catch (error: unknown) {
         toast(
-          error instanceof Error ? error.message : "Could not create label",
+          error instanceof Error
+            ? error.message
+            : locale === "vi" ? "Không thể tạo nhãn" : "Could not create label",
           "danger",
         );
       }
@@ -142,7 +159,7 @@ function LabelCreateForm({ projectId }: { projectId: string }) {
           }}
           className="ui-input"
           maxLength={40}
-          placeholder="New label name…"
+          placeholder={locale === "vi" ? "Tên nhãn mới..." : "New label name..."}
         />
         <button
           type="button"
@@ -155,11 +172,13 @@ function LabelCreateForm({ projectId }: { projectId: string }) {
           ) : (
             <Plus className="size-4" />
           )}
-          Add
+          {locale === "vi" ? "Thêm" : "Add"}
         </button>
       </div>
       <div className="grid gap-2 border-t border-border pt-4">
-        <span className="text-[12px] font-medium text-foreground">Color</span>
+        <span className="text-[12px] font-medium text-foreground">
+          {locale === "vi" ? "Màu" : "Color"}
+        </span>
         <div className="flex flex-wrap gap-1.5">
           {PROJECT_SWATCHES.map((swatch) => {
             const isSelected =
@@ -196,6 +215,7 @@ function LabelEditForm({
   onDone: () => void;
   onCancel: () => void;
 }) {
+  const locale = useLocale();
   const [name, setName] = useState(label.name);
   const [color, setColor] = useState(label.color);
   const [isPending, startTransition] = useTransition();
@@ -210,11 +230,13 @@ function LabelEditForm({
     startTransition(async () => {
       try {
         await updateTaskLabelAction(formData);
-        toast("Label updated", "success");
+        toast(locale === "vi" ? "Đã cập nhật nhãn" : "Label updated", "success");
         onDone();
       } catch (error: unknown) {
         toast(
-          error instanceof Error ? error.message : "Could not update label",
+          error instanceof Error
+            ? error.message
+            : locale === "vi" ? "Không thể cập nhật nhãn" : "Could not update label",
           "danger",
         );
       }
@@ -231,7 +253,9 @@ function LabelEditForm({
       }}
     >
       <label className="grid gap-1.5">
-        <span className="text-[12px] font-medium text-foreground">Name</span>
+        <span className="text-[12px] font-medium text-foreground">
+          {locale === "vi" ? "Tên" : "Name"}
+        </span>
         <input
           value={name}
           onChange={(event) => setName(event.target.value)}
@@ -240,7 +264,9 @@ function LabelEditForm({
         />
       </label>
       <div className="grid gap-1.5">
-        <span className="text-[12px] font-medium text-foreground">Color</span>
+        <span className="text-[12px] font-medium text-foreground">
+          {locale === "vi" ? "Màu" : "Color"}
+        </span>
         <div className="flex flex-wrap gap-1.5">
           {PROJECT_SWATCHES.map((swatch) => {
             const isSelected = swatch.value.toLowerCase() === color.toLowerCase();
@@ -270,7 +296,7 @@ function LabelEditForm({
           className="ui-button-ghost px-3"
           disabled={isPending}
         >
-          Cancel
+          {t(locale, "cancel")}
         </button>
         <button
           type="submit"
@@ -278,7 +304,7 @@ function LabelEditForm({
           disabled={isPending}
         >
           {isPending ? <CircleNotch className="size-4 animate-spin" /> : null}
-          Save
+          {locale === "vi" ? "Lưu" : "Save"}
         </button>
       </div>
     </form>
@@ -292,31 +318,34 @@ function DeleteLabelDialog({
   label: ManagedLabel;
   onClose: () => void;
 }) {
+  const locale = useLocale();
   const [isPending, startTransition] = useTransition();
   const inUse = label.taskCount > 0;
 
   return (
     <ConfirmDialog
       open
-      title="Delete label?"
+      title={locale === "vi" ? "Xóa nhãn?" : "Delete label?"}
       description={
         <>
-          Permanently remove{" "}
+          {locale === "vi" ? "Xóa vĩnh viễn " : "Permanently remove "}
           <span className="font-medium text-foreground">{label.name}</span>
           {inUse ? (
             <>
               {" "}
-              and untag it from{" "}
+              {locale === "vi" ? " và gỡ khỏi " : " and untag it from "}
               <span className="font-medium text-foreground">
                 {label.taskCount}
               </span>{" "}
-              task{label.taskCount === 1 ? "" : "s"}
+              {locale === "vi"
+                ? " công việc"
+                : ` task${label.taskCount === 1 ? "" : "s"}`}
             </>
           ) : null}
-          . This cannot be undone.
+          {locale === "vi" ? ". Thao tác này không thể hoàn tác." : ". This cannot be undone."}
         </>
       }
-      confirmLabel="Delete"
+      confirmLabel={locale === "vi" ? "Xóa" : "Delete"}
       variant="danger"
       isPending={isPending}
       onCancel={onClose}
@@ -326,11 +355,13 @@ function DeleteLabelDialog({
         startTransition(async () => {
           try {
             await deleteTaskLabelAction(formData);
-            toast("Label deleted", "success");
+            toast(locale === "vi" ? "Đã xóa nhãn" : "Label deleted", "success");
             onClose();
           } catch (error: unknown) {
             toast(
-              error instanceof Error ? error.message : "Could not delete label",
+              error instanceof Error
+                ? error.message
+                : locale === "vi" ? "Không thể xóa nhãn" : "Could not delete label",
               "danger",
             );
           }

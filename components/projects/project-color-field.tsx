@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Check } from "@phosphor-icons/react";
 
 import { PROJECT_SWATCHES } from "@/lib/swatches";
+import { useLocale } from "@/lib/use-locale";
 import { cn } from "@/lib/utils";
 
 /**
@@ -19,6 +20,8 @@ export function ProjectColorField({
   name?: string;
   defaultValue?: string | null;
 }) {
+  const locale = useLocale();
+  const vi = locale === "vi";
   const [selected, setSelected] = useState<string | null>(defaultValue);
 
   return (
@@ -28,7 +31,7 @@ export function ProjectColorField({
         <button
           type="button"
           onClick={() => setSelected(null)}
-          aria-label="No color"
+          aria-label={vi ? "Không màu" : "No color"}
           aria-pressed={selected === null}
           className={cn(
             "relative flex size-8 items-center justify-center rounded-md border bg-background transition",

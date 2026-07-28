@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import { CheckCircle, Info, WarningCircle, X } from "@phosphor-icons/react";
 
 import { subscribeToToasts, type ToastItem } from "@/lib/toast";
+import { useLocale } from "@/lib/use-locale";
 import { cn } from "@/lib/utils";
 
 // Solid surface for the body so we never composite over whatever's behind
@@ -30,6 +31,8 @@ const VARIANT_ICONS: Record<ToastItem["variant"], React.ComponentType<{ classNam
 const DEFAULT_DURATION_MS = 3500;
 
 export function Toaster() {
+  const locale = useLocale();
+  const vi = locale === "vi";
   const [items, setItems] = useState<ToastItem[]>([]);
   const [mounted, setMounted] = useState(false);
 
@@ -72,7 +75,7 @@ export function Toaster() {
               onClick={() => {
                 setItems((current) => current.filter((t) => t.id !== item.id));
               }}
-              aria-label="Dismiss notification"
+              aria-label={vi ? "Đóng thông báo" : "Dismiss notification"}
               className="inline-flex size-5 shrink-0 items-center justify-center rounded-sm text-muted transition hover:bg-surface hover:text-foreground"
             >
               <X className="size-3.5" />

@@ -5,6 +5,7 @@ import { useState, useTransition } from "react";
 import { Copy, Trash } from "@phosphor-icons/react";
 
 import { toast } from "@/lib/toast";
+import { useLocale } from "@/lib/use-locale";
 import { cn } from "@/lib/utils";
 
 type InviteItem = {
@@ -25,6 +26,7 @@ const statusStyles: Record<InviteItem["status"], string> = {
 };
 
 export function InviteList({ items }: { items: InviteItem[] }) {
+  const locale = useLocale();
   const router = useRouter();
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -34,9 +36,9 @@ export function InviteList({ items }: { items: InviteItem[] }) {
       await navigator.clipboard.writeText(item.link);
       setCopiedId(item.id);
       setTimeout(() => setCopiedId((id) => (id === item.id ? null : id)), 1500);
-      toast("Invite link copied", "success");
+      toast(locale === "vi" ? "Đã sao chép liên kết mời" : "Invite link copied", "success");
     } catch {
-      toast("Could not copy link", "danger");
+      toast(locale === "vi" ? "Không thể sao chép liên kết" : "Could not copy link", "danger");
     }
   };
 
@@ -47,10 +49,10 @@ export function InviteList({ items }: { items: InviteItem[] }) {
         { method: "DELETE" },
       );
       if (!response.ok) {
-        toast("Could not delete invitation", "danger");
+        toast(locale === "vi" ? "Không thể xóa lời mời" : "Could not delete invitation", "danger");
         return;
       }
-      toast("Invitation deleted", "success");
+      toast(locale === "vi" ? "Đã xóa lời mời" : "Invitation deleted", "success");
       router.refresh();
     });
   };
@@ -58,7 +60,7 @@ export function InviteList({ items }: { items: InviteItem[] }) {
   if (items.length === 0) {
     return (
       <div className="rounded-md border border-dashed border-border bg-surface px-5 py-10 text-center text-[13px] leading-7 text-muted">
-        No invitations yet.
+        {locale === "vi" ? "Chưa có lời mời." : "No invitations yet."}
       </div>
     );
   }
@@ -66,7 +68,7 @@ export function InviteList({ items }: { items: InviteItem[] }) {
   return (
     <div className="space-y-2">
       <p className="font-mono text-[11px] uppercase tracking-[0.04em] text-muted">
-        Recent invitations
+        {locale === "vi" ? "Lời mời gần đây" : "Recent invitations"}
       </p>
       <div className="ui-panel-soft divide-y divide-border">
         {items.map((item) => (
@@ -85,12 +87,22 @@ export function InviteList({ items }: { items: InviteItem[] }) {
                     statusStyles[item.status],
                   )}
                 >
-                  {item.status}
+                  {{
+                    pending: locale === "vi" ? "đang chờ" : "pending",
+                    accepted: locale === "vi" ? "đã nhận" : "accepted",
+                    expired: locale === "vi" ? "hết hạn" : "expired",
+                  }[item.status]}
                 </span>
-                <span className="ui-badge">{item.role}</span>
+                <span className="ui-badge">
+                  {item.role === "admin"
+                    ? locale === "vi" ? "quản trị" : "admin"
+                    : locale === "vi" ? "thành viên" : "member"}
+                </span>
               </div>
               <p className="mt-1 font-mono text-[11px] text-muted">
-                Created {item.createdAt.toLocaleDateString()} · Expires{" "}
+                {locale === "vi" ? "Tạo" : "Created"}{" "}
+                {item.createdAt.toLocaleDateString()} ·{" "}
+                {locale === "vi" ? "Hết hạn" : "Expires"}{" "}
                 {item.expiresAt.toLocaleDateString()}
               </p>
             </div>
@@ -100,10 +112,12 @@ export function InviteList({ items }: { items: InviteItem[] }) {
                 type="button"
                 onClick={() => copyLink(item)}
                 className="ui-button-secondary"
-                title="Copy invite link"
+                title={locale === "vi" ? "Sao chép liên kết mời" : "Copy invite link"}
               >
                 <Copy className="size-4" />
-                {copiedId === item.id ? "Copied" : "Copy link"}
+                {copiedId === item.id
+                  ? locale === "vi" ? "Đã sao chép" : "Copied"
+                  : locale === "vi" ? "Sao chép liên kết" : "Copy link"}
               </button>
             ) : null}
 
@@ -112,8 +126,8 @@ export function InviteList({ items }: { items: InviteItem[] }) {
               onClick={() => remove(item.id)}
               disabled={isPending}
               className="ui-button-ghost"
-              title="Delete invitation"
-              aria-label="Delete invitation"
+              title={locale === "vi" ? "Xóa lời mời" : "Delete invitation"}
+              aria-label={locale === "vi" ? "Xóa lời mời" : "Delete invitation"}
             >
               <Trash className="size-4" />
             </button>

@@ -19,21 +19,13 @@ import {
 } from "@phosphor-icons/react";
 
 import type { SearchIndexItem } from "@/lib/data";
+import { t, type Locale } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
-const kindMeta = {
-  project: {
-    label: "Project",
-    icon: Folders,
-  },
-  request: {
-    label: "Request",
-    icon: ChatCircleText,
-  },
-  task: {
-    label: "Task",
-    icon: Kanban,
-  },
+const kindIcon = {
+  project: Folders,
+  request: ChatCircleText,
+  task: Kanban,
 } as const;
 
 function matchesQuery(item: SearchIndexItem, queryTokens: string[]) {
@@ -73,7 +65,7 @@ function highlightMatches(text: string, tokens: string[]) {
   });
 }
 
-export function CommandBar() {
+export function CommandBar({ locale }: { locale: Locale }) {
   const pathname = usePathname();
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
@@ -186,10 +178,12 @@ export function CommandBar() {
         // ad-blocker / privacy extension / corporate proxy
         if (error instanceof TypeError) {
           setLoadError(
-            "Search request was blocked. Disable any ad-blocker or privacy extension for this site, then reopen.",
+            locale === "vi"
+              ? "Yêu cầu tìm kiếm bị chặn. Hãy tắt tiện ích chặn quảng cáo/quyền riêng tư cho trang này rồi mở lại."
+              : "Search request was blocked. Disable any ad-blocker or privacy extension for this site, then reopen.",
           );
         } else {
-          setLoadError("Search is temporarily unavailable.");
+          setLoadError(locale === "vi" ? "Tạm thời chưa thể tìm kiếm." : "Search is temporarily unavailable.");
         }
       })
       .finally(() => {
@@ -201,7 +195,7 @@ export function CommandBar() {
     return () => {
       isMounted = false;
     };
-  }, [hasLoaded, isOpen]);
+  }, [hasLoaded, isOpen, locale]);
 
   return (
     <>
@@ -212,7 +206,7 @@ export function CommandBar() {
       >
         <span className="inline-flex items-center gap-2">
           <MagnifyingGlass className="size-4" />
-          Search
+          {t(locale, "search")}
         </span>
         <span className="ui-kbd">
           Ctrl K
@@ -224,7 +218,7 @@ export function CommandBar() {
         <div className="fixed inset-0 z-50 p-4 sm:p-6">
           <button
             type="button"
-            aria-label="Close search"
+            aria-label={t(locale, "closeSearch")}
             onClick={() => setIsOpen(false)}
             className="ui-modal-backdrop absolute inset-0 backdrop-blur-xs"
           />
@@ -265,7 +259,11 @@ export function CommandBar() {
                       router.push(target.href);
                     }
                   }}
-                  placeholder="Search projects, tasks, or requests"
+                  placeholder={
+                    locale === "vi"
+                      ? "Tìm dự án, công việc hoặc yêu cầu"
+                      : "Search projects, tasks, or requests"
+                  }
                   className="min-w-0 flex-1 bg-transparent text-[13px] text-foreground outline-none placeholder:text-muted"
                 />
                 <button
@@ -274,7 +272,7 @@ export function CommandBar() {
                   className="inline-flex size-7 items-center justify-center rounded-sm text-muted transition hover:bg-surface hover:text-foreground"
                 >
                   <X className="size-4" />
-                  <span className="sr-only">Close</span>
+                  <span className="sr-only">{t(locale, "close")}</span>
                 </button>
               </div>
 
@@ -292,8 +290,7 @@ export function CommandBar() {
                 ) : visibleItems.length ? (
                   <div className="space-y-0.5">
                     {visibleItems.map((item, index) => {
-                      const meta = kindMeta[item.kind];
-                      const Icon = meta.icon;
+                      const Icon = kindIcon[item.kind];
                       const isActive = index === activeIndex;
 
                       return (
@@ -317,9 +314,9 @@ export function CommandBar() {
                                 <p className="truncate text-[13px] font-medium text-foreground">
                                   {highlightMatches(item.title, queryTokens)}
                                 </p>
-                                <span className="ui-badge">{meta.label}</span>
+                                <span className="ui-badge">{t(locale, item.kind)}</span>
                                 {item.archived ? (
-                                  <span className="ui-badge">Archived</span>
+                                  <span className="ui-badge">{t(locale, "archived")}</span>
                                 ) : null}
                               </div>
                               {item.code ? (
@@ -362,9 +359,11 @@ export function CommandBar() {
                     <div className="mx-auto inline-flex size-10 items-center justify-center rounded-md border border-border bg-background text-muted">
                       <MagnifyingGlass className="size-5" />
                     </div>
-                    <p className="mt-3 text-[13px] font-medium text-foreground">No matches</p>
+                    <p className="mt-3 text-[13px] font-medium text-foreground">{t(locale, "noMatches")}</p>
                     <p className="mt-1 text-[13px] leading-6 text-muted">
-                      Try the project name, a task title, or part of a request.
+                      {locale === "vi"
+                        ? "Thử tên dự án, tiêu đề công việc hoặc một phần nội dung yêu cầu."
+                        : "Try the project name, a task title, or part of a request."}
                     </p>
                   </div>
                 )}

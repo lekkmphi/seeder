@@ -12,6 +12,7 @@ import {
 } from "@phosphor-icons/react";
 
 import { toast } from "@/lib/toast";
+import { useLocale } from "@/lib/use-locale";
 import { cn } from "@/lib/utils";
 
 // Plain, serializable shape of lib/authz's PROJECT_CAPABILITIES (passed from the
@@ -37,6 +38,8 @@ export function MemberAccessControl({
   permissions,
   canManage,
 }: Props) {
+  const locale = useLocale();
+  const vi = locale === "vi";
   const [open, setOpen] = useState(false);
   const enabledCount = capabilities.filter((c) => permissions[c.key]).length;
 
@@ -45,12 +48,24 @@ export function MemberAccessControl({
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="space-y-1">
           <h2 className="text-[17px] font-medium tracking-[-0.022em] text-foreground">
-            Member Access
+            {vi ? "Quyền truy cập của Thành viên" : "Member Access"}
           </h2>
           <p className="max-w-2xl text-[13px] leading-6 text-muted">
-            Choose what people with the <strong className="font-medium text-foreground">Member</strong>{" "}
-            role can do here. Owners, Leaders, and workspace admins always have
-            full access.
+            {vi ? (
+              <>
+                Chọn những gì người có vai trò{" "}
+                <strong className="font-medium text-foreground">Thành viên</strong>{" "}
+                được phép làm ở đây. Chủ sở hữu, Trưởng nhóm và quản trị viên
+                không gian luôn có toàn quyền.
+              </>
+            ) : (
+              <>
+                Choose what people with the{" "}
+                <strong className="font-medium text-foreground">Member</strong>{" "}
+                role can do here. Owners, Leaders, and workspace admins always
+                have full access.
+              </>
+            )}
           </p>
         </div>
         {canManage ? (
@@ -60,13 +75,15 @@ export function MemberAccessControl({
             className="ui-button-secondary shrink-0"
           >
             <ShieldCheck className="size-4" />
-            Edit access
+            {vi ? "Sửa quyền" : "Edit access"}
           </button>
         ) : null}
       </div>
 
       <div className="mt-2 font-mono text-[11px] uppercase tracking-[0.04em] text-muted">
-        {enabledCount} of {capabilities.length} enabled for Members
+        {vi
+          ? `Đã bật ${enabledCount} trên ${capabilities.length} cho Thành viên`
+          : `${enabledCount} of ${capabilities.length} enabled for Members`}
       </div>
 
       <div className="mt-3 flex flex-wrap gap-1.5">
@@ -131,6 +148,8 @@ function MemberAccessModal({
   onClose: () => void;
 }) {
   const router = useRouter();
+  const locale = useLocale();
+  const vi = locale === "vi";
   const [perms, setPerms] = useState<Record<string, boolean>>({ ...initial });
   const [query, setQuery] = useState("");
   const [saving, startSaving] = useTransition();
@@ -168,12 +187,20 @@ function MemberAccessModal({
           },
         );
         const data = (await res.json().catch(() => ({}))) as { error?: string };
-        if (!res.ok) throw new Error(data.error || "Could not save.");
-        toast("Member access updated", "success");
+        if (!res.ok)
+          throw new Error(data.error || (vi ? "Không thể lưu." : "Could not save."));
+        toast(vi ? "Đã cập nhật quyền Thành viên" : "Member access updated", "success");
         onClose();
         router.refresh();
       } catch (error) {
-        toast(error instanceof Error ? error.message : "Could not save.", "danger");
+        toast(
+          error instanceof Error
+            ? error.message
+            : vi
+              ? "Không thể lưu."
+              : "Could not save.",
+          "danger",
+        );
       }
     });
   }
@@ -184,7 +211,7 @@ function MemberAccessModal({
     <div className="fixed inset-0 z-[55] p-4 sm:p-6">
       <button
         type="button"
-        aria-label="Close"
+        aria-label={vi ? "Đóng" : "Close"}
         onClick={onClose}
         className="ui-modal-backdrop absolute inset-0 bg-[rgba(10,10,10,0.44)] backdrop-blur-xs"
       />
@@ -193,13 +220,15 @@ function MemberAccessModal({
           <div className="flex items-start justify-between gap-4 border-b border-border px-5 py-4 sm:px-6">
             <div>
               <p className="font-mono text-[11px] font-medium uppercase tracking-[0.04em] text-muted">
-                Project · Member Access
+                {vi ? "Dự án · Quyền Thành viên" : "Project · Member Access"}
               </p>
               <h3 className="mt-2 text-[17px] font-medium tracking-[-0.022em] text-foreground">
-                What can Members do?
+                {vi ? "Thành viên được làm gì?" : "What can Members do?"}
               </h3>
               <p className="mt-1 text-[13px] leading-6 text-muted">
-                Toggles apply to everyone with the Member role on this project.
+                {vi
+                  ? "Các tùy chọn áp dụng cho mọi người có vai trò Thành viên trong dự án này."
+                  : "Toggles apply to everyone with the Member role on this project."}
               </p>
             </div>
             <button
@@ -208,7 +237,7 @@ function MemberAccessModal({
               className="inline-flex size-9 shrink-0 items-center justify-center rounded-md border border-border bg-surface text-muted transition hover:border-border-strong hover:bg-surface-strong hover:text-foreground"
             >
               <X className="size-4" />
-              <span className="sr-only">Close</span>
+              <span className="sr-only">{vi ? "Đóng" : "Close"}</span>
             </button>
           </div>
 
@@ -219,8 +248,8 @@ function MemberAccessModal({
                 type="search"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search access controls…"
-                aria-label="Search access controls"
+                placeholder={vi ? "Tìm quyền truy cập…" : "Search access controls…"}
+                aria-label={vi ? "Tìm quyền truy cập" : "Search access controls"}
                 autoFocus
                 className="w-full rounded-md border border-border bg-background py-2.5 pl-9 pr-3 text-[13px] text-foreground outline-none transition placeholder:text-muted focus:border-accent"
               />
@@ -230,7 +259,9 @@ function MemberAccessModal({
           <div className="min-h-0 flex-1 overflow-y-auto p-3 sm:p-4">
             {matchCount === 0 ? (
               <p className="px-2 py-8 text-center text-[13px] text-muted">
-                No access controls match “{query.trim()}”.
+                {vi
+                  ? `Không có quyền nào khớp với “${query.trim()}”.`
+                  : `No access controls match “${query.trim()}”.`}
               </p>
             ) : (
               <div className="space-y-4">
@@ -281,7 +312,7 @@ function MemberAccessModal({
               className="ui-button-ghost"
               disabled={saving}
             >
-              Cancel
+              {vi ? "Hủy" : "Cancel"}
             </button>
             <button
               type="button"
@@ -294,7 +325,7 @@ function MemberAccessModal({
               ) : (
                 <CheckCircle className="size-4" />
               )}
-              Save changes
+              {vi ? "Lưu thay đổi" : "Save changes"}
             </button>
           </div>
         </div>

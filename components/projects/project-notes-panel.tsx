@@ -17,6 +17,8 @@ import {
   deleteProjectNoteAction,
   updateProjectNoteAction,
 } from "@/lib/actions";
+import { t } from "@/lib/i18n";
+import { useLocale } from "@/lib/use-locale";
 import { cn } from "@/lib/utils";
 
 export type ProjectNoteItem = {
@@ -52,6 +54,7 @@ export function ProjectNotesPanel({
   previewLimit?: number;
   manageHref?: string;
 }) {
+  const locale = useLocale();
   const [mode, setMode] = useState<Mode>({ kind: "idle" });
 
   const limited =
@@ -77,19 +80,23 @@ export function ProjectNotesPanel({
           <input type="hidden" name="returnTo" value={currentPath} />
           <RichTextField
             name="content"
-            ariaLabel="New note"
-            placeholder="Capture a decision, client note, blocker, or next-review prompt…"
+            ariaLabel={locale === "vi" ? "Ghi chú mới" : "New note"}
+            placeholder={
+              locale === "vi"
+                ? "Ghi lại quyết định, ghi chú khách hàng, điểm nghẽn hoặc nhắc rà soát tiếp theo..."
+                : "Capture a decision, client note, blocker, or next-review prompt..."
+            }
           />
           <div className="flex items-center gap-2">
             <button type="submit" className="ui-button-primary">
-              Save note
+              {locale === "vi" ? "Lưu ghi chú" : "Save note"}
             </button>
             <button
               type="button"
               onClick={() => setMode({ kind: "idle" })}
               className="ui-button-secondary"
             >
-              Cancel
+              {t(locale, "cancel")}
             </button>
           </div>
         </form>
@@ -100,7 +107,7 @@ export function ProjectNotesPanel({
           className="ui-button-secondary"
         >
           <Plus className="size-4" />
-          Add note
+          {locale === "vi" ? "Thêm ghi chú" : "Add note"}
         </button>
       )}
 
@@ -110,11 +117,12 @@ export function ProjectNotesPanel({
             <NotePencil className="size-5" />
           </div>
           <p className="mt-3 text-[13px] font-medium text-foreground">
-            No project notes yet
+            {locale === "vi" ? "Chưa có ghi chú dự án" : "No project notes yet"}
           </p>
           <p className="mt-1 text-[13px] leading-6 text-muted">
-            Capture decisions, research, and client context here so it does not
-            crowd the workspace.
+            {locale === "vi"
+              ? "Ghi quyết định, nghiên cứu và bối cảnh khách hàng ở đây để không làm rối không gian làm việc."
+              : "Capture decisions, research, and client context here so it does not crowd the workspace."}
           </p>
         </div>
       ) : null}
@@ -130,7 +138,7 @@ export function ProjectNotesPanel({
             <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
               <span className="font-mono text-[11px] uppercase tracking-[0.04em] text-muted">
                 {formatNoteDate(note.createdAt)}
-                {edited ? " · edited" : null}
+                {edited ? (locale === "vi" ? " · đã sửa" : " · edited") : null}
               </span>
               {!isEditing ? (
                 <div className="flex items-center gap-1">
@@ -140,12 +148,16 @@ export function ProjectNotesPanel({
                     className="inline-flex items-center gap-1 rounded-md border border-border bg-background px-2 py-1 text-[12px] text-muted transition hover:border-border-strong hover:text-foreground"
                   >
                     <PencilSimple className="size-3.5" />
-                    Edit
+                    {locale === "vi" ? "Sửa" : "Edit"}
                   </button>
                   <form
                     action={deleteProjectNoteAction}
                     onSubmit={(event) => {
-                      if (!window.confirm("Delete this note?")) {
+                      if (
+                        !window.confirm(
+                          locale === "vi" ? "Xóa ghi chú này?" : "Delete this note?",
+                        )
+                      ) {
                         event.preventDefault();
                       }
                     }}
@@ -158,7 +170,7 @@ export function ProjectNotesPanel({
                       className="inline-flex items-center gap-1 rounded-md border border-border bg-background px-2 py-1 text-[12px] text-muted transition hover:border-danger/40 hover:text-danger"
                     >
                       <Trash className="size-3.5" />
-                      Delete
+                      {locale === "vi" ? "Xóa" : "Delete"}
                     </button>
                   </form>
                 </div>
@@ -182,11 +194,11 @@ export function ProjectNotesPanel({
                 <RichTextField
                   name="content"
                   defaultValue={note.content}
-                  ariaLabel="Edit note"
+                  ariaLabel={locale === "vi" ? "Sửa ghi chú" : "Edit note"}
                 />
                 <div className="flex items-center gap-2">
                   <button type="submit" className="ui-button-primary">
-                    Save changes
+                    {locale === "vi" ? "Lưu thay đổi" : "Save changes"}
                   </button>
                   <button
                     type="button"
@@ -194,7 +206,7 @@ export function ProjectNotesPanel({
                     className="ui-button-secondary"
                   >
                     <X className="size-4" />
-                    Cancel
+                    {t(locale, "cancel")}
                   </button>
                 </div>
               </form>
@@ -203,7 +215,9 @@ export function ProjectNotesPanel({
                 value={note.content}
                 className={cn("text-sm leading-7 text-foreground")}
                 fallback={
-                  <p className="text-[13px] italic text-muted">Empty note.</p>
+                  <p className="text-[13px] italic text-muted">
+                    {locale === "vi" ? "Ghi chú trống." : "Empty note."}
+                  </p>
                 }
               />
             )}
@@ -216,7 +230,9 @@ export function ProjectNotesPanel({
           href={manageHref}
           className="inline-flex text-[13px] font-medium text-accent hover:underline"
         >
-          View all {notes.length} notes →
+          {locale === "vi"
+            ? `Xem tất cả ${notes.length} ghi chú ->`
+            : `View all ${notes.length} notes ->`}
         </Link>
       ) : null}
     </div>

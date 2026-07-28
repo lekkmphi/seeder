@@ -2,28 +2,35 @@ import Link from "next/link";
 import { ShieldCheck } from "@phosphor-icons/react/dist/ssr";
 
 import type { DashboardData } from "@/lib/data";
+import { t, type Locale } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
-export function PressureTable({ data }: { data: DashboardData["pressureLeaderboard"] }) {
+export function PressureTable({
+  data,
+  locale = "en",
+}: {
+  data: DashboardData["pressureLeaderboard"];
+  locale?: Locale;
+}) {
   if (data.length === 0) {
     return (
       <div className="rounded-md border border-dashed border-border bg-surface px-5 py-10 text-center">
         <div className="mx-auto inline-flex size-10 items-center justify-center rounded-md border border-border bg-background text-muted">
           <ShieldCheck className="size-5" />
         </div>
-        <p className="mt-3 text-[13px] font-medium text-foreground">All clear</p>
+        <p className="mt-3 text-[13px] font-medium text-foreground">{t(locale, "allClear")}</p>
         <p className="mx-auto mt-1 max-w-sm text-[13px] leading-6 text-muted">
-          All open projects are calm — no pressure to surface.
+          {t(locale, "allClearDetail")}
         </p>
       </div>
     );
   }
 
   const metrics = (project: (typeof data)[number]) => [
-    { label: "Open", value: project.openTasks, strong: false },
-    { label: "Inbox", value: project.requestCounts.inbox, strong: false },
-    { label: "Overdue", value: project.taskCounts.overdue, strong: false },
-    { label: "Score", value: project.pressureScore, strong: true },
+    { label: t(locale, "open"), value: project.openTasks, strong: false },
+    { label: t(locale, "inbox"), value: project.requestCounts.inbox, strong: false },
+    { label: t(locale, "overdue"), value: project.taskCounts.overdue, strong: false },
+    { label: t(locale, "score"), value: project.pressureScore, strong: true },
   ];
 
   return (
@@ -67,11 +74,11 @@ export function PressureTable({ data }: { data: DashboardData["pressureLeaderboa
         <table className="w-full border-collapse text-[13px]">
           <thead>
             <tr className="border-b border-border text-left font-mono text-[11px] uppercase tracking-[0.04em] text-muted">
-              <th className="py-2 pr-3 font-medium">Project</th>
-              <th className="py-2 pr-3 font-medium">Open</th>
-              <th className="py-2 pr-3 font-medium">Inbox</th>
-              <th className="py-2 pr-3 font-medium">Overdue</th>
-              <th className="py-2 pr-3 font-medium">Score</th>
+              <th className="py-2 pr-3 font-medium">{t(locale, "project")}</th>
+              <th className="py-2 pr-3 font-medium">{t(locale, "open")}</th>
+              <th className="py-2 pr-3 font-medium">{t(locale, "inbox")}</th>
+              <th className="py-2 pr-3 font-medium">{t(locale, "overdue")}</th>
+              <th className="py-2 pr-3 font-medium">{t(locale, "score")}</th>
             </tr>
           </thead>
           <tbody>

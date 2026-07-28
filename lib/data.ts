@@ -1459,6 +1459,7 @@ export async function getTaskModalDetail(
     db
       .select({
         id: taskComments.id,
+        parentCommentId: taskComments.parentCommentId,
         taskId: taskComments.taskId,
         content: taskComments.content,
         authorId: taskComments.authorId,
@@ -1509,6 +1510,7 @@ export async function getRequestModalDetail(
   const comments = await db
     .select({
       id: requestComments.id,
+      parentCommentId: requestComments.parentCommentId,
       requestId: requestComments.requestId,
       content: requestComments.content,
       authorId: requestComments.authorId,
@@ -1793,16 +1795,26 @@ export async function getAppShellDataForViewer(viewer: ProjectViewer) {
       getNotificationsClearedAt(viewer.id),
     ]);
   const openProjects = allProjects.filter((project) => !project.archivedAt);
-  const computedUnread = buildNotifications(
-    personal.allProjects.filter((p) => !p.archivedAt),
+  const personalOpenProjects = personal.allProjects.filter((p) => !p.archivedAt);
+  const defaultBranchByProject = await getDefaultBranchMap(
+    personalOpenProjects.map((project) => project.id),
+  );
+  const computedNotifications = buildNotifications(
+    personalOpenProjects,
     personal.requestsForOwner,
     personal.tasksForOwner,
     personal.statusUpdatesForOwner,
-    // Count-only path: hrefs are discarded, so the branch map isn't needed.
-    new Map<string, string>(),
+    defaultBranchByProject,
     assignedActivity,
     readMap,
-  ).filter((notification) => isLiveNotification(notification, clearedAt)).length;
+  ).filter((notification) => isLiveNotification(notification, clearedAt));
+  const storedNotifications = await getStoredNotificationItems(viewer.id);
+  const notificationItems = sortNotificationItems(
+    [...computedNotifications, ...storedNotifications].filter((notification) =>
+      isLiveNotification(notification, clearedAt),
+    ),
+  );
+  const computedUnread = computedNotifications.length;
   const notificationCount = computedUnread + storedUnread;
 
   // Attach the space label so the sidebar can group projects by space.
@@ -1831,6 +1843,7 @@ export async function getAppShellDataForViewer(viewer: ProjectViewer) {
   return {
     projects: orderedProjects,
     notificationCount,
+    notifications: notificationItems,
   };
 }
 

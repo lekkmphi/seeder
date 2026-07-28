@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import { ArrowRight, ListMagnifyingGlass, X } from "@phosphor-icons/react";
 
 import RichTextRenderer from "@/components/rich-text/rich-text-renderer";
+import { useLocale } from "@/lib/use-locale";
 import type { ActivityChange } from "@/lib/db/schema";
 
 function ValueView({
@@ -14,8 +15,14 @@ function ValueView({
   value: string | null;
   kind: ActivityChange["kind"];
 }) {
+  const locale = useLocale();
+  const vi = locale === "vi";
   if (value === null) {
-    return <p className="text-[13px] italic text-muted">— empty —</p>;
+    return (
+      <p className="text-[13px] italic text-muted">
+        {vi ? "— trống —" : "— empty —"}
+      </p>
+    );
   }
   if (kind === "rich") {
     return <RichTextRenderer value={value} className="text-[13px]" />;
@@ -32,6 +39,8 @@ export function ActivityChangesButton({
   subtitle?: string | null;
   changes: ActivityChange[];
 }) {
+  const locale = useLocale();
+  const vi = locale === "vi";
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
@@ -53,7 +62,7 @@ export function ActivityChangesButton({
         className="inline-flex items-center gap-1.5 rounded-sm border border-border bg-surface px-2 py-1 font-mono text-[11px] text-muted transition hover:border-border-strong hover:bg-surface-strong hover:text-foreground"
       >
         <ListMagnifyingGlass className="size-3.5" />
-        Show details
+        {vi ? "Xem chi tiết" : "Show details"}
         <span className="text-muted/70">· {changes.length}</span>
       </button>
 
@@ -62,7 +71,7 @@ export function ActivityChangesButton({
             <div className="fixed inset-0 z-[55] p-4 sm:p-6">
               <button
                 type="button"
-                aria-label="Close details"
+                aria-label={vi ? "Đóng chi tiết" : "Close details"}
                 onClick={() => setOpen(false)}
                 className="ui-modal-backdrop absolute inset-0 bg-[rgba(10,10,10,0.44)] backdrop-blur-xs"
               />
@@ -75,7 +84,7 @@ export function ActivityChangesButton({
                   <div className="flex items-start justify-between gap-3 border-b border-border px-5 py-4">
                     <div className="min-w-0">
                       <p className="font-mono text-[11px] uppercase tracking-[0.04em] text-muted">
-                        What changed
+                        {vi ? "Đã thay đổi gì" : "What changed"}
                       </p>
                       <h3 className="mt-1 truncate text-[15px] font-medium tracking-[-0.011em] text-foreground">
                         {title}
@@ -92,7 +101,7 @@ export function ActivityChangesButton({
                       className="inline-flex size-7 shrink-0 items-center justify-center rounded-md border border-border bg-surface text-muted transition hover:border-border-strong hover:bg-surface-strong hover:text-foreground"
                     >
                       <X className="size-3.5" />
-                      <span className="sr-only">Close</span>
+                      <span className="sr-only">{vi ? "Đóng" : "Close"}</span>
                     </button>
                   </div>
 
@@ -105,7 +114,7 @@ export function ActivityChangesButton({
                         <div className="grid items-stretch gap-2 sm:grid-cols-[1fr_auto_1fr]">
                           <div className="rounded-md border border-border bg-surface p-3">
                             <p className="mb-1.5 font-mono text-[10px] uppercase tracking-[0.04em] text-muted">
-                              Before
+                              {vi ? "Trước" : "Before"}
                             </p>
                             <ValueView value={change.from} kind={change.kind} />
                           </div>
@@ -114,7 +123,7 @@ export function ActivityChangesButton({
                           </div>
                           <div className="rounded-md border border-accent/30 bg-accent-soft p-3">
                             <p className="mb-1.5 font-mono text-[10px] uppercase tracking-[0.04em] text-accent">
-                              After
+                              {vi ? "Sau" : "After"}
                             </p>
                             <ValueView value={change.to} kind={change.kind} />
                           </div>

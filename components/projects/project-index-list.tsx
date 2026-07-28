@@ -15,6 +15,7 @@ import {
 
 import { formatProjectStatus } from "@/lib/project-status";
 import type { ProjectsDashboard } from "@/lib/data";
+import { t, type Locale } from "@/lib/i18n";
 import { cn, formatDate } from "@/lib/utils";
 
 const projectStatusBadgeClassNames = {
@@ -25,14 +26,15 @@ const projectStatusBadgeClassNames = {
   completed: "border-border bg-surface text-foreground",
 } as const;
 
-function formatDateLabel(value: Date | null) {
-  return formatDate(value, "Open-ended");
+function formatDateLabel(value: Date | null, locale: Locale) {
+  return formatDate(value, locale === "vi" ? "Không thời hạn" : "Open-ended");
 }
 
 type Props = {
   projects: ProjectsDashboard["projects"];
   view: "open" | "archived";
   initialSpace?: string;
+  locale: Locale;
 };
 
 const SPACE_FILTER_COOKIE = "seeder.projects.space";
@@ -43,7 +45,7 @@ function persistSpaceFilter(value: string) {
   document.cookie = `${SPACE_FILTER_COOKIE}=${encodeURIComponent(value)}; path=/; max-age=${maxAge}; samesite=lax`;
 }
 
-export function ProjectIndexList({ projects, view, initialSpace }: Props) {
+export function ProjectIndexList({ projects, view, initialSpace, locale }: Props) {
   const [query, setQuery] = useState("");
   const [spaceFilter, setSpaceFilter] = useState(initialSpace ?? "all");
 
@@ -59,7 +61,7 @@ export function ProjectIndexList({ projects, view, initialSpace }: Props) {
       if (!map.has(key)) {
         map.set(key, {
           key,
-          label: project.spaceName ?? "Personal",
+          label: project.spaceName ?? t(locale, "personal"),
           kind: project.spaceKind,
         });
       }
@@ -70,7 +72,7 @@ export function ProjectIndexList({ projects, view, initialSpace }: Props) {
       if (ap !== bp) return ap - bp;
       return a.label.localeCompare(b.label);
     });
-  }, [projects]);
+  }, [locale, projects]);
 
   // Clamp a stale cookie (e.g. a space that no longer has projects) back to All.
   const effectiveSpace =
@@ -100,14 +102,14 @@ export function ProjectIndexList({ projects, view, initialSpace }: Props) {
         project.slug,
         project.clientName,
         project.summary,
-        formatProjectStatus(project.status),
+        formatProjectStatus(project.status, locale),
       ]
         .filter(Boolean)
         .join(" ")
         .toLowerCase();
       return haystack.includes(q);
     });
-  }, [bySpace, query]);
+  }, [bySpace, locale, query]);
 
   // Group the (filtered) projects by their space — Personal first, then company
   // spaces alphabetically — so the list reads as space-grouped sections.
@@ -126,7 +128,7 @@ export function ProjectIndexList({ projects, view, initialSpace }: Props) {
       if (!map.has(key)) {
         map.set(key, {
           key,
-          label: project.spaceName ?? "Personal",
+          label: project.spaceName ?? t(locale, "personal"),
           kind: project.spaceKind,
           items: [],
         });
@@ -139,7 +141,7 @@ export function ProjectIndexList({ projects, view, initialSpace }: Props) {
       if (ap !== bp) return ap - bp;
       return a.label.localeCompare(b.label);
     });
-  }, [filtered]);
+  }, [filtered, locale]);
   const showGroups = groups.length > 1;
 
   const renderRow = (project: (typeof projects)[number]) => {
@@ -169,23 +171,23 @@ export function ProjectIndexList({ projects, view, initialSpace }: Props) {
                   projectStatusBadgeClassNames[project.status],
                 )}
               >
-                {formatProjectStatus(project.status)}
+                {formatProjectStatus(project.status, locale)}
               </span>
               {project.archivedAt ? (
-                <span className="ui-badge">archived</span>
+                <span className="ui-badge">{t(locale, "archived").toLowerCase()}</span>
               ) : null}
               {project.isOverdue ? (
                 <span className="inline-flex rounded-sm border border-danger/30 bg-danger/10 px-1.5 py-0.5 font-mono text-[11px] font-medium uppercase tracking-[0.04em] text-danger">
-                  overdue
+                  {t(locale, "overdue").toLowerCase()}
                 </span>
               ) : null}
               {project.branchCount > 1 ? (
                 <span
-                  title="Counts below span all branches"
+                  title={locale === "vi" ? "Số liệu bên dưới gồm mọi nhánh" : "Counts below span all branches"}
                   className="inline-flex items-center gap-1 rounded-sm border border-border bg-surface px-1.5 py-0.5 font-mono text-[11px] font-medium uppercase tracking-[0.04em] text-muted"
                 >
                   <GitBranch className="size-3" />
-                  {project.branchCount} branches
+                  {project.branchCount} {t(locale, "branches")}
                 </span>
               ) : null}
             </div>
@@ -204,7 +206,7 @@ export function ProjectIndexList({ projects, view, initialSpace }: Props) {
           <div className="grid grid-cols-3 gap-2 lg:max-w-105 lg:flex-1">
             <div className="rounded-sm border border-border bg-background px-3 py-2">
               <p className="font-mono text-[11px] font-medium uppercase tracking-[0.04em] text-muted">
-                Inbox
+                {t(locale, "inbox")}
               </p>
               <p className="mt-1 font-mono text-base font-medium text-foreground">
                 {project.requestCounts.inbox}
@@ -213,7 +215,7 @@ export function ProjectIndexList({ projects, view, initialSpace }: Props) {
 
             <div className="rounded-sm border border-border bg-background px-3 py-2">
               <p className="font-mono text-[11px] font-medium uppercase tracking-[0.04em] text-muted">
-                Open
+                {t(locale, "open")}
               </p>
               <p className="mt-1 font-mono text-base font-medium text-foreground">
                 {project.taskCounts.open}
@@ -222,10 +224,10 @@ export function ProjectIndexList({ projects, view, initialSpace }: Props) {
 
             <div className="rounded-sm border border-border bg-background px-3 py-2">
               <p className="font-mono text-[11px] font-medium uppercase tracking-[0.04em] text-muted">
-                Deadline
+                {t(locale, "deadline")}
               </p>
               <p className="mt-1 text-[13px] font-medium text-foreground">
-                {project.isOverdue ? "Overdue" : formatDateLabel(project.deadline)}
+                {project.isOverdue ? t(locale, "overdue") : formatDateLabel(project.deadline, locale)}
               </p>
             </div>
           </div>
@@ -234,14 +236,16 @@ export function ProjectIndexList({ projects, view, initialSpace }: Props) {
         <div className="mt-3 flex flex-wrap items-center justify-between gap-3 border-t border-border pt-3 text-[13px] text-muted">
           <p className="min-w-0 flex-1 truncate leading-6">
             {project.summary ||
-              "No project summary yet. Add the scope and current focus once the workspace is defined."}
+              (locale === "vi"
+                ? "Chưa có tóm tắt dự án. Hãy thêm phạm vi và trọng tâm hiện tại khi không gian đã rõ."
+                : "No project summary yet. Add the scope and current focus once the workspace is defined.")}
           </p>
           <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
             <ChatCircleText className="size-4" />
-            {project.openTasks} open
+            {project.openTasks} {t(locale, "open").toLowerCase()}
           </span>
           <span className="inline-flex items-center gap-1.5 whitespace-nowrap text-foreground">
-            Open
+            {t(locale, "open")}
             <ArrowSquareOut className="size-4 text-muted transition group-hover:text-foreground" />
           </span>
         </div>
@@ -258,8 +262,12 @@ export function ProjectIndexList({ projects, view, initialSpace }: Props) {
             type="search"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search by project, client, status, or summary…"
-            aria-label="Search projects"
+            placeholder={
+              locale === "vi"
+                ? "Tìm theo dự án, khách hàng, trạng thái hoặc tóm tắt..."
+                : "Search by project, client, status, or summary..."
+            }
+            aria-label={locale === "vi" ? "Tìm dự án" : "Search projects"}
             className="w-full rounded-md border border-border bg-background py-2.5 pl-9 pr-3 text-[13px] text-foreground outline-none transition placeholder:text-muted focus:border-accent"
           />
         </div>
@@ -268,10 +276,10 @@ export function ProjectIndexList({ projects, view, initialSpace }: Props) {
             <select
               value={effectiveSpace}
               onChange={(event) => handleSpaceChange(event.target.value)}
-              aria-label="Filter by team"
+              aria-label={locale === "vi" ? "Lọc theo đội" : "Filter by team"}
               className="ui-select"
             >
-              <option value="all">All teams</option>
+              <option value="all">{t(locale, "allTeams")}</option>
               {spaceOptions.map((option) => (
                 <option key={option.key} value={option.key}>
                   {option.label}
@@ -285,8 +293,12 @@ export function ProjectIndexList({ projects, view, initialSpace }: Props) {
       <div className="flex items-center justify-between px-1">
         <span className="font-mono text-[11px] uppercase tracking-[0.04em] text-muted">
           {query.trim() || effectiveSpace !== "all"
-            ? `${filtered.length} of ${projects.length} projects`
-            : `${projects.length} projects`}
+            ? locale === "vi"
+              ? `${filtered.length} / ${projects.length} dự án`
+              : `${filtered.length} of ${projects.length} projects`
+            : locale === "vi"
+              ? `${projects.length} dự án`
+              : `${projects.length} projects`}
         </span>
       </div>
 
@@ -321,10 +333,14 @@ export function ProjectIndexList({ projects, view, initialSpace }: Props) {
             <Folders className="size-5" />
           </div>
           <p className="mt-3 text-[13px] font-medium text-foreground">
-            No projects match “{query.trim()}”
+            {locale === "vi"
+              ? `Không có dự án khớp "${query.trim()}"`
+              : `No projects match "${query.trim()}"`}
           </p>
           <p className="mt-1 mx-auto max-w-sm text-[13px] leading-6 text-muted">
-            Try a different project name, client, or status.
+            {locale === "vi"
+              ? "Thử tên dự án, khách hàng hoặc trạng thái khác."
+              : "Try a different project name, client, or status."}
           </p>
         </div>
       ) : (
@@ -333,12 +349,18 @@ export function ProjectIndexList({ projects, view, initialSpace }: Props) {
             {view === "archived" ? <Archive className="size-5" /> : <Folders className="size-5" />}
           </div>
           <p className="mt-3 text-[13px] font-medium text-foreground">
-            {view === "archived" ? "No archived projects" : "Start a workspace"}
+            {view === "archived"
+              ? t(locale, "noArchivedProjects")
+              : locale === "vi" ? "Bắt đầu một không gian" : "Start a workspace"}
           </p>
           <p className="mt-1 mx-auto max-w-sm text-[13px] leading-6 text-muted">
             {view === "archived"
-              ? "Archive a workspace from project settings when it should leave the main list."
-              : "Create one to track requests, board work, and notes side by side."}
+              ? locale === "vi"
+                ? "Lưu trữ không gian từ cài đặt dự án khi không gian đó nên rời danh sách chính."
+                : "Archive a workspace from project settings when it should leave the main list."
+              : locale === "vi"
+                ? "Tạo một không gian để theo dõi yêu cầu, bảng công việc và ghi chú cùng lúc."
+                : "Create one to track requests, board work, and notes side by side."}
           </p>
         </div>
       )}

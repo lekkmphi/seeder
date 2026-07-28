@@ -4,12 +4,17 @@ import {
   useCallback,
   useEffect,
   useId,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
+  type CSSProperties,
 } from "react";
+import { createPortal } from "react-dom";
 import { CaretDown, MagnifyingGlass, X } from "@phosphor-icons/react";
 
+import { t } from "@/lib/i18n";
+import { useLocale } from "@/lib/use-locale";
 import { cn } from "@/lib/utils";
 
 export type SearchSelectOption = {
@@ -33,16 +38,19 @@ export function SearchSelect({
   options,
   value,
   onChange,
-  placeholder = "Select…",
-  searchPlaceholder = "Search…",
+  placeholder,
+  searchPlaceholder,
   clearLabel,
   disabled,
   className,
 }: Props) {
+  const locale = useLocale();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [activeIndex, setActiveIndex] = useState(0);
+  const [menuStyle, setMenuStyle] = useState<CSSProperties | null>(null);
   const rootRef = useRef<HTMLDivElement | null>(null);
+  const menuRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const listboxId = useId();
 
@@ -64,14 +72,39 @@ export function SearchSelect({
   useEffect(() => {
     if (!open) return;
     function onDown(e: MouseEvent) {
-      if (!rootRef.current) return;
-      if (!rootRef.current.contains(e.target as Node)) {
+      const target = e.target as Node;
+      if (
+        !rootRef.current?.contains(target) &&
+        !menuRef.current?.contains(target)
+      ) {
         setOpen(false);
       }
     }
     document.addEventListener("mousedown", onDown);
     return () => document.removeEventListener("mousedown", onDown);
   }, [open]);
+
+  const updateMenuPosition = useCallback(() => {
+    const rect = rootRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    setMenuStyle({
+      left: rect.left,
+      top: rect.bottom + 4,
+      width: rect.width,
+      maxHeight: Math.max(160, window.innerHeight - rect.bottom - 16),
+    });
+  }, []);
+
+  useLayoutEffect(() => {
+    if (!open) return;
+    updateMenuPosition();
+    window.addEventListener("resize", updateMenuPosition);
+    window.addEventListener("scroll", updateMenuPosition, true);
+    return () => {
+      window.removeEventListener("resize", updateMenuPosition);
+      window.removeEventListener("scroll", updateMenuPosition, true);
+    };
+  }, [open, updateMenuPosition]);
 
   // Focus search when opened; reset active to selected item (or first match).
   useEffect(() => {
@@ -127,7 +160,7 @@ export function SearchSelect({
   };
 
   return (
-    <div ref={rootRef} className={cn("relative", className)}>
+    <div ref={rootRef} className={cn("relative", open && "z-[90]", className)}>
       <button
         type="button"
         onClick={() => !disabled && setOpen((v) => !v)}
@@ -146,12 +179,14 @@ export function SearchSelect({
             selected ? "text-foreground" : "text-muted",
           )}
         >
-          {selected?.label ?? placeholder}
+          {selected?.label ??
+            placeholder ??
+            (locale === "vi" ? "Chọn..." : "Select...")}
         </span>
         {value ? (
           <span
             role="button"
-            aria-label="Clear selection"
+            aria-label={locale === "vi" ? "Xóa lựa chọn" : "Clear selection"}
             tabIndex={0}
             onClick={(e) => {
               e.stopPropagation();
@@ -172,13 +207,15 @@ export function SearchSelect({
         <CaretDown className="size-3.5 shrink-0 text-muted" />
       </button>
 
-      {open ? (
+      {open && menuStyle && typeof document !== "undefined" ? createPortal(
         <div
-          className="absolute left-0 right-0 top-full z-30 mt-1 overflow-hidden rounded-md border border-border bg-surface shadow-lg"
+          ref={menuRef}
+          className="ui-menu-surface fixed z-[1000] overflow-hidden rounded-md"
           role="listbox"
           id={listboxId}
+          style={menuStyle}
         >
-          <div className="flex items-center gap-2 border-b border-border bg-background px-3 py-2">
+          <div className="flex items-center gap-2 border-b border-border bg-menu-surface-strong px-3 py-2">
             <MagnifyingGlass className="size-4 text-muted" />
             <input
               ref={inputRef}
@@ -186,12 +223,12 @@ export function SearchSelect({
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               onKeyDown={onKeyDown}
-              placeholder={searchPlaceholder}
+              placeholder={searchPlaceholder ?? `${t(locale, "search")}...`}
               className="min-w-0 flex-1 bg-transparent text-[13px] text-foreground outline-none placeholder:text-muted"
             />
           </div>
 
-          <ul className="max-h-64 overflow-y-auto py-1">
+          <ul className="overflow-y-auto py-1" style={{ maxHeight: "inherit" }}>
             {clearLabel ? (
               <li>
                 <button
@@ -202,7 +239,7 @@ export function SearchSelect({
                     "flex w-full items-center justify-between px-3 py-1.5 text-left text-[13px] transition",
                     !value
                       ? "bg-accent-soft text-foreground"
-                      : "text-muted hover:bg-surface-strong hover:text-foreground",
+                      : "text-muted hover:bg-menu-hover hover:text-foreground",
                   )}
                 >
                   <span>{clearLabel}</span>
@@ -212,7 +249,7 @@ export function SearchSelect({
 
             {filtered.length === 0 ? (
               <li className="px-3 py-3 text-center text-[12px] leading-5 text-muted">
-                No matches.
+                {locale === "vi" ? "Không có kết quả." : "No matches."}
               </li>
             ) : (
               filtered.map((option, index) => {
@@ -231,8 +268,8 @@ export function SearchSelect({
                         isSelected
                           ? "bg-accent-soft text-foreground"
                           : isActive
-                            ? "bg-surface-strong text-foreground"
-                            : "text-foreground hover:bg-surface-strong",
+                            ? "bg-menu-hover text-foreground"
+                            : "text-foreground hover:bg-menu-hover",
                       )}
                     >
                       <span className="truncate font-medium">{option.label}</span>
@@ -247,7 +284,8 @@ export function SearchSelect({
               })
             )}
           </ul>
-        </div>
+        </div>,
+        document.body,
       ) : null}
     </div>
   );

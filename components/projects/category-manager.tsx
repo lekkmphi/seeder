@@ -10,6 +10,8 @@ import {
 } from "@/lib/actions";
 import { PROJECT_SWATCHES } from "@/lib/swatches";
 import { toast } from "@/lib/toast";
+import { t } from "@/lib/i18n";
+import { useLocale } from "@/lib/use-locale";
 import { cn } from "@/lib/utils";
 
 export type ManagedCategory = {
@@ -24,13 +26,16 @@ export function CategoryManager({
 }: {
   categories: ManagedCategory[];
 }) {
+  const locale = useLocale();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   if (categories.length === 0) {
     return (
       <div className="rounded-md border border-dashed border-border bg-surface px-5 py-8 text-center text-[13px] leading-7 text-muted">
-        No categories yet. Create one from the Category picker when adding a task.
+        {locale === "vi"
+          ? "Chưa có danh mục. Tạo danh mục từ bộ chọn danh mục khi thêm công việc."
+          : "No categories yet. Create one from the Category picker when adding a task."}
       </div>
     );
   }
@@ -64,7 +69,9 @@ export function CategoryManager({
                   {category.name}
                 </span>
                 <span className="ui-badge">
-                  {category.taskCount} task{category.taskCount === 1 ? "" : "s"}
+                  {locale === "vi"
+                    ? `${category.taskCount} công việc`
+                    : `${category.taskCount} task${category.taskCount === 1 ? "" : "s"}`}
                 </span>
               </div>
               <div className="flex items-center gap-1">
@@ -72,19 +79,23 @@ export function CategoryManager({
                   type="button"
                   onClick={() => setEditingId(category.id)}
                   className="inline-flex size-7 items-center justify-center rounded-sm text-muted transition hover:bg-background hover:text-foreground"
-                  title="Edit category"
+                  title={locale === "vi" ? "Sửa danh mục" : "Edit category"}
                 >
                   <Pencil className="size-3.5" />
-                  <span className="sr-only">Edit category</span>
+                  <span className="sr-only">
+                    {locale === "vi" ? "Sửa danh mục" : "Edit category"}
+                  </span>
                 </button>
                 <button
                   type="button"
                   onClick={() => setConfirmDeleteId(category.id)}
                   className="inline-flex size-7 items-center justify-center rounded-sm text-muted transition hover:bg-danger/10 hover:text-danger"
-                  title="Delete category"
+                  title={locale === "vi" ? "Xóa danh mục" : "Delete category"}
                 >
                   <Trash className="size-3.5" />
-                  <span className="sr-only">Delete category</span>
+                  <span className="sr-only">
+                    {locale === "vi" ? "Xóa danh mục" : "Delete category"}
+                  </span>
                 </button>
               </div>
             </li>
@@ -111,6 +122,7 @@ function CategoryEditForm({
   onDone: () => void;
   onCancel: () => void;
 }) {
+  const locale = useLocale();
   const [name, setName] = useState(category.name);
   const [color, setColor] = useState(category.color);
   const [isPending, startTransition] = useTransition();
@@ -125,11 +137,13 @@ function CategoryEditForm({
     startTransition(async () => {
       try {
         await updateTaskCategoryAction(formData);
-        toast("Category updated", "success");
+        toast(locale === "vi" ? "Đã cập nhật danh mục" : "Category updated", "success");
         onDone();
       } catch (error: unknown) {
         toast(
-          error instanceof Error ? error.message : "Could not update category",
+          error instanceof Error
+            ? error.message
+            : locale === "vi" ? "Không thể cập nhật danh mục" : "Could not update category",
           "danger",
         );
       }
@@ -146,7 +160,9 @@ function CategoryEditForm({
       }}
     >
       <label className="grid gap-1.5">
-        <span className="text-[12px] font-medium text-foreground">Name</span>
+        <span className="text-[12px] font-medium text-foreground">
+          {locale === "vi" ? "Tên" : "Name"}
+        </span>
         <input
           value={name}
           onChange={(event) => setName(event.target.value)}
@@ -155,7 +171,9 @@ function CategoryEditForm({
         />
       </label>
       <div className="grid gap-1.5">
-        <span className="text-[12px] font-medium text-foreground">Color</span>
+        <span className="text-[12px] font-medium text-foreground">
+          {locale === "vi" ? "Màu" : "Color"}
+        </span>
         <div className="flex flex-wrap gap-1.5">
           {PROJECT_SWATCHES.map((swatch) => {
             const isSelected = swatch.value.toLowerCase() === color.toLowerCase();
@@ -185,7 +203,7 @@ function CategoryEditForm({
           className="ui-button-ghost px-3"
           disabled={isPending}
         >
-          Cancel
+          {t(locale, "cancel")}
         </button>
         <button
           type="submit"
@@ -193,7 +211,7 @@ function CategoryEditForm({
           disabled={isPending}
         >
           {isPending ? <CircleNotch className="size-4 animate-spin" /> : null}
-          Save
+          {locale === "vi" ? "Lưu" : "Save"}
         </button>
       </div>
     </form>
@@ -207,6 +225,7 @@ function DeleteCategoryDialog({
   category: ManagedCategory;
   onClose: () => void;
 }) {
+  const locale = useLocale();
   const [isPending, startTransition] = useTransition();
   const isLinked = category.taskCount > 0;
 
@@ -214,20 +233,21 @@ function DeleteCategoryDialog({
     return (
       <ConfirmDialog
         open
-        title="Category still in use"
+        title={locale === "vi" ? "Danh mục vẫn đang được dùng" : "Category still in use"}
         description={
           <>
             <span className="font-medium text-foreground">{category.name}</span>{" "}
-            is attached to{" "}
+            {locale === "vi" ? " đang được gắn với " : " is attached to "}
             <span className="font-medium text-foreground">
               {category.taskCount}
             </span>{" "}
-            task{category.taskCount === 1 ? "" : "s"}. Reassign or remove those
-            first, then delete the category.
+            {locale === "vi"
+              ? " công việc. Hãy gán lại hoặc gỡ các công việc đó trước, rồi xóa danh mục."
+              : ` task${category.taskCount === 1 ? "" : "s"}. Reassign or remove those first, then delete the category.`}
           </>
         }
-        confirmLabel="Got it"
-        cancelLabel="Close"
+        confirmLabel={locale === "vi" ? "Đã hiểu" : "Got it"}
+        cancelLabel={t(locale, "close")}
         variant="primary"
         onCancel={onClose}
         onConfirm={onClose}
@@ -238,15 +258,17 @@ function DeleteCategoryDialog({
   return (
     <ConfirmDialog
       open
-      title="Delete category?"
+      title={locale === "vi" ? "Xóa danh mục?" : "Delete category?"}
       description={
         <>
-          Permanently remove{" "}
+          {locale === "vi" ? "Xóa vĩnh viễn " : "Permanently remove "}
           <span className="font-medium text-foreground">{category.name}</span>{" "}
-          from this project. This cannot be undone.
+          {locale === "vi"
+            ? " khỏi dự án này. Thao tác này không thể hoàn tác."
+            : " from this project. This cannot be undone."}
         </>
       }
-      confirmLabel="Delete"
+      confirmLabel={locale === "vi" ? "Xóa" : "Delete"}
       variant="danger"
       isPending={isPending}
       onCancel={onClose}
@@ -256,13 +278,13 @@ function DeleteCategoryDialog({
         startTransition(async () => {
           try {
             await deleteTaskCategoryAction(formData);
-            toast("Category deleted", "success");
+            toast(locale === "vi" ? "Đã xóa danh mục" : "Category deleted", "success");
             onClose();
           } catch (error: unknown) {
             toast(
               error instanceof Error
                 ? error.message
-                : "Could not delete category",
+                : locale === "vi" ? "Không thể xóa danh mục" : "Could not delete category",
               "danger",
             );
           }

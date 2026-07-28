@@ -40,6 +40,7 @@ import {
 
 import { BrandLogo } from "@/components/app/brand-logo";
 import { CommandBar } from "@/components/app/command-bar";
+import { LanguageToggle } from "@/components/app/language-toggle";
 import { ThemeToggle } from "@/components/app/theme-toggle";
 import { Avatar } from "@/components/ui/avatar";
 import { SignOutButton } from "@/components/auth/sign-out-button";
@@ -53,11 +54,13 @@ import type {
   ProjectListItem,
 } from "@/lib/data";
 import type { UserRole } from "@/lib/db/schema";
+import { t, type Locale } from "@/lib/i18n";
 import { formatProjectStatus } from "@/lib/project-status";
 import { cn, formatDate } from "@/lib/utils";
 
 type AppSidebarProps = {
   notificationCount: number;
+  initialNotifications: InAppNotificationItem[];
   projects: ProjectListItem[];
   userName: string;
   userEmail: string;
@@ -67,10 +70,17 @@ type AppSidebarProps = {
   logoDarkUrl: string | null;
   logoLightUrl: string | null;
   sidebarMarkUrl: string | null;
+  locale: Locale;
 };
 
 const SIDEBAR_RENDER_VERSION = "2026-05-04.3";
 const SIDEBAR_PROJECT_CAP = 8;
+
+function notificationTimestamp(value: InAppNotificationItem["readAt"]) {
+  if (!value) return "";
+  const date = value instanceof Date ? value : new Date(value);
+  return Number.isNaN(date.getTime()) ? "" : String(date.getTime());
+}
 
 // One draggable row in the sidebar Project List. The whole row is the sortable
 // node; a grip handle (shown on hover, desktop only) carries the drag listeners
@@ -80,11 +90,13 @@ function SidebarProjectRow({
   href,
   isActive,
   draggable,
+  locale,
 }: {
   project: ProjectListItem;
   href: string;
   isActive: boolean;
   draggable: boolean;
+  locale: Locale;
 }) {
   const {
     attributes,
@@ -149,7 +161,7 @@ function SidebarProjectRow({
               {project.name}
             </p>
             <p className="mt-0.5 inline-flex items-center gap-1.5 font-mono text-[11px] uppercase tracking-[0.04em] text-muted">
-              {formatProjectStatus(project.status)}
+              {formatProjectStatus(project.status, locale)}
             </p>
           </div>
           <Kanban
@@ -178,6 +190,7 @@ function SidebarProjectRow({
 
 export function AppSidebar({
   notificationCount,
+  initialNotifications,
   projects,
   userName,
   userEmail,
@@ -187,6 +200,7 @@ export function AppSidebar({
   logoDarkUrl,
   logoLightUrl,
   sidebarMarkUrl,
+  locale,
 }: AppSidebarProps) {
   const isAdminTier = userRole === "owner" || userRole === "admin";
   const pathname = usePathname();
@@ -200,7 +214,7 @@ export function AppSidebar({
   const [liveNotificationCount, setLiveNotificationCount] =
     useState(notificationCount);
   const [notifications, setNotifications] = useState<InAppNotificationItem[] | null>(
-    null,
+    initialNotifications,
   );
   const [isNotificationsLoading, setIsNotificationsLoading] = useState(false);
   const [notificationsError, setNotificationsError] = useState<string | null>(null);
@@ -209,6 +223,9 @@ export function AppSidebar({
   // the server-sorted list; resynced when the server order/membership changes.
   const [orderedProjects, setOrderedProjects] = useState(projects);
   const projectSignature = projects.map((project) => project.id).join(",");
+  const initialNotificationSignature = initialNotifications
+    .map((notification) => `${notification.id}:${notificationTimestamp(notification.readAt)}`)
+    .join(",");
   useEffect(() => {
     setOrderedProjects(projects);
     // Resync only when the set/order coming from the server changes.
@@ -245,9 +262,11 @@ export function AppSidebar({
   useEffect(() => {
     setIsNotificationsOpen(false);
     setMobileOpen(false);
-    setNotifications(null);
+    setNotifications(initialNotifications);
     setNotificationsError(null);
-  }, [pathname]);
+    // Resync only when the server-provided notification seed changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialNotificationSignature, pathname]);
 
   // Sync the collapse mirror from the DOM attribute the boot script set.
   useEffect(() => {
@@ -345,7 +364,7 @@ export function AppSidebar({
           return;
         }
 
-        setNotificationsError("Notifications are temporarily unavailable.");
+        setNotificationsError(t(locale, "notificationsUnavailable"));
       })
       .finally(() => {
         if (isMounted) {
@@ -356,7 +375,7 @@ export function AppSidebar({
     return () => {
       isMounted = false;
     };
-  }, [isNotificationsOpen, notifications]);
+  }, [isNotificationsLoading, isNotificationsOpen, locale, notifications]);
 
   const toneClassNames = {
     danger: "border-danger/30 bg-danger/10 text-danger",
@@ -365,7 +384,6 @@ export function AppSidebar({
   } as const;
   const hasNotifications = liveNotificationCount > 0;
   const openNotifications = () => {
-    setNotifications(null);
     setNotificationsError(null);
     setIsNotificationsOpen(true);
   };
@@ -386,7 +404,7 @@ export function AppSidebar({
         <button
           type="button"
           onClick={() => setMobileOpen(true)}
-          aria-label="Open menu"
+          aria-label={t(locale, "openMenu")}
           className="inline-flex size-9 items-center justify-center rounded-md border border-border bg-surface text-muted transition hover:border-border-strong hover:bg-surface-strong hover:text-foreground"
         >
           <List className="size-5" />
@@ -408,7 +426,7 @@ export function AppSidebar({
               {liveNotificationCount > 9 ? "9+" : liveNotificationCount}
             </span>
           ) : null}
-          <span className="sr-only">Open notifications</span>
+          <span className="sr-only">{t(locale, "notifications")}</span>
         </button>
       </header>
 
@@ -416,7 +434,7 @@ export function AppSidebar({
       {mobileOpen ? (
         <button
           type="button"
-          aria-label="Close menu"
+          aria-label={t(locale, "closeMenu")}
           onClick={() => setMobileOpen(false)}
           className="fixed inset-0 z-40 bg-[rgba(10,10,10,0.44)] backdrop-blur-xs md:hidden"
         />
@@ -491,7 +509,7 @@ export function AppSidebar({
               <button
                 type="button"
                 onClick={() => setMobileOpen(false)}
-                aria-label="Close menu"
+                aria-label={t(locale, "closeMenu")}
                 className="inline-flex size-9 items-center justify-center rounded-md border border-border bg-surface text-muted transition hover:border-border-strong hover:bg-surface-strong hover:text-foreground md:hidden"
               >
                 <X className="size-5" />
@@ -507,7 +525,7 @@ export function AppSidebar({
                     {liveNotificationCount > 9 ? "9+" : liveNotificationCount}
                   </span>
                 ) : null}
-                <span className="sr-only">Open notifications</span>
+                <span className="sr-only">{t(locale, "notifications")}</span>
               </button>
               <button
                 type="button"
@@ -522,15 +540,19 @@ export function AppSidebar({
           </div>
           <div className="sidebar-collapsible">
             <p className="font-mono text-[11px] uppercase tracking-[0.04em] text-muted">
-              {isAdminMode ? "Admin" : "Personal workspace"}
+              {isAdminMode ? t(locale, "admin") : t(locale, "personalWorkspace")}
             </p>
             <h1 className="mt-2 text-[20px] font-medium tracking-[-0.022em] text-foreground">
-              {isAdminMode ? "Manage the team." : "Build, review, ship."}
+              {isAdminMode ? t(locale, "manageTeam") : t(locale, "buildReviewShip")}
             </h1>
             <p className="mt-1 max-w-[220px] text-[13px] leading-6 text-muted">
               {isAdminMode
-                ? "Invitations, members, and audit logs in one place."
-                : "Clear queues, no dashboard noise."}
+                ? locale === "vi"
+                  ? "Lời mời, thành viên và nhật ký kiểm toán ở cùng một nơi."
+                  : "Invitations, members, and audit logs in one place."
+                : locale === "vi"
+                  ? "Hàng đợi rõ ràng, không nhiễu bảng điều khiển."
+                  : "Clear queues, no dashboard noise."}
             </p>
           </div>
         </div>
@@ -547,7 +569,7 @@ export function AppSidebar({
                     : "bg-accent text-white",
                 )}
               >
-                Workspace
+                {t(locale, "workspace")}
               </Link>
               <Link
                 href="/admin/dashboard"
@@ -558,108 +580,108 @@ export function AppSidebar({
                     : "text-muted hover:text-foreground",
                 )}
               >
-                Admin
+                {t(locale, "admin")}
               </Link>
             </div>
           </div>
         ) : null}
 
         <div className={cn("sidebar-collapsible shrink-0", isAdminTier ? "mt-3" : "mt-6")}>
-          <CommandBar />
+          <CommandBar locale={locale} />
         </div>
 
         <nav className="mt-4 flex shrink-0 flex-col gap-0.5">
           {isAdminMode ? (
             <>
-              <NavSection label="Featured" first />
+              <NavSection label={t(locale, "featured")} first />
               <NavItem
                 href="/admin/dashboard"
                 icon={ChartBar}
-                label="Dashboard"
+                label={t(locale, "dashboard")}
                 active={pathname.startsWith("/admin/dashboard")}
               />
               <NavItem
                 href="/admin/daily"
                 icon={CalendarCheck}
-                label="Daily Ops"
+                label={t(locale, "dailyOps")}
                 active={pathname.startsWith("/admin/daily")}
               />
 
-              <NavSection label="People" />
+              <NavSection label={t(locale, "people")} />
               <NavItem
                 href="/admin/users"
                 icon={UsersThree}
-                label="Users"
+                label={t(locale, "users")}
                 active={pathname.startsWith("/admin/users")}
               />
               <NavItem
                 href="/admin/invites"
                 icon={PaperPlaneTilt}
-                label="Invite"
+                label={t(locale, "invite")}
                 active={pathname.startsWith("/admin/invites")}
               />
 
-              <NavSection label="Workspace" />
+              <NavSection label={t(locale, "workspace")} />
               <NavItem
                 href="/admin/team"
                 icon={Buildings}
-                label="Teams"
+                label={t(locale, "teams")}
                 active={pathname.startsWith("/admin/team")}
               />
               <NavItem
                 href="/admin/projects"
                 icon={Folders}
-                label="Projects"
+                label={t(locale, "projects")}
                 active={pathname.startsWith("/admin/projects")}
               />
 
-              <NavSection label="System" />
+              <NavSection label={t(locale, "system")} />
               <NavItem
                 href="/admin/activity"
                 icon={Pulse}
-                label="Activity"
+                label={t(locale, "activity")}
                 active={pathname.startsWith("/admin/activity")}
               />
               <NavItem
                 href="/admin/system"
                 icon={GearSix}
-                label="System"
+                label={t(locale, "system")}
                 active={pathname.startsWith("/admin/system")}
               />
             </>
           ) : (
             <>
-              <NavSection label="Featured" first />
+              <NavSection label={t(locale, "featured")} first />
               <NavItem
                 href="/dashboard"
                 icon={ChartBar}
-                label="Dashboard"
+                label={t(locale, "dashboard")}
                 active={pathname === "/dashboard"}
               />
               <NavItem
                 href="/today"
                 icon={CalendarDots}
-                label="Today"
+                label={t(locale, "today")}
                 active={pathname === "/today"}
               />
               <NavItem
                 href="/daily"
                 icon={Plant}
-                label="Task"
+                label={t(locale, "task")}
                 active={pathname === "/daily"}
               />
 
-              <NavSection label="Workspace" />
+              <NavSection label={t(locale, "workspace")} />
               <NavItem
                 href="/team"
                 icon={Buildings}
-                label="Teams"
+                label={t(locale, "teams")}
                 active={pathname === "/team" || pathname.startsWith("/team/")}
               />
               <NavItem
                 href="/projects"
                 icon={Folders}
-                label="Projects"
+                label={t(locale, "projects")}
                 active={pathname === "/projects"}
               />
             </>
@@ -679,7 +701,7 @@ export function AppSidebar({
         >
           <div className="mb-2 flex items-center justify-between px-2">
             <p className="font-mono text-[11px] font-medium uppercase tracking-[0.04em] text-muted">
-              Project list
+              {t(locale, "projectList")}
             </p>
             <span className="font-mono text-[11px] text-muted">{projects.length}</span>
           </div>
@@ -707,6 +729,7 @@ export function AppSidebar({
                           href={href}
                           isActive={isActive}
                           draggable={visibleProjects.length > 1}
+                          locale={locale}
                         />
                       );
                     })}
@@ -718,8 +741,12 @@ export function AppSidebar({
                 <div className="mx-auto inline-flex size-8 items-center justify-center rounded-sm border border-border bg-background text-muted">
                   <Folders className="size-4" />
                 </div>
-                <p className="mt-2 text-[12px] font-medium text-foreground">No projects yet</p>
-                <p className="mt-0.5 text-[12px] leading-5 text-muted">Create one to begin.</p>
+                <p className="mt-2 text-[12px] font-medium text-foreground">
+                  {t(locale, "noProjectsYet")}
+                </p>
+                <p className="mt-0.5 text-[12px] leading-5 text-muted">
+                  {t(locale, "createOneToBegin")}
+                </p>
               </div>
             )}
 
@@ -728,7 +755,7 @@ export function AppSidebar({
                 href="/projects"
                 className="mt-1 flex items-center justify-between rounded-sm px-3 py-1.5 text-[12px] font-medium text-muted transition hover:bg-surface hover:text-foreground"
               >
-                <span>Show all projects</span>
+                <span>{locale === "vi" ? "Xem tất cả dự án" : "Show all projects"}</span>
                 <span className="font-mono text-[11px]">
                   +{orderedProjects.length - SIDEBAR_PROJECT_CAP}
                 </span>
@@ -742,7 +769,7 @@ export function AppSidebar({
           onClick={() =>
             window.dispatchEvent(new CustomEvent("seeder:open-shortcuts"))
           }
-          title="Keyboard shortcuts (press ?)"
+          title={locale === "vi" ? "Phím tắt bàn phím (nhấn ?)" : "Keyboard shortcuts (press ?)"}
           className={cn(
             "sidebar-collapsible mt-4 flex w-full shrink-0 items-center justify-between gap-2 rounded-md border border-border bg-surface px-3 py-2.5 text-left text-muted transition duration-150",
             "hover:-translate-y-px hover:border-border-strong hover:bg-surface-strong hover:text-foreground",
@@ -751,7 +778,7 @@ export function AppSidebar({
           )}
         >
           <span className="font-mono text-[11px] font-medium uppercase tracking-[0.04em]">
-            Shortcuts
+            {t(locale, "shortcuts")}
           </span>
           <kbd className="inline-flex min-w-[18px] items-center justify-center rounded-sm border border-border bg-surface-strong px-1 py-0.5 font-mono text-[10px] font-medium text-muted">
             ?
@@ -772,10 +799,14 @@ export function AppSidebar({
           </div>
           <div className="sidebar-collapsible flex shrink-0 items-center gap-0.5">
             <ThemeToggle />
+            <LanguageToggle
+              locale={locale}
+              className="inline-flex size-7 items-center justify-center rounded-sm text-muted transition hover:bg-surface-strong hover:text-foreground"
+            />
             <Link
               href="/settings"
-              title="Settings"
-              aria-label="Settings"
+              title={t(locale, "settings")}
+              aria-label={t(locale, "settings")}
               className={cn(
                 "inline-flex size-7 items-center justify-center rounded-sm transition hover:bg-surface-strong hover:text-foreground",
                 pathname.startsWith("/settings") && !pathname.startsWith("/settings/tokens")
@@ -787,7 +818,7 @@ export function AppSidebar({
             </Link>
             <SignOutButton className="inline-flex size-7 min-h-0 items-center justify-center rounded-sm border border-transparent bg-transparent p-0 text-muted transition hover:bg-danger/10 hover:text-danger">
               <Power className="size-4" />
-              <span className="sr-only">Sign out</span>
+              <span className="sr-only">{t(locale, "signOut")}</span>
             </SignOutButton>
           </div>
         </div>
@@ -797,7 +828,7 @@ export function AppSidebar({
         <div className="fixed inset-0 z-50 p-4 sm:p-6">
           <button
             type="button"
-            aria-label="Close notifications"
+            aria-label={t(locale, "closeNotifications")}
             onClick={() => setIsNotificationsOpen(false)}
             className="ui-modal-backdrop absolute inset-0 backdrop-blur-xs"
           />
@@ -806,13 +837,15 @@ export function AppSidebar({
               <div className="flex items-start justify-between gap-4 border-b border-border px-5 py-4 sm:px-6">
                 <div>
                   <p className="font-mono text-[11px] font-medium uppercase tracking-[0.04em] text-muted">
-                    Notifications
+                    {t(locale, "notifications")}
                   </p>
                   <h3 className="mt-2 text-[17px] font-medium tracking-[-0.022em] text-foreground">
-                    Inbox for action
+                    {locale === "vi" ? "Hộp việc cần xử lý" : "Inbox for action"}
                   </h3>
                   <p className="mt-1 text-[13px] leading-6 text-muted">
-                    Requests, deadlines, and completed tasks that still need a public update.
+                    {locale === "vi"
+                      ? "Yêu cầu, hạn chót và công việc đã xong nhưng còn cần cập nhật công khai."
+                      : "Requests, deadlines, and completed tasks that still need a public update."}
                   </p>
                 </div>
                 <div className="flex shrink-0 items-center gap-2">
@@ -822,7 +855,7 @@ export function AppSidebar({
                       onClick={clearAllNotifications}
                       className="inline-flex h-9 items-center rounded-md border border-border bg-surface px-3 text-[12px] font-medium text-muted transition hover:border-danger/40 hover:bg-danger/10 hover:text-danger"
                     >
-                      Clear all
+                      {t(locale, "clearAll")}
                     </button>
                   ) : null}
                   <button
@@ -831,7 +864,7 @@ export function AppSidebar({
                     className="inline-flex size-9 items-center justify-center rounded-md border border-border bg-surface text-muted transition hover:border-border-strong hover:bg-surface-strong hover:text-foreground"
                   >
                     <X className="size-4" />
-                    <span className="sr-only">Close notifications</span>
+                    <span className="sr-only">{t(locale, "closeNotifications")}</span>
                   </button>
                 </div>
               </div>
@@ -851,6 +884,15 @@ export function AppSidebar({
                   <div className="space-y-2">
                     {notifications.map((notification) => {
                       const isRead = Boolean(notification.readAt);
+                      const title =
+                        notification.title.trim() ||
+                        (locale === "vi" ? "Thông báo chưa có tiêu đề" : "Untitled notification");
+                      const detail =
+                        notification.detail.trim() ||
+                        (locale === "vi" ? "Chưa có nội dung chi tiết." : "No detail provided.");
+                      const projectName =
+                        notification.projectName.trim() ||
+                        (locale === "vi" ? "Không gian" : "Workspace");
                       return (
                         <Link
                           key={notification.id}
@@ -878,7 +920,7 @@ export function AppSidebar({
                             }
                           }}
                           className={cn(
-                            "block rounded-md border border-border bg-surface px-4 py-3 transition hover:border-border-strong hover:bg-surface-strong",
+                            "block rounded-md border border-border bg-background/80 px-4 py-3 text-foreground shadow-sm transition hover:border-border-strong hover:bg-surface",
                             isRead && "opacity-60",
                           )}
                         >
@@ -894,21 +936,21 @@ export function AppSidebar({
                                   {notification.tone}
                                 </span>
                                 <p className="truncate text-[13px] font-medium text-foreground">
-                                  {notification.title}
+                                  {title}
                                 </p>
                                 {isRead ? (
                                   <span className="font-mono text-[10px] uppercase tracking-[0.04em] text-muted">
-                                    read
+                                    {locale === "vi" ? "đã đọc" : "read"}
                                   </span>
                                 ) : null}
                               </div>
                               <p className="mt-1 text-[13px] leading-6 text-muted">
-                                {notification.detail}
+                                {detail}
                               </p>
                             </div>
                             <div className="shrink-0 text-right">
                               <p className="font-mono text-[11px] uppercase tracking-[0.04em] text-muted">
-                                {notification.projectName}
+                                {projectName}
                               </p>
                               <p className="mt-1 font-mono text-[11px] text-muted">
                                 {formatDate(notification.createdAt)}
@@ -925,10 +967,12 @@ export function AppSidebar({
                       <Bell className="size-5" />
                     </div>
                     <p className="mt-3 text-[13px] font-medium text-foreground">
-                      Nothing needs attention right now.
+                      {locale === "vi" ? "Hiện chưa có gì cần chú ý." : "Nothing needs attention right now."}
                     </p>
                     <p className="mt-1 text-[13px] leading-6 text-muted">
-                      New requests, due tasks, and finished items waiting for a client update will appear here.
+                      {locale === "vi"
+                        ? "Yêu cầu mới, công việc đến hạn và hạng mục đã xong đang chờ cập nhật cho khách hàng sẽ xuất hiện ở đây."
+                        : "New requests, due tasks, and finished items waiting for a client update will appear here."}
                     </p>
                   </div>
                 )}

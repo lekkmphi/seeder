@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { CircleNotch, X } from "@phosphor-icons/react";
 
+import { t } from "@/lib/i18n";
+import { useLocale } from "@/lib/use-locale";
 import { cn } from "@/lib/utils";
 
 type Variant = "danger" | "primary";
@@ -12,8 +14,8 @@ export function ConfirmDialog({
   open,
   title,
   description,
-  confirmLabel = "Confirm",
-  cancelLabel = "Cancel",
+  confirmLabel,
+  cancelLabel,
   variant = "danger",
   isPending = false,
   onConfirm,
@@ -29,7 +31,11 @@ export function ConfirmDialog({
   onConfirm: () => void;
   onCancel: () => void;
 }) {
+  const locale = useLocale();
   const [mounted, setMounted] = useState(false);
+  const fallbackCancelLabel = cancelLabel ?? t(locale, "cancel");
+  const fallbackConfirmLabel =
+    confirmLabel ?? (locale === "vi" ? "Xác nhận" : "Confirm");
 
   useEffect(() => {
     setMounted(true);
@@ -50,7 +56,7 @@ export function ConfirmDialog({
     <div className="fixed inset-0 z-[55] p-4 sm:p-6">
       <button
         type="button"
-        aria-label="Close dialog"
+        aria-label={locale === "vi" ? "Đóng hộp thoại" : "Close dialog"}
         onClick={onCancel}
         disabled={isPending}
         className="ui-modal-backdrop absolute inset-0 bg-[rgba(10,10,10,0.44)] backdrop-blur-xs"
@@ -72,7 +78,7 @@ export function ConfirmDialog({
               className="inline-flex size-7 items-center justify-center rounded-md border border-border bg-surface text-muted transition hover:border-border-strong hover:bg-surface-strong hover:text-foreground disabled:cursor-not-allowed disabled:opacity-60"
             >
               <X className="size-3.5" />
-              <span className="sr-only">Cancel</span>
+              <span className="sr-only">{fallbackCancelLabel}</span>
             </button>
           </div>
           {description ? (
@@ -87,7 +93,7 @@ export function ConfirmDialog({
               disabled={isPending}
               className="ui-button-secondary px-4 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {cancelLabel}
+              {fallbackCancelLabel}
             </button>
             {/* Focused on open so Enter confirms and Escape cancels. Focusing
                 the button (rather than listening for Enter on the window) keeps
@@ -104,7 +110,7 @@ export function ConfirmDialog({
               )}
             >
               {isPending ? <CircleNotch className="size-4 animate-spin" /> : null}
-              {confirmLabel}
+              {fallbackConfirmLabel}
             </button>
           </div>
         </div>

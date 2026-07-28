@@ -12,6 +12,7 @@ import {
 } from "@phosphor-icons/react";
 
 import { toast } from "@/lib/toast";
+import { useLocale } from "@/lib/use-locale";
 
 type SpaceRow = {
   id: string;
@@ -30,6 +31,7 @@ export function SpacesList({
   spaces: SpaceRow[];
   canCreate: boolean;
 }) {
+  const locale = useLocale();
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [name, setName] = useState("");
@@ -48,10 +50,13 @@ export function SpacesList({
         error?: string;
       };
       if (!res.ok || !data.ok) {
-        toast(data.error ?? "Could not create the team.", "danger");
+        toast(
+          data.error ?? (locale === "vi" ? "Không thể tạo đội nhóm." : "Could not create the team."),
+          "danger",
+        );
         return;
       }
-      toast("Team created", "success");
+      toast(locale === "vi" ? "Đã tạo đội nhóm" : "Team created", "success");
       setName("");
       router.refresh();
     });
@@ -62,11 +67,12 @@ export function SpacesList({
       {canCreate ? (
         <div className="ui-panel-soft p-5">
           <p className="font-mono text-[11px] uppercase tracking-[0.04em] text-muted">
-            Create team
+            {locale === "vi" ? "Tạo đội nhóm" : "Create team"}
           </p>
           <p className="mt-1 text-[12px] leading-5 text-muted">
-            Name it after the team or company. You become its lead — open it to
-            add members and create projects in it.
+            {locale === "vi"
+              ? "Đặt tên theo đội hoặc công ty. Bạn sẽ là trưởng nhóm, mở đội để thêm thành viên và tạo dự án."
+              : "Name it after the team or company. You become its lead — open it to add members and create projects in it."}
           </p>
           <form
             className="mt-3 flex flex-wrap gap-3"
@@ -93,7 +99,7 @@ export function SpacesList({
               ) : (
                 <Plus className="size-4" />
               )}
-              Create
+              {locale === "vi" ? "Tạo" : "Create"}
             </button>
           </form>
         </div>
@@ -117,14 +123,18 @@ export function SpacesList({
                 <p className="mt-0.5 flex flex-wrap items-center gap-x-2 font-mono text-[11px] text-muted">
                   <span className="inline-flex items-center gap-1">
                     <Crown className="size-3" />
-                    {space.leadName ?? "No lead"}
+                    {space.leadName ?? (locale === "vi" ? "Chưa có trưởng nhóm" : "No lead")}
                   </span>
-                  <span>· {space.memberCount} member{space.memberCount === 1 ? "" : "s"}</span>
-                  <span>· {space.projectCount} project{space.projectCount === 1 ? "" : "s"}</span>
+                  <span>
+                    · {space.memberCount} {locale === "vi" ? "thành viên" : `member${space.memberCount === 1 ? "" : "s"}`}
+                  </span>
+                  <span>
+                    · {space.projectCount} {locale === "vi" ? "dự án" : `project${space.projectCount === 1 ? "" : "s"}`}
+                  </span>
                 </p>
               </div>
               <span className="inline-flex items-center gap-1.5 whitespace-nowrap text-[13px] text-muted transition group-hover:text-foreground">
-                Open
+                {locale === "vi" ? "Mở" : "Open"}
                 <ArrowSquareOut className="size-4" />
               </span>
             </Link>
@@ -136,12 +146,16 @@ export function SpacesList({
             <Buildings className="size-5" />
           </div>
           <p className="mt-3 text-[13px] font-medium text-foreground">
-            No teams yet
+            {locale === "vi" ? "Chưa có đội nhóm" : "No teams yet"}
           </p>
           <p className="mx-auto mt-1 max-w-sm text-[13px] leading-6 text-muted">
             {canCreate
-              ? "Create one above to group projects under a team."
-              : "You're not a member of any team yet."}
+              ? locale === "vi"
+                ? "Tạo một đội ở trên để gom dự án theo đội."
+                : "Create one above to group projects under a team."
+              : locale === "vi"
+                ? "Bạn chưa là thành viên của đội nào."
+                : "You're not a member of any team yet."}
           </p>
         </div>
       )}

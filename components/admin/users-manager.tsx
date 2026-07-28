@@ -22,6 +22,7 @@ import { Avatar } from "@/components/ui/avatar";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { toast } from "@/lib/toast";
 import { uploadImage } from "@/lib/upload";
+import { useLocale } from "@/lib/use-locale";
 import { cn } from "@/lib/utils";
 import type { WorkspaceUser } from "@/lib/data-admin";
 import { userRoleValues, type UserRole } from "@/lib/db/schema";
@@ -37,14 +38,26 @@ const roleIcon: Record<UserRole, typeof Crown> = {
   member: UserIcon,
 };
 
-function formatRelative(date: Date | null) {
-  if (!date) return "Never";
+function formatRelative(date: Date | null, locale: "vi" | "en") {
+  if (!date) return locale === "vi" ? "Chưa từng" : "Never";
   const diff = Date.now() - date.getTime();
   const day = 86_400_000;
-  if (diff < day) return "Today";
-  if (diff < 2 * day) return "Yesterday";
-  if (diff < 30 * day) return `${Math.floor(diff / day)}d ago`;
+  if (diff < day) return locale === "vi" ? "Hôm nay" : "Today";
+  if (diff < 2 * day) return locale === "vi" ? "Hôm qua" : "Yesterday";
+  if (diff < 30 * day) {
+    const days = Math.floor(diff / day);
+    return locale === "vi" ? `${days} ngày trước` : `${days}d ago`;
+  }
   return date.toLocaleDateString();
+}
+
+function roleLabel(role: UserRole, locale: "vi" | "en") {
+  const labels = {
+    owner: locale === "vi" ? "chủ sở hữu" : "owner",
+    admin: locale === "vi" ? "quản trị" : "admin",
+    member: locale === "vi" ? "thành viên" : "member",
+  };
+  return labels[role];
 }
 
 type EditState = "new" | WorkspaceUser | null;
@@ -58,6 +71,7 @@ export function UsersManager({
   viewerId: string;
   viewerRole: UserRole;
 }) {
+  const locale = useLocale();
   const router = useRouter();
   const [editing, setEditing] = useState<EditState>(null);
   const [deactivating, setDeactivating] = useState<WorkspaceUser | null>(null);
@@ -77,11 +91,21 @@ export function UsersManager({
         body: JSON.stringify({ disabled: !active }),
       });
       const data = (await response.json().catch(() => ({}))) as { error?: string };
-      if (!response.ok) throw new Error(data.error || "Update failed");
-      toast(active ? "User reactivated" : "User deactivated", "success");
+      if (!response.ok) throw new Error(data.error || (locale === "vi" ? "Cập nhật thất bại" : "Update failed"));
+      toast(
+        active
+          ? locale === "vi" ? "Đã kích hoạt lại người dùng" : "User reactivated"
+          : locale === "vi" ? "Đã vô hiệu hóa người dùng" : "User deactivated",
+        "success",
+      );
       startTransition(() => router.refresh());
     } catch (error) {
-      toast(error instanceof Error ? error.message : "Update failed", "danger");
+      toast(
+        error instanceof Error
+          ? error.message
+          : locale === "vi" ? "Cập nhật thất bại" : "Update failed",
+        "danger",
+      );
     } finally {
       setPendingId(null);
       setDeactivating(null);
@@ -107,11 +131,16 @@ export function UsersManager({
         method: "DELETE",
       });
       const data = (await response.json().catch(() => ({}))) as { error?: string };
-      if (!response.ok) throw new Error(data.error || "Delete failed");
-      toast("User deleted", "success");
+      if (!response.ok) throw new Error(data.error || (locale === "vi" ? "Xóa thất bại" : "Delete failed"));
+      toast(locale === "vi" ? "Đã xóa người dùng" : "User deleted", "success");
       startTransition(() => router.refresh());
     } catch (error) {
-      toast(error instanceof Error ? error.message : "Delete failed", "danger");
+      toast(
+        error instanceof Error
+          ? error.message
+          : locale === "vi" ? "Xóa thất bại" : "Delete failed",
+        "danger",
+      );
     } finally {
       setPendingId(null);
       setDeleting(null);
@@ -124,14 +153,15 @@ export function UsersManager({
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <p className="font-mono text-[11px] uppercase tracking-[0.04em] text-muted">
-              Admin · Members
+              {locale === "vi" ? "Quản trị · Thành viên" : "Admin · Members"}
             </p>
             <h1 className="mt-2 text-[24px] font-medium tracking-[-0.022em] text-foreground">
-              Users
+              {locale === "vi" ? "Người dùng" : "Users"}
             </h1>
             <p className="mt-1 max-w-prose text-[13px] leading-6 text-muted">
-              Everyone with an account. Create members, edit profiles and roles,
-              upload avatars, and deactivate access.
+              {locale === "vi"
+                ? "Tất cả tài khoản trong hệ thống. Tạo thành viên, sửa hồ sơ và vai trò, tải ảnh đại diện và vô hiệu hóa quyền truy cập."
+                : "Everyone with an account. Create members, edit profiles and roles, upload avatars, and deactivate access."}
             </p>
           </div>
           <button
@@ -140,7 +170,7 @@ export function UsersManager({
             className="ui-button-primary shrink-0"
           >
             <Plus className="size-4" />
-            New user
+            {locale === "vi" ? "Người dùng mới" : "New user"}
           </button>
         </div>
       </section>
@@ -153,15 +183,19 @@ export function UsersManager({
               type="search"
               value={query}
               onChange={(event) => setQuery(event.target.value)}
-              placeholder="Search by name, email, or role…"
-              aria-label="Search users"
+              placeholder={locale === "vi" ? "Tìm theo tên, email hoặc vai trò..." : "Search by name, email, or role..."}
+              aria-label={locale === "vi" ? "Tìm người dùng" : "Search users"}
               className="w-full rounded-md border border-border bg-background py-2.5 pl-9 pr-3 text-[13px] text-foreground outline-none transition placeholder:text-muted focus:border-accent"
             />
           </div>
           <span className="block px-1 font-mono text-[11px] uppercase tracking-[0.04em] text-muted">
             {query.trim()
-              ? `${filtered.length} of ${users.length} users`
-              : `${users.length} users`}
+              ? locale === "vi"
+                ? `${filtered.length} / ${users.length} người dùng`
+                : `${filtered.length} of ${users.length} users`
+              : locale === "vi"
+                ? `${users.length} người dùng`
+                : `${users.length} users`}
           </span>
         </div>
       ) : null}
@@ -169,11 +203,13 @@ export function UsersManager({
       <div className="ui-panel-soft divide-y divide-border">
         {users.length === 0 ? (
           <div className="px-5 py-10 text-center text-[13px] leading-7 text-muted">
-            No members yet.
+            {locale === "vi" ? "Chưa có thành viên." : "No members yet."}
           </div>
         ) : filtered.length === 0 ? (
           <div className="px-5 py-10 text-center text-[13px] leading-7 text-muted">
-            No users match “{query.trim()}”.
+            {locale === "vi"
+              ? `Không có người dùng khớp “${query.trim()}”.`
+              : `No users match “${query.trim()}”.`}
           </div>
         ) : (
           filtered.map((user) => {
@@ -208,11 +244,11 @@ export function UsersManager({
                       )}
                     >
                       <Icon className="size-3" />
-                      {user.role}
+                      {roleLabel(user.role, locale)}
                     </span>
                     {disabled ? (
                       <span className="inline-flex items-center rounded-sm border border-danger/30 bg-danger/10 px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-[0.04em] text-danger">
-                        Disabled
+                        {locale === "vi" ? "Đã tắt" : "Disabled"}
                       </span>
                     ) : null}
                   </div>
@@ -223,17 +259,23 @@ export function UsersManager({
 
                 <div className="grid grid-cols-3 gap-4 text-left font-mono sm:gap-6 sm:text-right">
                   <div>
-                    <p className="text-[11px] uppercase tracking-[0.04em] text-muted">Owned</p>
+                    <p className="text-[11px] uppercase tracking-[0.04em] text-muted">
+                      {locale === "vi" ? "Sở hữu" : "Owned"}
+                    </p>
                     <p className="text-[13px] font-medium text-foreground">{user.projectsOwned}</p>
                   </div>
                   <div>
-                    <p className="text-[11px] uppercase tracking-[0.04em] text-muted">Member</p>
+                    <p className="text-[11px] uppercase tracking-[0.04em] text-muted">
+                      {locale === "vi" ? "Tham gia" : "Member"}
+                    </p>
                     <p className="text-[13px] font-medium text-foreground">{user.projectsMember}</p>
                   </div>
                   <div>
-                    <p className="text-[11px] uppercase tracking-[0.04em] text-muted">Active</p>
+                    <p className="text-[11px] uppercase tracking-[0.04em] text-muted">
+                      {locale === "vi" ? "Hoạt động" : "Active"}
+                    </p>
                     <p className="text-[13px] font-medium text-foreground">
-                      {formatRelative(user.lastActiveAt)}
+                      {formatRelative(user.lastActiveAt, locale)}
                     </p>
                   </div>
                 </div>
@@ -243,7 +285,7 @@ export function UsersManager({
                     type="button"
                     onClick={() => setEditing(user)}
                     aria-label={`Edit ${user.name}`}
-                    title="Edit"
+                    title={locale === "vi" ? "Sửa" : "Edit"}
                     className="inline-flex size-8 items-center justify-center rounded-md border border-border bg-surface text-muted transition hover:border-border-strong hover:bg-surface-strong hover:text-foreground"
                   >
                     <PencilSimple className="size-4" />
@@ -255,7 +297,7 @@ export function UsersManager({
                         onClick={() => setActive(user, true)}
                         disabled={busy}
                         aria-label={`Reactivate ${user.name}`}
-                        title="Reactivate"
+                        title={locale === "vi" ? "Kích hoạt lại" : "Reactivate"}
                         className="inline-flex size-8 items-center justify-center rounded-md border border-border bg-surface text-muted transition hover:border-border-strong hover:bg-surface-strong hover:text-foreground disabled:opacity-60"
                       >
                         {busy ? (
@@ -270,7 +312,9 @@ export function UsersManager({
                         disabled={busy || isSelf}
                         aria-label={`Delete ${user.name}`}
                         title={
-                          isSelf ? "You can't delete yourself" : "Delete permanently"
+                          isSelf
+                            ? locale === "vi" ? "Bạn không thể tự xóa mình" : "You can't delete yourself"
+                            : locale === "vi" ? "Xóa vĩnh viễn" : "Delete permanently"
                         }
                         className="inline-flex size-8 items-center justify-center rounded-md border border-border bg-surface text-muted transition hover:border-danger/40 hover:bg-danger/10 hover:text-danger disabled:cursor-not-allowed disabled:opacity-40"
                       >
@@ -283,7 +327,11 @@ export function UsersManager({
                       onClick={() => setDeactivating(user)}
                       disabled={busy || isSelf}
                       aria-label={`Deactivate ${user.name}`}
-                      title={isSelf ? "You can't deactivate yourself" : "Deactivate"}
+                      title={
+                        isSelf
+                          ? locale === "vi" ? "Bạn không thể tự vô hiệu hóa mình" : "You can't deactivate yourself"
+                          : locale === "vi" ? "Vô hiệu hóa" : "Deactivate"
+                      }
                       className="inline-flex size-8 items-center justify-center rounded-md border border-border bg-surface text-muted transition hover:border-danger/40 hover:bg-danger/10 hover:text-danger disabled:cursor-not-allowed disabled:opacity-40"
                     >
                       <Prohibit className="size-4" />
@@ -310,10 +358,18 @@ export function UsersManager({
 
       <ConfirmDialog
         open={Boolean(deactivating)}
-        title={`Deactivate ${deactivating?.name ?? "user"}?`}
-        description="They'll be signed out and blocked from signing in. Their projects and history are kept — you can reactivate them anytime."
-        confirmLabel="Deactivate"
-        cancelLabel="Keep active"
+        title={
+          locale === "vi"
+            ? `Vô hiệu hóa ${deactivating?.name ?? "người dùng"}?`
+            : `Deactivate ${deactivating?.name ?? "user"}?`
+        }
+        description={
+          locale === "vi"
+            ? "Họ sẽ bị đăng xuất và không thể đăng nhập. Dự án và lịch sử vẫn được giữ lại, bạn có thể kích hoạt lại bất cứ lúc nào."
+            : "They'll be signed out and blocked from signing in. Their projects and history are kept — you can reactivate them anytime."
+        }
+        confirmLabel={locale === "vi" ? "Vô hiệu hóa" : "Deactivate"}
+        cancelLabel={locale === "vi" ? "Giữ hoạt động" : "Keep active"}
         variant="danger"
         isPending={Boolean(pendingId)}
         onCancel={() => setDeactivating(null)}
@@ -322,14 +378,22 @@ export function UsersManager({
 
       <ConfirmDialog
         open={Boolean(deleting)}
-        title={`Delete ${deleting?.name ?? "user"}?`}
+        title={
+          locale === "vi"
+            ? `Xóa ${deleting?.name ?? "người dùng"}?`
+            : `Delete ${deleting?.name ?? "user"}?`
+        }
         description={
           deleting && deleting.projectsOwned > 0
-            ? `This permanently deletes the account and all ${deleting.projectsOwned} project${deleting.projectsOwned === 1 ? "" : "s"} they own — every task, comment, and bit of history in them. This can't be undone.`
-            : "This permanently deletes the account and everything tied to it. This can't be undone."
+            ? locale === "vi"
+              ? `Thao tác này xóa vĩnh viễn tài khoản và ${deleting.projectsOwned} dự án họ sở hữu, gồm mọi công việc, bình luận và lịch sử. Không thể hoàn tác.`
+              : `This permanently deletes the account and all ${deleting.projectsOwned} project${deleting.projectsOwned === 1 ? "" : "s"} they own — every task, comment, and bit of history in them. This can't be undone.`
+            : locale === "vi"
+              ? "Thao tác này xóa vĩnh viễn tài khoản và mọi dữ liệu liên quan. Không thể hoàn tác."
+              : "This permanently deletes the account and everything tied to it. This can't be undone."
         }
-        confirmLabel="Delete permanently"
-        cancelLabel="Keep user"
+        confirmLabel={locale === "vi" ? "Xóa vĩnh viễn" : "Delete permanently"}
+        cancelLabel={locale === "vi" ? "Giữ người dùng" : "Keep user"}
         variant="danger"
         isPending={Boolean(pendingId)}
         onCancel={() => setDeleting(null)}
@@ -350,6 +414,7 @@ function UserFormModal({
   onClose: () => void;
   onSaved: () => void;
 }) {
+  const locale = useLocale();
   const isEdit = Boolean(user);
   const [name, setName] = useState(user?.name ?? "");
   const [email, setEmail] = useState(user?.email ?? "");
@@ -372,7 +437,12 @@ function UserFormModal({
       const url = await uploadImage(file);
       setImage(url);
     } catch (error) {
-      toast(error instanceof Error ? error.message : "Upload failed", "danger");
+      toast(
+        error instanceof Error
+          ? error.message
+          : locale === "vi" ? "Tải lên thất bại" : "Upload failed",
+        "danger",
+      );
     } finally {
       setUploading(false);
       if (fileRef.current) fileRef.current.value = "";
@@ -395,11 +465,21 @@ function UserFormModal({
         body: JSON.stringify(body),
       });
       const data = (await response.json().catch(() => ({}))) as { error?: string };
-      if (!response.ok) throw new Error(data.error || "Save failed");
-      toast(isEdit ? "User updated" : "User created", "success");
+      if (!response.ok) throw new Error(data.error || (locale === "vi" ? "Lưu thất bại" : "Save failed"));
+      toast(
+        isEdit
+          ? locale === "vi" ? "Đã cập nhật người dùng" : "User updated"
+          : locale === "vi" ? "Đã tạo người dùng" : "User created",
+        "success",
+      );
       onSaved();
     } catch (error) {
-      toast(error instanceof Error ? error.message : "Save failed", "danger");
+      toast(
+        error instanceof Error
+          ? error.message
+          : locale === "vi" ? "Lưu thất bại" : "Save failed",
+        "danger",
+      );
     } finally {
       setSaving(false);
     }
@@ -411,7 +491,7 @@ function UserFormModal({
     <div className="fixed inset-0 z-[55] p-4 sm:p-6">
       <button
         type="button"
-        aria-label="Close"
+        aria-label={locale === "vi" ? "Đóng" : "Close"}
         onClick={onClose}
         className="ui-modal-backdrop absolute inset-0 bg-[rgba(10,10,10,0.44)] backdrop-blur-xs"
       />
@@ -420,10 +500,12 @@ function UserFormModal({
           <div className="mb-5 flex items-start justify-between gap-4">
             <div>
               <p className="font-mono text-[11px] font-medium uppercase tracking-[0.04em] text-muted">
-                Admin · Members
+                {locale === "vi" ? "Quản trị · Thành viên" : "Admin · Members"}
               </p>
               <h3 className="mt-2 text-[1.2rem] font-medium tracking-[-0.022em] text-foreground">
-                {isEdit ? "Edit user" : "New user"}
+                {isEdit
+                  ? locale === "vi" ? "Sửa người dùng" : "Edit user"
+                  : locale === "vi" ? "Người dùng mới" : "New user"}
               </h3>
             </div>
             <button
@@ -432,7 +514,7 @@ function UserFormModal({
               className="inline-flex size-9 items-center justify-center rounded-md border border-border bg-surface text-muted transition hover:border-border-strong hover:bg-surface-strong hover:text-foreground"
             >
               <X className="size-4" />
-              <span className="sr-only">Close</span>
+              <span className="sr-only">{locale === "vi" ? "Đóng" : "Close"}</span>
             </button>
           </div>
 
@@ -462,7 +544,9 @@ function UserFormModal({
                   ) : (
                     <UploadSimple className="size-4" />
                   )}
-                  {uploading ? "Uploading…" : "Upload photo"}
+                  {uploading
+                    ? locale === "vi" ? "Đang tải lên..." : "Uploading…"
+                    : locale === "vi" ? "Tải ảnh lên" : "Upload photo"}
                 </button>
                 {image ? (
                   <button
@@ -470,14 +554,16 @@ function UserFormModal({
                     onClick={() => setImage(null)}
                     className="ui-button-ghost px-2 text-[12px]"
                   >
-                    Remove
+                    {locale === "vi" ? "Gỡ" : "Remove"}
                   </button>
                 ) : null}
               </div>
             </div>
 
             <label className="grid gap-2">
-              <span className="text-sm font-medium text-foreground">Name</span>
+              <span className="text-sm font-medium text-foreground">
+                {locale === "vi" ? "Tên" : "Name"}
+              </span>
               <input
                 value={name}
                 onChange={(e) => setName(e.target.value)}
@@ -502,7 +588,9 @@ function UserFormModal({
             </label>
 
             <label className="grid gap-2">
-              <span className="text-sm font-medium text-foreground">Role</span>
+              <span className="text-sm font-medium text-foreground">
+                {locale === "vi" ? "Vai trò" : "Role"}
+              </span>
               <select
                 value={role}
                 onChange={(e) => setRole(e.target.value as UserRole)}
@@ -511,20 +599,24 @@ function UserFormModal({
               >
                 {(roleLocked ? [role] : roleOptions).map((r) => (
                   <option key={r} value={r}>
-                    {r.charAt(0).toUpperCase() + r.slice(1)}
+                    {roleLabel(r, locale)}
                   </option>
                 ))}
               </select>
               {roleLocked ? (
                 <span className="text-[12px] text-muted">
-                  Only an owner can change admin or owner roles.
+                  {locale === "vi"
+                    ? "Chỉ chủ sở hữu mới có thể đổi vai trò quản trị hoặc chủ sở hữu."
+                    : "Only an owner can change admin or owner roles."}
                 </span>
               ) : null}
             </label>
 
             <label className="grid gap-2">
               <span className="text-sm font-medium text-foreground">
-                {isEdit ? "Reset password" : "Initial password"}
+                {isEdit
+                  ? locale === "vi" ? "Đặt lại mật khẩu" : "Reset password"
+                  : locale === "vi" ? "Mật khẩu ban đầu" : "Initial password"}
               </span>
               <input
                 type="password"
@@ -533,7 +625,11 @@ function UserFormModal({
                 required={!isEdit}
                 minLength={8}
                 className="ui-input"
-                placeholder={isEdit ? "Leave blank to keep current" : "At least 8 characters"}
+                placeholder={
+                  isEdit
+                    ? locale === "vi" ? "Để trống để giữ nguyên" : "Leave blank to keep current"
+                    : locale === "vi" ? "Ít nhất 8 ký tự" : "At least 8 characters"
+                }
                 autoComplete="new-password"
               />
             </label>
@@ -544,7 +640,11 @@ function UserFormModal({
               className="ui-button-primary mt-2 w-full px-4 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {saving ? <CircleNotch className="size-4 animate-spin" /> : null}
-              {saving ? "Saving…" : isEdit ? "Save changes" : "Create user"}
+              {saving
+                ? locale === "vi" ? "Đang lưu..." : "Saving…"
+                : isEdit
+                  ? locale === "vi" ? "Lưu thay đổi" : "Save changes"
+                  : locale === "vi" ? "Tạo người dùng" : "Create user"}
             </button>
           </form>
         </div>

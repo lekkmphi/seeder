@@ -43,6 +43,7 @@ import {
   parseDateKey,
 } from "@/lib/daily";
 import { toast } from "@/lib/toast";
+import { useLocale } from "@/lib/use-locale";
 import { cn, withSearchParams } from "@/lib/utils";
 
 type DailyPlannerProps = {
@@ -86,11 +87,13 @@ function CardSurface({
   dragHandle,
   onEdit,
   isDragging = false,
+  locale,
 }: {
   item: PlannerItem;
   dragHandle?: React.ReactNode;
   onEdit?: () => void;
   isDragging?: boolean;
+  locale: "vi" | "en";
 }) {
   // Cards sit on surface-strong so they lift off the recessed day column
   // (bg-surface/60) instead of melting into the background.
@@ -117,7 +120,7 @@ function CardSurface({
               {item.projectName}
             </span>
           ) : (
-            <span className="ui-badge">Adhoc</span>
+            <span className="ui-badge">{locale === "vi" ? "Việc lẻ" : "Adhoc"}</span>
           )}
           <span
             className={cn(
@@ -125,7 +128,9 @@ function CardSurface({
               priorityTone[item.priority],
             )}
           >
-            {item.priority}
+            {locale === "vi"
+              ? item.priority === "low" ? "thấp" : item.priority === "medium" ? "vừa" : "cao"
+              : item.priority}
           </span>
         </div>
         {dragHandle ? <div className="shrink-0">{dragHandle}</div> : null}
@@ -142,7 +147,9 @@ function CardSurface({
             statusTone[item.status],
           )}
         >
-          {item.status}
+          {locale === "vi"
+            ? item.status === "todo" ? "cần làm" : item.status === "doing" ? "đang làm" : "xong"
+            : item.status}
         </span>
         {item.linkedTaskId ? (
           <a
@@ -150,10 +157,10 @@ function CardSurface({
             onClick={(event) => event.stopPropagation()}
             onPointerDown={(event) => event.stopPropagation()}
             className="inline-flex items-center gap-1 rounded-sm border border-border bg-surface px-1.5 py-0.5 text-muted transition hover:border-border-strong hover:text-foreground"
-            title="Linked to Execution Board"
+            title={locale === "vi" ? "Liên kết với bảng thực thi" : "Linked to Execution Board"}
           >
             <Kanban className="size-3.5" />
-            board:{" "}
+            {locale === "vi" ? "bảng:" : "board:"}{" "}
             {item.linkedStatus ? (
               <span className="inline-flex items-center gap-1">
                 <span
@@ -176,9 +183,11 @@ function CardSurface({
 function SortableCard({
   item,
   onEdit,
+  locale,
 }: {
   item: PlannerItem;
   onEdit: () => void;
+  locale: "vi" | "en";
 }) {
   const {
     attributes,
@@ -208,12 +217,13 @@ function SortableCard({
             {...attributes}
             {...listeners}
             onClick={(event) => event.stopPropagation()}
-            aria-label={`Drag ${item.title}`}
+            aria-label={locale === "vi" ? `Kéo ${item.title}` : `Drag ${item.title}`}
             className="touch-none rounded-md border border-border bg-background p-1.5 text-muted transition hover:border-border-strong hover:bg-surface-strong hover:text-foreground focus-visible:outline-none"
           >
             <DotsSixVertical className="size-4" />
           </button>
         }
+        locale={locale}
       />
     </div>
   );
@@ -225,12 +235,14 @@ function DayColumn({
   items,
   onAdd,
   onEdit,
+  locale,
 }: {
   dateKey: string;
   day: Date;
   items: PlannerItem[];
   onAdd: () => void;
   onEdit: (item: PlannerItem) => void;
+  locale: "vi" | "en";
 }) {
   const { isOver, setNodeRef } = useDroppable({ id: dateKey });
   const today = isToday(day);
@@ -238,7 +250,7 @@ function DayColumn({
   return (
     <section
       ref={setNodeRef}
-      aria-label={`${formatWeekdayShort(day)} ${day.getDate()}, ${items.length} items`}
+      aria-label={`${formatWeekdayShort(day)} ${day.getDate()}, ${items.length} ${locale === "vi" ? "việc" : "items"}`}
       className={cn(
         "flex max-h-[calc(100dvh-15rem)] w-[85vw] max-w-[300px] shrink-0 flex-col rounded-md border border-border bg-surface/60 px-3 py-3 transition sm:w-[280px] sm:max-w-none",
         isOver && "border-border-strong bg-surface-strong",
@@ -267,11 +279,11 @@ function DayColumn({
         <div className="-mr-1 min-h-[80px] flex-1 space-y-2 overflow-y-auto pr-1">
           {items.length ? (
             items.map((item) => (
-              <SortableCard key={item.id} item={item} onEdit={() => onEdit(item)} />
+              <SortableCard key={item.id} item={item} onEdit={() => onEdit(item)} locale={locale} />
             ))
           ) : (
             <div className="rounded-md border border-dashed border-border px-3 py-6 text-center text-[12px] leading-5 text-muted">
-              Drop or add an item
+              {locale === "vi" ? "Thả hoặc thêm việc" : "Drop or add an item"}
             </div>
           )}
         </div>
@@ -283,7 +295,7 @@ function DayColumn({
         className="ui-button-ghost mt-2 w-full shrink-0 justify-center text-[12px]"
       >
         <Plus className="size-3.5" />
-        Add
+        {locale === "vi" ? "Thêm" : "Add"}
       </button>
     </section>
   );
@@ -295,6 +307,7 @@ export function DailyPlanner({
   items,
   projects,
 }: DailyPlannerProps) {
+  const locale = useLocale();
   const router = useRouter();
   const searchParams = useSearchParams();
   const anchor = useMemo(() => parseDateKey(anchorKey), [anchorKey]);
@@ -326,9 +339,9 @@ export function DailyPlanner({
     const flash = searchParams.get("flash");
     if (!flash) return;
     const copy: Record<string, string> = {
-      created: "Item added",
-      updated: "Item updated",
-      removed: "Item removed",
+      created: locale === "vi" ? "Đã thêm việc" : "Item added",
+      updated: locale === "vi" ? "Đã cập nhật việc" : "Item updated",
+      removed: locale === "vi" ? "Đã xóa việc" : "Item removed",
     };
     if (copy[flash]) toast(copy[flash], "success");
     router.replace(
@@ -361,7 +374,7 @@ export function DailyPlanner({
       });
       if (!response.ok) throw new Error("reorder failed");
     } catch {
-      toast("Could not move item", "danger");
+      toast(locale === "vi" ? "Không thể di chuyển việc" : "Could not move item", "danger");
       setColumns(bucketByDate(items, dayKeys));
     }
   };
@@ -424,14 +437,15 @@ export function DailyPlanner({
         <div className="flex flex-wrap items-start justify-between gap-6">
           <div className="max-w-3xl space-y-3">
             <p className="font-mono text-[11px] uppercase tracking-[0.04em] text-muted">
-              Daily ops
+              {locale === "vi" ? "Vận hành ngày" : "Daily ops"}
             </p>
             <h1 className="text-3xl font-medium tracking-tighter text-foreground sm:text-[40px]">
-              Plan your days
+              {locale === "vi" ? "Lên kế hoạch ngày" : "Plan your days"}
             </h1>
             <p className="max-w-2xl text-[13px] leading-6 text-muted sm:text-[15px]">
-              Drag items between days to plan ahead. Bind a task to a project
-              board, or pull one in to show what you&apos;re working on today.
+              {locale === "vi"
+                ? "Kéo việc giữa các ngày để lên kế hoạch trước. Gắn việc vào bảng dự án hoặc kéo vào để thể hiện hôm nay bạn đang làm gì."
+                : "Drag items between days to plan ahead. Bind a task to a project board, or pull one in to show what you're working on today."}
             </p>
           </div>
 
@@ -441,7 +455,7 @@ export function DailyPlanner({
                 href={withSearchParams("/daily", { date: prevKey })}
                 scroll={false}
                 className="inline-flex size-9 items-center justify-center rounded-md border border-border bg-surface text-muted transition hover:border-border-strong hover:bg-surface-strong hover:text-foreground"
-                aria-label="Previous week"
+                aria-label={locale === "vi" ? "Tuần trước" : "Previous week"}
               >
                 <CaretLeft className="size-4" />
               </Link>
@@ -450,19 +464,19 @@ export function DailyPlanner({
                 scroll={false}
                 className="inline-flex min-h-9 items-center rounded-md border border-border bg-surface px-3 text-[13px] font-medium text-foreground transition hover:border-border-strong hover:bg-surface-strong"
               >
-                Today
+                {locale === "vi" ? "Hôm nay" : "Today"}
               </Link>
               <Link
                 href={withSearchParams("/daily", { date: nextKey })}
                 scroll={false}
                 className="inline-flex size-9 items-center justify-center rounded-md border border-border bg-surface text-muted transition hover:border-border-strong hover:bg-surface-strong hover:text-foreground"
-                aria-label="Next week"
+                aria-label={locale === "vi" ? "Tuần sau" : "Next week"}
               >
                 <CaretRight className="size-4" />
               </Link>
               <input
                 type="date"
-                aria-label="Jump to date"
+                aria-label={locale === "vi" ? "Chọn ngày" : "Jump to date"}
                 value={anchorKey}
                 onChange={(event) => {
                   const value = event.target.value;
@@ -485,7 +499,7 @@ export function DailyPlanner({
               className="ui-button-primary"
             >
               <Plus className="size-4" />
-              Add item
+              {locale === "vi" ? "Thêm việc" : "Add item"}
             </button>
           </div>
         </div>
@@ -510,6 +524,7 @@ export function DailyPlanner({
                 items={columns[key] ?? []}
                 onAdd={() => setModal({ mode: "create", dateKey: key })}
                 onEdit={(item) => setModal({ mode: "edit", dateKey: key, item })}
+                locale={locale}
               />
             );
           })}
@@ -521,7 +536,7 @@ export function DailyPlanner({
             easing: "cubic-bezier(0.22, 1, 0.36, 1)",
           }}
         >
-          {activeItem ? <CardSurface item={activeItem} isDragging /> : null}
+          {activeItem ? <CardSurface item={activeItem} isDragging locale={locale} /> : null}
         </DragOverlay>
       </DndContext>
 

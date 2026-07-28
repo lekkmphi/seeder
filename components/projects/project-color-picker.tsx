@@ -5,6 +5,7 @@ import { Check, CircleNotch } from "@phosphor-icons/react";
 
 import { setProjectColorAction } from "@/lib/actions";
 import { PROJECT_SWATCHES } from "@/lib/swatches";
+import { useLocale } from "@/lib/use-locale";
 import { cn } from "@/lib/utils";
 
 export function ProjectColorPicker({
@@ -16,6 +17,8 @@ export function ProjectColorPicker({
   currentColor: string | null;
   returnTo: string;
 }) {
+  const locale = useLocale();
+  const vi = locale === "vi";
   const [selected, setSelected] = useState<string | null>(currentColor);
   const [isPending, startTransition] = useTransition();
 
@@ -36,7 +39,7 @@ export function ProjectColorPicker({
         <button
           type="button"
           onClick={() => commit(null)}
-          aria-label="No color"
+          aria-label={vi ? "Không màu" : "No color"}
           aria-pressed={selected === null}
           disabled={isPending}
           className={cn(
@@ -80,7 +83,8 @@ export function ProjectColorPicker({
       <p className="flex items-center gap-1.5 font-mono text-[11px] uppercase tracking-[0.04em] text-muted">
         {isPending ? (
           <>
-            <CircleNotch className="size-3 animate-spin" /> Saving…
+            <CircleNotch className="size-3 animate-spin" />{" "}
+            {vi ? "Đang lưu…" : "Saving…"}
           </>
         ) : selected ? (
           <>
@@ -90,6 +94,8 @@ export function ProjectColorPicker({
             />
             {selected.toUpperCase()}
           </>
+        ) : vi ? (
+          "Chưa đặt màu"
         ) : (
           "No color set"
         )}

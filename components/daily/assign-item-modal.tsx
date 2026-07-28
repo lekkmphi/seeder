@@ -11,6 +11,7 @@ import { SearchSelect } from "@/components/ui/search-select";
 import type { SearchSelectOption } from "@/components/ui/search-select";
 import type { PlannerProject } from "@/components/daily/daily-item-modal";
 import { formatFriendlyDate, parseDateKey } from "@/lib/daily";
+import { useLocale } from "@/lib/use-locale";
 import { cn } from "@/lib/utils";
 
 export type AssignUser = {
@@ -28,16 +29,16 @@ type AssignModalProps = {
   onClose: () => void;
 };
 
-const STATUS_OPTIONS = [
-  { value: "todo", label: "Todo" },
-  { value: "doing", label: "Doing" },
-  { value: "done", label: "Done" },
+const statusOptions = (vi: boolean) => [
+  { value: "todo", label: vi ? "Cần làm" : "Todo" },
+  { value: "doing", label: vi ? "Đang làm" : "Doing" },
+  { value: "done", label: vi ? "Hoàn tất" : "Done" },
 ];
 
-const PRIORITY_OPTIONS = [
-  { value: "low", label: "Low" },
-  { value: "medium", label: "Medium" },
-  { value: "high", label: "High" },
+const priorityOptions = (vi: boolean) => [
+  { value: "low", label: vi ? "Thấp" : "Low" },
+  { value: "medium", label: vi ? "Trung bình" : "Medium" },
+  { value: "high", label: vi ? "Cao" : "High" },
 ];
 
 function Segmented({
@@ -70,12 +71,24 @@ function Segmented({
   );
 }
 
-function SubmitButton({ count, total }: { count: number; total: number }) {
+function SubmitButton({
+  count,
+  total,
+  vi,
+}: {
+  count: number;
+  total: number;
+  vi: boolean;
+}) {
   const { pending } = useFormStatus();
   const label =
     count === total && total > 0
-      ? `Assign to everyone (${total})`
-      : `Assign to ${count} ${count === 1 ? "person" : "people"}`;
+      ? vi
+        ? `Giao cho tất cả (${total})`
+        : `Assign to everyone (${total})`
+      : vi
+        ? `Giao cho ${count} người`
+        : `Assign to ${count} ${count === 1 ? "person" : "people"}`;
   return (
     <button
       type="submit"
@@ -83,7 +96,7 @@ function SubmitButton({ count, total }: { count: number; total: number }) {
       className="ui-button-primary mt-2 w-full px-4 disabled:cursor-not-allowed disabled:opacity-60"
     >
       {pending ? <CircleNotch className="size-4 animate-spin" /> : null}
-      {pending ? "Assigning…" : label}
+      {pending ? (vi ? "Đang giao…" : "Assigning…") : label}
     </button>
   );
 }
@@ -95,6 +108,8 @@ export function AssignItemModal({
   preselectUserId,
   onClose,
 }: AssignModalProps) {
+  const locale = useLocale();
+  const vi = locale === "vi";
   const [selected, setSelected] = useState<Set<string>>(
     () => new Set(preselectUserId ? [preselectUserId] : []),
   );
@@ -191,7 +206,7 @@ export function AssignItemModal({
     <div className="fixed inset-0 z-50 p-4 sm:p-6">
       <button
         type="button"
-        aria-label="Close modal"
+        aria-label={vi ? "Đóng cửa sổ" : "Close modal"}
         onClick={onClose}
         className="ui-modal-backdrop absolute inset-0 bg-[rgba(10,10,10,0.44)] backdrop-blur-xs"
       />
@@ -200,14 +215,16 @@ export function AssignItemModal({
           <div className="mb-5 flex items-start justify-between gap-4">
             <div className="space-y-2">
               <p className="font-mono text-[11px] font-medium uppercase tracking-[0.04em] text-muted">
-                Admin · daily ops
+                {vi ? "Quản trị · vận hành ngày" : "Admin · daily ops"}
               </p>
               <div>
                 <h3 className="text-[1.2rem] font-medium tracking-[-0.022em] text-foreground">
-                  Assign item
+                  {vi ? "Giao việc" : "Assign item"}
                 </h3>
                 <p className="mt-2 text-[13px] leading-6 text-muted">
-                  Plan work for one or many people on {friendlyDate}.
+                  {vi
+                    ? `Lên kế hoạch việc cho một hoặc nhiều người vào ${friendlyDate}.`
+                    : `Plan work for one or many people on ${friendlyDate}.`}
                 </p>
               </div>
             </div>
@@ -217,7 +234,7 @@ export function AssignItemModal({
               className="inline-flex size-9 items-center justify-center rounded-md border border-border bg-surface text-muted transition hover:border-border-strong hover:bg-surface-strong hover:text-foreground"
             >
               <X className="size-4" />
-              <span className="sr-only">Close modal</span>
+              <span className="sr-only">{vi ? "Đóng cửa sổ" : "Close modal"}</span>
             </button>
           </div>
 
@@ -231,7 +248,9 @@ export function AssignItemModal({
 
             <div className="grid gap-2">
               <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-foreground">Assign to</span>
+                <span className="text-sm font-medium text-foreground">
+                  {vi ? "Giao cho" : "Assign to"}
+                </span>
                 <label className="inline-flex cursor-pointer items-center gap-2 text-[12px] text-muted">
                   <input
                     type="checkbox"
@@ -239,7 +258,7 @@ export function AssignItemModal({
                     onChange={toggleEveryone}
                     className="size-4 accent-[var(--accent)]"
                   />
-                  Everyone ({users.length})
+                  {vi ? "Tất cả" : "Everyone"} ({users.length})
                 </label>
               </div>
 
@@ -247,7 +266,9 @@ export function AssignItemModal({
               <div className="flex min-h-[42px] flex-wrap items-center gap-1.5 rounded-md border border-border bg-background p-2">
                 {selectedUsers.length === 0 ? (
                   <span className="px-1 text-[12px] text-muted">
-                    No one selected yet — search to add people.
+                    {vi
+                      ? "Chưa chọn ai — tìm kiếm để thêm người."
+                      : "No one selected yet — search to add people."}
                   </span>
                 ) : (
                   selectedUsers.map((u) => (
@@ -259,7 +280,7 @@ export function AssignItemModal({
                       <button
                         type="button"
                         onClick={() => toggleUser(u.id)}
-                        aria-label={`Remove ${u.name}`}
+                        aria-label={vi ? `Bỏ ${u.name}` : `Remove ${u.name}`}
                         className="inline-flex size-4 items-center justify-center rounded-sm transition hover:bg-accent/20"
                       >
                         <X className="size-3" />
@@ -271,7 +292,7 @@ export function AssignItemModal({
 
               {/* Type to search; results appear as a dropdown, pick one to add
                   it as a chip. No standing list of users is shown. */}
-              <div className="relative" ref={pickerRef}>
+              <div className={cn("relative", pickerOpen && "z-[90]")} ref={pickerRef}>
                 <MagnifyingGlass className="pointer-events-none absolute left-2.5 top-1/2 z-10 size-4 -translate-y-1/2 text-muted" />
                 <input
                   type="search"
@@ -297,21 +318,23 @@ export function AssignItemModal({
                       setQuery("");
                     }
                   }}
-                  placeholder="Search people to add…"
-                  aria-label="Search people to assign"
+                  placeholder={vi ? "Tìm người để thêm…" : "Search people to add…"}
+                  aria-label={vi ? "Tìm người để giao việc" : "Search people to assign"}
                   autoComplete="off"
                   className="ui-input"
                   style={{ paddingLeft: 32 }}
                 />
                 {pickerOpen ? (
-                  <div className="absolute left-0 right-0 top-full z-20 mt-1 max-h-56 overflow-y-auto rounded-md border border-border bg-surface-strong shadow-xl">
+                  <div className="ui-menu-surface absolute left-0 right-0 top-full z-[100] mt-1 max-h-56 overflow-y-auto rounded-md">
                     {!normalizedQuery ? (
                       <p className="px-3 py-3 text-center text-[12px] text-muted">
-                        Type a name or email to find people.
+                        {vi
+                          ? "Nhập tên hoặc email để tìm người."
+                          : "Type a name or email to find people."}
                       </p>
                     ) : visibleMatches.length === 0 ? (
                       <p className="px-3 py-3 text-center text-[12px] text-muted">
-                        No more people match.
+                        {vi ? "Không còn ai khớp." : "No more people match."}
                       </p>
                     ) : (
                       <>
@@ -321,7 +344,7 @@ export function AssignItemModal({
                             type="button"
                             onMouseDown={(event) => event.preventDefault()}
                             onClick={() => pickUser(u.id)}
-                            className="flex w-full items-center gap-2.5 border-b border-border px-3 py-2 text-left transition last:border-b-0 hover:bg-surface"
+                            className="flex w-full items-center gap-2.5 border-b border-border px-3 py-2 text-left transition last:border-b-0 hover:bg-menu-hover"
                           >
                             <Avatar
                               name={u.name}
@@ -342,7 +365,9 @@ export function AssignItemModal({
                         ))}
                         {hiddenCount > 0 ? (
                           <p className="px-3 py-2 text-center font-mono text-[11px] text-muted">
-                            +{hiddenCount} more — keep typing to narrow.
+                            {vi
+                              ? `+${hiddenCount} nữa — gõ tiếp để thu hẹp.`
+                              : `+${hiddenCount} more — keep typing to narrow.`}
                           </p>
                         ) : null}
                       </>
@@ -351,32 +376,40 @@ export function AssignItemModal({
                 ) : null}
               </div>
               <p className="font-mono text-[11px] text-muted">
-                Selected: {selected.size} of {users.length}
+                {vi
+                  ? `Đã chọn: ${selected.size} trên ${users.length}`
+                  : `Selected: ${selected.size} of ${users.length}`}
               </p>
             </div>
 
             <label className="grid gap-2">
-              <span className="text-sm font-medium text-foreground">Title</span>
+              <span className="text-sm font-medium text-foreground">
+                {vi ? "Tiêu đề" : "Title"}
+              </span>
               <input
                 name="title"
                 required
                 className="ui-input"
-                placeholder="Company town hall at 3pm"
+                placeholder={vi ? "Họp toàn công ty lúc 15h" : "Company town hall at 3pm"}
                 autoFocus
               />
             </label>
 
             <div className="grid gap-2">
-              <span className="text-sm font-medium text-foreground">Description</span>
+              <span className="text-sm font-medium text-foreground">
+                {vi ? "Mô tả" : "Description"}
+              </span>
               <RichTextField
                 name="description"
-                placeholder="Optional notes or context."
-                ariaLabel="Assigned item description"
+                placeholder={vi ? "Ghi chú hoặc bối cảnh (không bắt buộc)." : "Optional notes or context."}
+                ariaLabel={vi ? "Mô tả việc được giao" : "Assigned item description"}
               />
             </div>
 
             <label className="grid gap-2">
-              <span className="text-sm font-medium text-foreground">Date</span>
+              <span className="text-sm font-medium text-foreground">
+                {vi ? "Ngày" : "Date"}
+              </span>
               <input
                 type="date"
                 name="plannedDate"
@@ -387,11 +420,13 @@ export function AssignItemModal({
 
             <div className="grid gap-3 rounded-md border border-border bg-surface/60 p-3">
               <div className="flex items-center justify-between gap-3">
-                <span className="text-sm font-medium text-foreground">Type</span>
+                <span className="text-sm font-medium text-foreground">
+                  {vi ? "Loại" : "Type"}
+                </span>
                 <Segmented
                   options={[
-                    { value: "adhoc", label: "Adhoc" },
-                    { value: "project", label: "Project" },
+                    { value: "adhoc", label: vi ? "Việc lẻ" : "Adhoc" },
+                    { value: "project", label: vi ? "Dự án" : "Project" },
                   ]}
                   value={kind}
                   onChange={(value) => setKind(value as "adhoc" | "project")}
@@ -402,7 +437,9 @@ export function AssignItemModal({
               {kind === "project" ? (
                 <div className="grid gap-3">
                   <div className="grid gap-2">
-                    <span className="text-[12px] font-medium text-muted">Project</span>
+                    <span className="text-[12px] font-medium text-muted">
+                      {vi ? "Dự án" : "Project"}
+                    </span>
                     <input type="hidden" name="projectId" value={projectId ?? ""} />
                     <SearchSelect
                       options={projectOptions}
@@ -411,8 +448,8 @@ export function AssignItemModal({
                         setProjectId(value);
                         setLinkedTaskId(undefined);
                       }}
-                      placeholder="Select a project"
-                      searchPlaceholder="Search by project name…"
+                      placeholder={vi ? "Chọn một dự án" : "Select a project"}
+                      searchPlaceholder={vi ? "Tìm theo tên dự án…" : "Search by project name…"}
                     />
                   </div>
 
@@ -420,8 +457,8 @@ export function AssignItemModal({
                     <>
                       <Segmented
                         options={[
-                          { value: "new", label: "Create new" },
-                          { value: "existing", label: "Link existing" },
+                          { value: "new", label: vi ? "Tạo mới" : "Create new" },
+                          { value: "existing", label: vi ? "Liên kết có sẵn" : "Link existing" },
                         ]}
                         value={projectMode}
                         onChange={(value) =>
@@ -441,17 +478,19 @@ export function AssignItemModal({
                           <span className="grid gap-1">
                             <span className="inline-flex items-center gap-1.5 text-[13px] font-medium text-foreground">
                               <Kanban className="size-4 text-accent" />
-                              Add to Execution Board
+                              {vi ? "Thêm vào Bảng thực thi" : "Add to Execution Board"}
                             </span>
                             <span className="text-[12px] leading-5 text-muted">
-                              Creates a board card for each person, assigned to them.
+                              {vi
+                                ? "Tạo một thẻ trên bảng cho mỗi người, được giao cho họ."
+                                : "Creates a board card for each person, assigned to them."}
                             </span>
                           </span>
                         </label>
                       ) : (
                         <div className="grid gap-2">
                           <span className="text-[12px] font-medium text-muted">
-                            Board task to reference
+                            {vi ? "Task trên bảng để tham chiếu" : "Board task to reference"}
                           </span>
                           <input
                             type="hidden"
@@ -464,10 +503,14 @@ export function AssignItemModal({
                             onChange={setLinkedTaskId}
                             placeholder={
                               taskOptions.length
-                                ? "Pick an open board task"
-                                : "No open tasks in this project"
+                                ? vi
+                                  ? "Chọn một task đang mở"
+                                  : "Pick an open board task"
+                                : vi
+                                  ? "Dự án này không có task đang mở"
+                                  : "No open tasks in this project"
                             }
-                            searchPlaceholder="Search tasks…"
+                            searchPlaceholder={vi ? "Tìm task…" : "Search tasks…"}
                           />
                         </div>
                       )}
@@ -479,9 +522,11 @@ export function AssignItemModal({
 
             <div className="grid gap-4 sm:grid-cols-2">
               <label className="grid gap-2">
-                <span className="text-sm font-medium text-foreground">Status</span>
+                <span className="text-sm font-medium text-foreground">
+                  {vi ? "Trạng thái" : "Status"}
+                </span>
                 <select name="status" defaultValue="todo" className="ui-select">
-                  {STATUS_OPTIONS.map((option) => (
+                  {statusOptions(vi).map((option) => (
                     <option key={option.value} value={option.value}>
                       {option.label}
                     </option>
@@ -489,9 +534,11 @@ export function AssignItemModal({
                 </select>
               </label>
               <label className="grid gap-2">
-                <span className="text-sm font-medium text-foreground">Priority</span>
+                <span className="text-sm font-medium text-foreground">
+                  {vi ? "Độ ưu tiên" : "Priority"}
+                </span>
                 <select name="priority" defaultValue="medium" className="ui-select">
-                  {PRIORITY_OPTIONS.map((option) => (
+                  {priorityOptions(vi).map((option) => (
                     <option key={option.value} value={option.value}>
                       {option.label}
                     </option>
@@ -500,7 +547,7 @@ export function AssignItemModal({
               </label>
             </div>
 
-            <SubmitButton count={selected.size} total={users.length} />
+            <SubmitButton count={selected.size} total={users.length} vi={vi} />
           </form>
         </div>
       </div>

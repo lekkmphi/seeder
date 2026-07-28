@@ -8,6 +8,7 @@ import { ProjectWorkspaceClientShell } from "@/components/projects/project-works
 import { requireViewer } from "@/lib/auth-server";
 import { getProjectWorkspace, getTaskBranchId } from "@/lib/data";
 import { branchPath } from "@/lib/branch-path";
+import { getRequestLocale } from "@/lib/i18n-server";
 import { withSearchParams } from "@/lib/utils";
 
 type ProjectBoardPageProps = {
@@ -22,6 +23,7 @@ export default async function ProjectBoardPage({
   searchParams,
 }: ProjectBoardPageProps) {
   const viewer = await requireViewer();
+  const locale = await getRequestLocale();
   const { projectId } = await params;
   const { branch, modal, task } = await searchParams;
   const workspace = await getProjectWorkspace(projectId, viewer, branch);
@@ -65,8 +67,12 @@ export default async function ProjectBoardPage({
       currentPath={currentPath}
       viewer={{ id: viewer.id, role: viewer.role }}
     >
-      <ProjectMetricsStrip workspace={workspace} />
-      <ProjectBoardSurface workspace={workspace} currentPath={currentPath} />
+      <ProjectMetricsStrip workspace={workspace} locale={locale} />
+      <ProjectBoardSurface
+        workspace={workspace}
+        currentPath={currentPath}
+        locale={locale}
+      />
     </ProjectWorkspaceClientShell>
   );
 }

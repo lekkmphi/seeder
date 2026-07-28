@@ -22,6 +22,7 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { adminDeleteDailyTaskAction } from "@/lib/actions";
 import { addDays, formatDateKey, formatFriendlyDate, parseDateKey } from "@/lib/daily";
 import { toast } from "@/lib/toast";
+import { useLocale } from "@/lib/use-locale";
 import { cn, withSearchParams } from "@/lib/utils";
 
 type DailyOpsItem = {
@@ -63,9 +64,11 @@ const statusTone: Record<DailyOpsItem["status"], string> = {
 function ItemCard({
   item,
   onDelete,
+  locale,
 }: {
   item: DailyOpsItem;
   onDelete: (item: DailyOpsItem) => void;
+  locale: "vi" | "en";
 }) {
   const assignedByAdmin = item.createdById && item.createdById !== item.ownerId;
   return (
@@ -86,7 +89,7 @@ function ItemCard({
               {item.projectName}
             </span>
           ) : (
-            <span className="ui-badge">Adhoc</span>
+            <span className="ui-badge">{locale === "vi" ? "Việc lẻ" : "Adhoc"}</span>
           )}
           <span
             className={cn(
@@ -94,14 +97,16 @@ function ItemCard({
               statusTone[item.status],
             )}
           >
-            {item.status}
+            {locale === "vi"
+              ? item.status === "todo" ? "cần làm" : item.status === "doing" ? "đang làm" : "xong"
+              : item.status}
           </span>
         </div>
         <button
           type="button"
           onClick={() => onDelete(item)}
           className="shrink-0 rounded-md border border-border bg-background p-1.5 text-muted transition hover:border-danger/40 hover:bg-danger/10 hover:text-danger"
-          aria-label={`Delete ${item.title}`}
+          aria-label={locale === "vi" ? `Xóa ${item.title}` : `Delete ${item.title}`}
         >
           <Trash className="size-3.5" />
         </button>
@@ -113,7 +118,7 @@ function ItemCard({
         {item.linkedTaskId ? (
           <span className="inline-flex items-center gap-1 rounded-sm border border-border bg-surface px-1.5 py-0.5">
             <Kanban className="size-3.5" />
-            board:{" "}
+            {locale === "vi" ? "bảng:" : "board:"}{" "}
             {item.linkedStatus ? (
               <span className="inline-flex items-center gap-1">
                 <span
@@ -129,7 +134,9 @@ function ItemCard({
           </span>
         ) : null}
         {assignedByAdmin && item.createdByName ? (
-          <span className="normal-case">by {item.createdByName}</span>
+          <span className="normal-case">
+            {locale === "vi" ? `bởi ${item.createdByName}` : `by ${item.createdByName}`}
+          </span>
         ) : null}
       </div>
     </article>
@@ -143,6 +150,7 @@ export function AdminDailyOps({
   items,
   projects,
 }: AdminDailyOpsProps) {
+  const locale = useLocale();
   const router = useRouter();
   const searchParams = useSearchParams();
   const anchor = parseDateKey(dateKey);
@@ -167,8 +175,8 @@ export function AdminDailyOps({
     const flash = searchParams.get("flash");
     if (!flash) return;
     const copy: Record<string, string> = {
-      assigned: "Item assigned",
-      removed: "Item removed",
+      assigned: locale === "vi" ? "Đã giao việc" : "Item assigned",
+      removed: locale === "vi" ? "Đã xóa việc" : "Item removed",
     };
     if (copy[flash]) toast(copy[flash], "success");
     router.replace(withSearchParams("/admin/daily", { date: dateKey, view, flash: null }), {
@@ -196,14 +204,15 @@ export function AdminDailyOps({
         <div className="flex flex-wrap items-start justify-between gap-6">
           <div className="max-w-3xl space-y-3">
             <p className="font-mono text-[11px] uppercase tracking-[0.04em] text-muted">
-              Admin · daily ops
+              {locale === "vi" ? "Quản trị · Vận hành ngày" : "Admin · daily ops"}
             </p>
             <h1 className="text-3xl font-medium tracking-tighter text-foreground sm:text-[40px]">
-              Team standup
+              {locale === "vi" ? "Điểm danh đội" : "Team standup"}
             </h1>
             <p className="max-w-2xl text-[13px] leading-6 text-muted sm:text-[15px]">
-              See everyone&apos;s plan for the day and assign work to one or many
-              people.
+              {locale === "vi"
+                ? "Xem kế hoạch trong ngày của mọi người và giao việc cho một hoặc nhiều người."
+                : "See everyone's plan for the day and assign work to one or many people."}
             </p>
           </div>
 
@@ -213,7 +222,7 @@ export function AdminDailyOps({
                 href={navHref(prevKey)}
                 scroll={false}
                 className="inline-flex size-9 items-center justify-center rounded-md border border-border bg-surface text-muted transition hover:border-border-strong hover:bg-surface-strong hover:text-foreground"
-                aria-label="Previous day"
+                aria-label={locale === "vi" ? "Ngày trước" : "Previous day"}
               >
                 <CaretLeft className="size-4" />
               </Link>
@@ -222,13 +231,13 @@ export function AdminDailyOps({
                 scroll={false}
                 className="inline-flex min-h-9 items-center rounded-md border border-border bg-surface px-3 text-[13px] font-medium text-foreground transition hover:border-border-strong hover:bg-surface-strong"
               >
-                Today
+                {locale === "vi" ? "Hôm nay" : "Today"}
               </Link>
               <Link
                 href={navHref(nextKey)}
                 scroll={false}
                 className="inline-flex size-9 items-center justify-center rounded-md border border-border bg-surface text-muted transition hover:border-border-strong hover:bg-surface-strong hover:text-foreground"
-                aria-label="Next day"
+                aria-label={locale === "vi" ? "Ngày sau" : "Next day"}
               >
                 <CaretRight className="size-4" />
               </Link>
@@ -248,7 +257,7 @@ export function AdminDailyOps({
                       : "text-muted hover:text-foreground",
                   )}
                 >
-                  Board
+                  {locale === "vi" ? "Bảng" : "Board"}
                 </Link>
                 <Link
                   href={navHref(dateKey, "table")}
@@ -260,7 +269,7 @@ export function AdminDailyOps({
                       : "text-muted hover:text-foreground",
                   )}
                 >
-                  Table
+                  {locale === "vi" ? "Bảng biểu" : "Table"}
                 </Link>
               </div>
               <button
@@ -269,7 +278,7 @@ export function AdminDailyOps({
                 className="ui-button-primary"
               >
                 <Plus className="size-4" />
-                Assign item
+                {locale === "vi" ? "Giao việc" : "Assign item"}
               </button>
             </div>
           </div>
@@ -283,15 +292,17 @@ export function AdminDailyOps({
           type="search"
           value={query}
           onChange={(event) => setQuery(event.target.value)}
-          placeholder="Search people…"
-          aria-label="Search people"
+          placeholder={locale === "vi" ? "Tìm người..." : "Search people…"}
+          aria-label={locale === "vi" ? "Tìm người" : "Search people"}
           className="h-12 w-full rounded-full border border-border bg-surface pl-11 pr-4 text-[14px] text-foreground shadow-sm outline-none transition placeholder:text-muted hover:border-border-strong focus:border-border-strong focus:shadow-md focus:ring-2 focus:ring-accent/30"
         />
       </div>
 
       {filteredUsers.length === 0 ? (
         <div className="rounded-md border border-dashed border-border bg-surface px-5 py-10 text-center text-[13px] text-muted">
-          No people match &ldquo;{query.trim()}&rdquo;.
+          {locale === "vi"
+            ? `Không có người nào khớp “${query.trim()}”.`
+            : `No people match “${query.trim()}”.`}
         </div>
       ) : view === "board" ? (
         <div className="flex gap-3 overflow-x-auto pb-2">
@@ -315,18 +326,18 @@ export function AdminDailyOps({
                       {u.name}
                     </p>
                     <p className="truncate font-mono text-[11px] text-muted">
-                      {userItems.length} item{userItems.length === 1 ? "" : "s"}
+                      {userItems.length} {locale === "vi" ? "việc" : `item${userItems.length === 1 ? "" : "s"}`}
                     </p>
                   </div>
                 </div>
                 <div className="flex-1 space-y-2">
                   {userItems.length ? (
                     userItems.map((item) => (
-                      <ItemCard key={item.id} item={item} onDelete={setDeleting} />
+                      <ItemCard key={item.id} item={item} onDelete={setDeleting} locale={locale} />
                     ))
                   ) : (
                     <div className="rounded-md border border-dashed border-border px-3 py-6 text-center text-[12px] leading-5 text-muted">
-                      Nothing planned
+                      {locale === "vi" ? "Chưa có kế hoạch" : "Nothing planned"}
                     </div>
                   )}
                 </div>
@@ -336,7 +347,7 @@ export function AdminDailyOps({
                   className="ui-button-ghost mt-2 w-full justify-center text-[12px]"
                 >
                   <Plus className="size-3.5" />
-                  Add for {u.name.split(" ")[0]}
+                  {locale === "vi" ? `Thêm cho ${u.name.split(" ")[0]}` : `Add for ${u.name.split(" ")[0]}`}
                 </button>
               </section>
             );
@@ -365,7 +376,7 @@ export function AdminDailyOps({
                         {u.name}
                       </p>
                       <p className="truncate font-mono text-[11px] text-muted">
-                        {userItems.length} item{userItems.length === 1 ? "" : "s"}
+                        {userItems.length} {locale === "vi" ? "việc" : `item${userItems.length === 1 ? "" : "s"}`}
                       </p>
                     </div>
                   </div>
@@ -373,12 +384,12 @@ export function AdminDailyOps({
                     {userItems.length ? (
                       userItems.map((item) => (
                         <div key={item.id} className="w-full sm:w-[260px]">
-                          <ItemCard item={item} onDelete={setDeleting} />
+                          <ItemCard item={item} onDelete={setDeleting} locale={locale} />
                         </div>
                       ))
                     ) : (
                       <span className="self-center text-[12px] text-muted">
-                        Nothing planned
+                        {locale === "vi" ? "Chưa có kế hoạch" : "Nothing planned"}
                       </span>
                     )}
                     <button
@@ -387,7 +398,7 @@ export function AdminDailyOps({
                       className="ui-button-ghost h-fit self-center text-[12px]"
                     >
                       <Plus className="size-3.5" />
-                      Add
+                      {locale === "vi" ? "Thêm" : "Add"}
                     </button>
                   </div>
                 </div>
@@ -409,14 +420,18 @@ export function AdminDailyOps({
 
       <ConfirmDialog
         open={Boolean(deleting)}
-        title="Delete this item?"
+        title={locale === "vi" ? "Xóa việc này?" : "Delete this item?"}
         description={
           deleting?.batchId
-            ? "This was assigned to several people. This removes only this person's copy."
-            : "This removes the item from this person's plan."
+            ? locale === "vi"
+              ? "Việc này đã được giao cho nhiều người. Thao tác này chỉ xóa bản của người này."
+              : "This was assigned to several people. This removes only this person's copy."
+            : locale === "vi"
+              ? "Thao tác này xóa việc khỏi kế hoạch của người này."
+              : "This removes the item from this person's plan."
         }
-        confirmLabel="Delete"
-        cancelLabel="Keep"
+        confirmLabel={locale === "vi" ? "Xóa" : "Delete"}
+        cancelLabel={locale === "vi" ? "Giữ lại" : "Keep"}
         variant="danger"
         onCancel={() => setDeleting(null)}
         onConfirm={() => {

@@ -12,7 +12,9 @@ import {
   normalizeSlugInput,
   SLUG_MAX_LENGTH,
 } from "@/lib/codes";
-import { PROJECT_STATUS_OPTIONS } from "@/lib/project-status";
+import { t, type Locale } from "@/lib/i18n";
+import { getProjectStatusOptions } from "@/lib/project-status";
+import { useLocale } from "@/lib/use-locale";
 
 const fieldClassName =
   "ui-input";
@@ -24,11 +26,13 @@ function ModalShell({
   description,
   children,
   onClose,
+  locale,
 }: {
   title: string;
   description: string;
   children: React.ReactNode;
   onClose: () => void;
+  locale: Locale;
 }) {
   // Portal to <body> so the overlay escapes any ancestor (e.g. the .ui-header
   // banner the trigger lives in) whose scoped CSS variables would otherwise
@@ -46,7 +50,7 @@ function ModalShell({
     <div className="fixed inset-0 z-50 p-4 sm:p-6">
       <button
         type="button"
-        aria-label="Close modal"
+        aria-label={locale === "vi" ? "Đóng modal" : "Close modal"}
         onClick={onClose}
         className="ui-modal-backdrop absolute inset-0 bg-[rgba(10,10,10,0.44)] backdrop-blur-xs"
       />
@@ -55,7 +59,7 @@ function ModalShell({
           <div className="mb-5 flex items-start justify-between gap-4">
             <div className="space-y-2">
               <p className="font-mono text-[11px] font-medium uppercase tracking-[0.04em] text-muted">
-                Projects modal
+                {locale === "vi" ? "Modal dự án" : "Projects modal"}
               </p>
               <div>
                 <h3 className="text-[1.2rem] font-medium tracking-[-0.022em] text-foreground">
@@ -72,7 +76,9 @@ function ModalShell({
               className="inline-flex size-9 items-center justify-center rounded-md border border-border bg-surface text-muted transition hover:border-border-strong hover:bg-surface-strong hover:text-foreground"
             >
               <X className="size-4" />
-              <span className="sr-only">Close modal</span>
+              <span className="sr-only">
+                {locale === "vi" ? "Đóng modal" : "Close modal"}
+              </span>
             </button>
           </div>
           {children}
@@ -83,7 +89,7 @@ function ModalShell({
   );
 }
 
-function NameSlugFields() {
+function NameSlugFields({ locale }: { locale: Locale }) {
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
   const slugWasTouched = useRef(false);
@@ -104,18 +110,22 @@ function NameSlugFields() {
   return (
     <div className="grid gap-4 sm:grid-cols-[1fr_auto]">
       <label className="grid gap-2">
-        <span className="text-sm font-medium text-foreground">Project name</span>
+        <span className="text-sm font-medium text-foreground">
+          {locale === "vi" ? "Tên dự án" : "Project name"}
+        </span>
         <input
           name="name"
           required
           value={name}
           onChange={handleNameChange}
           className="ui-input"
-          placeholder="Website revamp"
+          placeholder={locale === "vi" ? "Làm mới website" : "Website revamp"}
         />
       </label>
       <label className="grid gap-2">
-        <span className="text-sm font-medium text-foreground">Key</span>
+        <span className="text-sm font-medium text-foreground">
+          {locale === "vi" ? "Mã" : "Key"}
+        </span>
         <input
           name="slug"
           value={slug}
@@ -131,7 +141,7 @@ function NameSlugFields() {
   );
 }
 
-function SubmitButton() {
+function SubmitButton({ locale }: { locale: Locale }) {
   const { pending } = useFormStatus();
 
   return (
@@ -141,7 +151,9 @@ function SubmitButton() {
       className="ui-button-primary mt-2 w-full px-4 disabled:cursor-not-allowed disabled:opacity-60"
     >
       {pending ? <CircleNotch className="size-4 animate-spin" /> : null}
-      {pending ? "Creating project..." : "Create project"}
+      {pending
+        ? locale === "vi" ? "Đang tạo dự án..." : "Creating project..."
+        : locale === "vi" ? "Tạo dự án" : "Create project"}
     </button>
   );
 }
@@ -160,6 +172,7 @@ export function CreateProjectModal({
   spaces?: SpaceOption[];
 }) {
   const router = useRouter();
+  const locale = useLocale();
   const [isOpen, setIsOpen] = useState(defaultOpen);
 
   const handleClose = () => {
@@ -178,19 +191,26 @@ export function CreateProjectModal({
         className="ui-button-primary"
       >
         <Plus className="size-4" />
-        Create project
+        {locale === "vi" ? "Tạo dự án" : "Create project"}
       </button>
 
       {isOpen ? (
         <ModalShell
           onClose={handleClose}
-          title="Create project"
-          description="Set the container first, then open the workspace to handle requests, tasks, and notes without turning this overview into a long form."
+          locale={locale}
+          title={locale === "vi" ? "Tạo dự án" : "Create project"}
+          description={
+            locale === "vi"
+              ? "Chọn nơi chứa trước, rồi mở không gian làm việc để xử lý yêu cầu, công việc và ghi chú mà không biến trang tổng quan thành form dài."
+              : "Set the container first, then open the workspace to handle requests, tasks, and notes without turning this overview into a long form."
+          }
         >
           <form action={createProjectAction} className="grid gap-4">
             {spaces.length > 1 ? (
               <label className="grid gap-2">
-                <span className="text-sm font-medium text-foreground">Team</span>
+                <span className="text-sm font-medium text-foreground">
+                  {t(locale, "teams")}
+                </span>
                 <select
                   name="spaceId"
                   defaultValue={
@@ -200,22 +220,23 @@ export function CreateProjectModal({
                 >
                   {spaces.map((s) => (
                     <option key={s.id} value={s.id}>
-                      {s.kind === "personal" ? "Personal" : s.name}
+                      {s.kind === "personal" ? t(locale, "personal") : s.name}
                     </option>
                   ))}
                 </select>
                 <p className="text-[13px] leading-6 text-muted">
-                  Personal keeps it private to you; a team files it under that
-                  team — invite people to the project to give them access.
+                  {locale === "vi"
+                    ? "Cá nhân giữ dự án riêng cho bạn; đội nhóm sẽ xếp dự án dưới đội đó. Mời thành viên vào dự án để cấp quyền truy cập."
+                    : "Personal keeps it private to you; a team files it under that team - invite people to the project to give them access."}
                 </p>
               </label>
             ) : null}
 
-            <NameSlugFields />
+            <NameSlugFields locale={locale} />
 
             <label className="grid gap-2">
               <span className="text-sm font-medium text-foreground">
-                Client name
+                {locale === "vi" ? "Tên khách hàng" : "Client name"}
               </span>
               <input
                 name="clientName"
@@ -225,24 +246,32 @@ export function CreateProjectModal({
             </label>
 
             <label className="grid gap-2">
-              <span className="text-sm font-medium text-foreground">Summary</span>
+              <span className="text-sm font-medium text-foreground">
+                {locale === "vi" ? "Tóm tắt" : "Summary"}
+              </span>
               <textarea
                 name="summary"
                 rows={4}
                 className={textAreaClassName}
-                placeholder="Short description, scope, or current focus."
+                placeholder={
+                  locale === "vi"
+                    ? "Mô tả ngắn, phạm vi hoặc trọng tâm hiện tại."
+                    : "Short description, scope, or current focus."
+                }
               />
             </label>
 
             <div className="grid gap-4 sm:grid-cols-2">
               <label className="grid gap-2">
-                <span className="text-sm font-medium text-foreground">Status</span>
+                <span className="text-sm font-medium text-foreground">
+                  {locale === "vi" ? "Trạng thái" : "Status"}
+                </span>
                 <select
                   name="status"
                   defaultValue="development"
                   className="ui-select"
                 >
-                  {PROJECT_STATUS_OPTIONS.map((option) => (
+                  {getProjectStatusOptions(locale).map((option) => (
                     <option key={option.value} value={option.value}>
                       {option.label}
                     </option>
@@ -252,21 +281,25 @@ export function CreateProjectModal({
 
               <label className="grid gap-2">
                 <span className="text-sm font-medium text-foreground">
-                  Deadline
+                  {t(locale, "deadline")}
                 </span>
                 <input type="date" name="deadline" className={fieldClassName} />
               </label>
             </div>
 
             <div className="grid gap-2">
-              <span className="text-sm font-medium text-foreground">Color</span>
+              <span className="text-sm font-medium text-foreground">
+                {locale === "vi" ? "Màu" : "Color"}
+              </span>
               <p className="text-[13px] leading-6 text-muted">
-                Tints the project header. Leave unset for the default theme.
+                {locale === "vi"
+                  ? "Tô màu phần đầu dự án. Để trống để dùng theme mặc định."
+                  : "Tints the project header. Leave unset for the default theme."}
               </p>
               <ProjectColorField name="color" />
             </div>
 
-            <SubmitButton />
+            <SubmitButton locale={locale} />
           </form>
         </ModalShell>
       ) : null}

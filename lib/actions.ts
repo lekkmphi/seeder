@@ -1475,6 +1475,7 @@ const richTextContent = z
 const commentCreateSchema = z.object({
   projectId: z.string().min(1),
   parentId: z.string().min(1),
+  parentCommentId: z.string().min(1).optional(),
   content: richTextContent,
 });
 
@@ -1503,6 +1504,7 @@ export async function createTaskCommentAction(formData: FormData) {
   await createTaskCommentService(viewer, {
     projectId: payload.projectId,
     taskId: payload.parentId,
+    parentCommentId: payload.parentCommentId,
     content: payload.content,
   });
 
@@ -1560,6 +1562,7 @@ export async function createRequestCommentAction(formData: FormData) {
   await createRequestCommentService(viewer, {
     projectId: payload.projectId,
     requestId: payload.parentId,
+    parentCommentId: payload.parentCommentId,
     content: payload.content,
   });
 

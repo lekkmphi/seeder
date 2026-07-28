@@ -6,6 +6,7 @@ import { CircleNotch, FloppyDisk, UploadSimple } from "@phosphor-icons/react";
 
 import { PROJECT_SWATCHES } from "@/lib/swatches";
 import { toast } from "@/lib/toast";
+import { useLocale } from "@/lib/use-locale";
 import { cn } from "@/lib/utils";
 
 type SystemSettingsFormProps = {
@@ -75,6 +76,7 @@ export function SystemSettingsForm({
   previewImageUrl,
   previewDefaults,
 }: SystemSettingsFormProps) {
+  const locale = useLocale();
   const router = useRouter();
 
   const [webTitle, setWebTitle] = useState(initialWebTitle);
@@ -126,7 +128,12 @@ export function SystemSettingsForm({
       setKey(key);
       setPreview(url);
     } catch (error) {
-      toast(error instanceof Error ? error.message : "Upload failed", "danger");
+      toast(
+        error instanceof Error
+          ? error.message
+          : locale === "vi" ? "Tải lên thất bại" : "Upload failed",
+        "danger",
+      );
     } finally {
       setUploading(null);
     }
@@ -142,7 +149,12 @@ export function SystemSettingsForm({
     event.preventDefault();
     if (busy) return;
     if (!accentValid) {
-      toast("Accent must be a #rrggbb hex color.", "danger");
+      toast(
+        locale === "vi"
+          ? "Màu nhấn phải là mã hex #rrggbb."
+          : "Accent must be a #rrggbb hex color.",
+        "danger",
+      );
       return;
     }
     setSaving(true);
@@ -164,11 +176,16 @@ export function SystemSettingsForm({
         }),
       });
       const data = (await res.json().catch(() => ({}))) as { error?: string };
-      if (!res.ok) throw new Error(data.error || "Save failed");
-      toast("System settings saved", "success");
+      if (!res.ok) throw new Error(data.error || (locale === "vi" ? "Lưu thất bại" : "Save failed"));
+      toast(locale === "vi" ? "Đã lưu cài đặt hệ thống" : "System settings saved", "success");
       router.refresh();
     } catch (error) {
-      toast(error instanceof Error ? error.message : "Save failed", "danger");
+      toast(
+        error instanceof Error
+          ? error.message
+          : locale === "vi" ? "Lưu thất bại" : "Save failed",
+        "danger",
+      );
     } finally {
       setSaving(false);
     }
@@ -188,16 +205,16 @@ export function SystemSettingsForm({
       <section className="ui-panel p-5 sm:p-6">
         <header className="mb-4">
           <p className="font-mono text-[11px] font-medium uppercase tracking-[0.04em] text-muted">
-            Identity
+            {locale === "vi" ? "Định danh" : "Identity"}
           </p>
           <h2 className="mt-2 text-[17px] font-medium tracking-[-0.022em] text-foreground">
-            Names
+            {locale === "vi" ? "Tên gọi" : "Names"}
           </h2>
         </header>
         <div className="grid gap-4 sm:grid-cols-2">
           <label className="grid gap-1.5">
             <span className="text-[13px] font-medium text-foreground">
-              Web title
+              {locale === "vi" ? "Tiêu đề web" : "Web title"}
             </span>
             <input
               className="ui-input"
@@ -207,12 +224,14 @@ export function SystemSettingsForm({
               placeholder="Seeder"
             />
             <span className="text-[12px] leading-5 text-muted">
-              Shown in the browser tab and bookmarks.
+              {locale === "vi"
+                ? "Hiển thị trên tab trình duyệt và dấu trang."
+                : "Shown in the browser tab and bookmarks."}
             </span>
           </label>
           <label className="grid gap-1.5">
             <span className="text-[13px] font-medium text-foreground">
-              System name
+              {locale === "vi" ? "Tên hệ thống" : "System name"}
             </span>
             <input
               className="ui-input"
@@ -222,7 +241,9 @@ export function SystemSettingsForm({
               placeholder="Seeder"
             />
             <span className="text-[12px] leading-5 text-muted">
-              The brand name used across the sidebar, sign-in screen, and exports.
+              {locale === "vi"
+                ? "Tên thương hiệu dùng trong sidebar, màn hình đăng nhập và các bản xuất."
+                : "The brand name used across the sidebar, sign-in screen, and exports."}
             </span>
           </label>
         </div>
@@ -232,14 +253,15 @@ export function SystemSettingsForm({
       <section className="ui-panel p-5 sm:p-6">
         <header className="mb-4">
           <p className="font-mono text-[11px] font-medium uppercase tracking-[0.04em] text-muted">
-            Appearance
+            {locale === "vi" ? "Giao diện" : "Appearance"}
           </p>
           <h2 className="mt-2 text-[17px] font-medium tracking-[-0.022em] text-foreground">
-            Accent color
+            {locale === "vi" ? "Màu nhấn" : "Accent color"}
           </h2>
           <p className="mt-1 text-[13px] leading-6 text-muted">
-            One color re-tints the whole UI — sidebar, buttons, links, and focus
-            rings — in both dark and light mode.
+            {locale === "vi"
+              ? "Một màu sẽ phủ sắc lại toàn bộ UI: sidebar, nút, liên kết và viền focus ở cả chế độ tối và sáng."
+              : "One color re-tints the whole UI — sidebar, buttons, links, and focus rings — in both dark and light mode."}
           </p>
         </header>
 
@@ -248,7 +270,7 @@ export function SystemSettingsForm({
             <div className="flex items-center gap-3">
               <input
                 type="color"
-                aria-label="Accent color"
+                aria-label={locale === "vi" ? "Màu nhấn" : "Accent color"}
                 value={accentValid ? accent : DEFAULT_ACCENT}
                 onChange={(e) => setAccent(e.target.value)}
                 className="size-10 cursor-pointer rounded-md border border-border bg-background p-1"
@@ -261,7 +283,9 @@ export function SystemSettingsForm({
                 aria-invalid={!accentValid}
               />
               {!accentValid ? (
-                <span className="text-[12px] text-danger">Use #rrggbb</span>
+                <span className="text-[12px] text-danger">
+                  {locale === "vi" ? "Dùng #rrggbb" : "Use #rrggbb"}
+                </span>
               ) : null}
             </div>
             <div className="flex flex-wrap items-center gap-1.5">
@@ -289,7 +313,7 @@ export function SystemSettingsForm({
             className="grid gap-3 rounded-md border border-border bg-surface p-4"
           >
             <p className="font-mono text-[11px] uppercase tracking-[0.04em] text-muted">
-              Preview
+              {locale === "vi" ? "Xem trước" : "Preview"}
             </p>
             <div className="flex items-center gap-2">
               <span
@@ -302,7 +326,7 @@ export function SystemSettingsForm({
             </div>
             <div className="flex flex-wrap items-center gap-2">
               <button type="button" className="ui-button-primary px-3" disabled>
-                Primary
+                {locale === "vi" ? "Chính" : "Primary"}
               </button>
               <span
                 className="inline-flex items-center rounded-md border px-2 py-1 text-[12px]"
@@ -312,7 +336,7 @@ export function SystemSettingsForm({
                   color: accentSafe,
                 }}
               >
-                Accent badge
+                {locale === "vi" ? "Nhãn màu nhấn" : "Accent badge"}
               </span>
             </div>
           </div>
@@ -323,20 +347,21 @@ export function SystemSettingsForm({
       <section className="ui-panel p-5 sm:p-6">
         <header className="mb-4">
           <p className="font-mono text-[11px] font-medium uppercase tracking-[0.04em] text-muted">
-            Branding
+            {locale === "vi" ? "Thương hiệu" : "Branding"}
           </p>
           <h2 className="mt-2 text-[17px] font-medium tracking-[-0.022em] text-foreground">
-            Sidebar logo
+            {locale === "vi" ? "Logo sidebar" : "Sidebar logo"}
           </h2>
           <p className="mt-1 text-[13px] leading-6 text-muted">
-            Separate images for dark and light mode. Leave empty to use the
-            bundled logo. PNG, JPEG, or WebP up to 5 MB.
+            {locale === "vi"
+              ? "Ảnh riêng cho chế độ tối và sáng. Để trống để dùng logo mặc định. PNG, JPEG hoặc WebP tối đa 5 MB."
+              : "Separate images for dark and light mode. Leave empty to use the bundled logo. PNG, JPEG, or WebP up to 5 MB."}
           </p>
         </header>
 
         <div className="grid gap-5 sm:grid-cols-2">
           <LogoField
-            label="Dark mode logo"
+            label={locale === "vi" ? "Logo chế độ tối" : "Dark mode logo"}
             kind="logo-dark"
             previewUrl={logoDarkPreview}
             fallbackSrc="/dark-logo.png"
@@ -348,7 +373,7 @@ export function SystemSettingsForm({
             cleared={!logoDarkKey}
           />
           <LogoField
-            label="Light mode logo"
+            label={locale === "vi" ? "Logo chế độ sáng" : "Light mode logo"}
             kind="logo-light"
             previewUrl={logoLightPreview}
             fallbackSrc="/light-logo.png"
@@ -363,17 +388,18 @@ export function SystemSettingsForm({
 
         <div className="mt-5 border-t border-border pt-5">
           <span className="text-[13px] font-medium text-foreground">
-            Collapsed icon
+            {locale === "vi" ? "Biểu tượng thu gọn" : "Collapsed icon"}
           </span>
           <p className="mb-3 mt-1 text-[12px] leading-5 text-muted">
-            A square 1:1 mark shown when the sidebar is collapsed to a rail.
-            Leave empty to use the bundled mark.
+            {locale === "vi"
+              ? "Dấu vuông tỉ lệ 1:1 hiển thị khi sidebar được thu gọn. Để trống để dùng biểu tượng mặc định."
+              : "A square 1:1 mark shown when the sidebar is collapsed to a rail. Leave empty to use the bundled mark."}
           </p>
           <SquareField
             kind="sidebar-mark"
             previewUrl={sidebarMarkPreview}
             fallbackSrc="/seeder-mark.svg"
-            alt="Collapsed sidebar icon preview"
+            alt={locale === "vi" ? "Xem trước biểu tượng sidebar thu gọn" : "Collapsed sidebar icon preview"}
             uploading={uploading === "sidebar-mark"}
             disabled={busy}
             onFile={handleFile}
@@ -387,13 +413,15 @@ export function SystemSettingsForm({
       <section className="ui-panel p-5 sm:p-6">
         <header className="mb-4">
           <p className="font-mono text-[11px] font-medium uppercase tracking-[0.04em] text-muted">
-            Branding
+            {locale === "vi" ? "Thương hiệu" : "Branding"}
           </p>
           <h2 className="mt-2 text-[17px] font-medium tracking-[-0.022em] text-foreground">
-            Favicon
+            {locale === "vi" ? "Favicon" : "Favicon"}
           </h2>
           <p className="mt-1 text-[13px] leading-6 text-muted">
-            A square icon for the browser tab. PNG or WebP, 32×32 or larger.
+            {locale === "vi"
+              ? "Biểu tượng vuông cho tab trình duyệt. PNG hoặc WebP, 32x32 hoặc lớn hơn."
+              : "A square icon for the browser tab. PNG or WebP, 32×32 or larger."}
           </p>
         </header>
 
@@ -401,7 +429,7 @@ export function SystemSettingsForm({
           kind="favicon"
           previewUrl={faviconPreview}
           fallbackSrc="/favicon.ico"
-          alt="Favicon preview"
+          alt={locale === "vi" ? "Xem trước favicon" : "Favicon preview"}
           uploading={uploading === "favicon"}
           disabled={busy}
           onFile={handleFile}
@@ -414,15 +442,15 @@ export function SystemSettingsForm({
       <section className="ui-panel p-5 sm:p-6">
         <header className="mb-4">
           <p className="font-mono text-[11px] font-medium uppercase tracking-[0.04em] text-muted">
-            Sharing
+            {locale === "vi" ? "Chia sẻ" : "Sharing"}
           </p>
           <h2 className="mt-2 text-[17px] font-medium tracking-[-0.022em] text-foreground">
-            Web preview
+            {locale === "vi" ? "Xem trước web" : "Web preview"}
           </h2>
           <p className="mt-1 text-[13px] leading-6 text-muted">
-            The card shown when a link to your app is shared on Slack, X,
-            Discord, or iMessage. Leave a field empty to use the bundled Seeder
-            default.
+            {locale === "vi"
+              ? "Thẻ hiển thị khi liên kết ứng dụng được chia sẻ trên Slack, X, Discord hoặc iMessage. Để trống để dùng mặc định của Seeder."
+              : "The card shown when a link to your app is shared on Slack, X, Discord, or iMessage. Leave a field empty to use the bundled Seeder default."}
           </p>
         </header>
 
@@ -430,7 +458,7 @@ export function SystemSettingsForm({
           <div className="grid content-start gap-4">
             <label className="grid gap-1.5">
               <span className="text-[13px] font-medium text-foreground">
-                Preview title
+                {locale === "vi" ? "Tiêu đề xem trước" : "Preview title"}
               </span>
               <input
                 className="ui-input"
@@ -442,7 +470,7 @@ export function SystemSettingsForm({
             </label>
             <label className="grid gap-1.5">
               <span className="text-[13px] font-medium text-foreground">
-                Preview description
+                {locale === "vi" ? "Mô tả xem trước" : "Preview description"}
               </span>
               <textarea
                 className="ui-input min-h-20 resize-y py-2"
@@ -454,11 +482,12 @@ export function SystemSettingsForm({
             </label>
             <div className="grid gap-2">
               <span className="text-[13px] font-medium text-foreground">
-                Preview image
+                {locale === "vi" ? "Ảnh xem trước" : "Preview image"}
               </span>
               <p className="text-[12px] leading-5 text-muted">
-                A 1200×630 card image. PNG, JPEG, or WebP up to 5 MB. Leave empty
-                for the bundled default.
+                {locale === "vi"
+                  ? "Ảnh thẻ 1200x630. PNG, JPEG hoặc WebP tối đa 5 MB. Để trống để dùng mặc định."
+                  : "A 1200×630 card image. PNG, JPEG, or WebP up to 5 MB. Leave empty for the bundled default."}
               </p>
               <div className="flex flex-wrap items-center gap-2">
                 <button
@@ -472,7 +501,9 @@ export function SystemSettingsForm({
                   ) : (
                     <UploadSimple className="size-4" />
                   )}
-                  {uploading === "preview-image" ? "Uploading…" : "Upload image"}
+                  {uploading === "preview-image"
+                    ? locale === "vi" ? "Đang tải lên..." : "Uploading..."
+                    : locale === "vi" ? "Tải ảnh lên" : "Upload image"}
                 </button>
                 {previewImageKey ? (
                   <button
@@ -480,7 +511,7 @@ export function SystemSettingsForm({
                     onClick={() => clearAsset("preview-image")}
                     className="ui-button-ghost px-2 text-[12px]"
                   >
-                    Use default
+                    {locale === "vi" ? "Dùng mặc định" : "Use default"}
                   </button>
                 ) : null}
                 <input
@@ -502,7 +533,7 @@ export function SystemSettingsForm({
           {/* Live link-preview card */}
           <div className="grid gap-2">
             <p className="font-mono text-[11px] uppercase tracking-[0.04em] text-muted">
-              Preview
+              {locale === "vi" ? "Xem trước" : "Preview"}
             </p>
             <div className="overflow-hidden rounded-md border border-border bg-surface">
               <div className="border-l-2 border-l-emerald p-4">
@@ -517,7 +548,7 @@ export function SystemSettingsForm({
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={previewImagePreview ?? previewDefaults.image}
-                    alt="Link preview"
+                    alt={locale === "vi" ? "Xem trước liên kết" : "Link preview"}
                     className="aspect-[1200/630] w-full object-cover"
                   />
                 </div>
@@ -539,7 +570,9 @@ export function SystemSettingsForm({
           ) : (
             <FloppyDisk className="size-4" />
           )}
-          {saving ? "Saving…" : "Save changes"}
+          {saving
+            ? locale === "vi" ? "Đang lưu..." : "Saving..."
+            : locale === "vi" ? "Lưu thay đổi" : "Save changes"}
         </button>
       </div>
     </form>
@@ -569,6 +602,7 @@ function LogoField({
   onFile: (kind: BrandingKind, file: File) => void;
   onClear: () => void;
 }) {
+  const locale = useLocale();
   const fileRef = useRef<HTMLInputElement>(null);
   const src = previewUrl ?? fallbackSrc;
 
@@ -582,7 +616,13 @@ function LogoField({
         )}
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={src} alt={`${label} preview`} className="h-9 w-auto" />
+        <img
+          src={src}
+          alt={
+            locale === "vi" ? `Xem trước ${label}` : `${label} preview`
+          }
+          className="h-9 w-auto"
+        />
       </div>
       <input
         ref={fileRef}
@@ -607,7 +647,9 @@ function LogoField({
           ) : (
             <UploadSimple className="size-4" />
           )}
-          {uploading ? "Uploading…" : "Upload"}
+          {uploading
+            ? locale === "vi" ? "Đang tải lên..." : "Uploading..."
+            : locale === "vi" ? "Tải lên" : "Upload"}
         </button>
         {!cleared ? (
           <button
@@ -615,7 +657,7 @@ function LogoField({
             onClick={onClear}
             className="ui-button-ghost px-2 text-[12px]"
           >
-            Use default
+            {locale === "vi" ? "Dùng mặc định" : "Use default"}
           </button>
         ) : null}
       </div>
@@ -644,6 +686,7 @@ function SquareField({
   onFile: (kind: BrandingKind, file: File) => void;
   onClear: () => void;
 }) {
+  const locale = useLocale();
   const fileRef = useRef<HTMLInputElement>(null);
   const src = previewUrl ?? fallbackSrc;
 
@@ -676,7 +719,9 @@ function SquareField({
           ) : (
             <UploadSimple className="size-4" />
           )}
-          {uploading ? "Uploading…" : "Upload"}
+          {uploading
+            ? locale === "vi" ? "Đang tải lên..." : "Uploading..."
+            : locale === "vi" ? "Tải lên" : "Upload"}
         </button>
         {!cleared ? (
           <button
@@ -684,7 +729,7 @@ function SquareField({
             onClick={onClear}
             className="ui-button-ghost px-2 text-[12px]"
           >
-            Use default
+            {locale === "vi" ? "Dùng mặc định" : "Use default"}
           </button>
         ) : null}
       </div>

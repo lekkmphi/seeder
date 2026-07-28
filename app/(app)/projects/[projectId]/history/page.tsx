@@ -7,6 +7,7 @@ import { ActivityChangesButton } from "@/components/projects/activity-changes-mo
 import { ProjectHistoryFilters } from "@/components/projects/project-history-filters";
 import { ProjectWorkspaceClientShell } from "@/components/projects/project-workspace-ui";
 import { requireViewer } from "@/lib/auth-server";
+import { getRequestLocale } from "@/lib/i18n-server";
 import {
   getProjectWorkspace,
   listProjectActivity,
@@ -19,16 +20,16 @@ export const dynamic = "force-dynamic";
 
 const HISTORY_LIMIT = 200;
 
-function formatRelative(date: Date) {
+function formatRelative(date: Date, vi: boolean) {
   const diff = Date.now() - date.getTime();
   const minute = 60_000;
   const hour = 60 * minute;
   const day = 24 * hour;
-  if (diff < minute) return "just now";
-  if (diff < hour) return `${Math.floor(diff / minute)}m ago`;
-  if (diff < day) return `${Math.floor(diff / hour)}h ago`;
-  if (diff < 30 * day) return `${Math.floor(diff / day)}d ago`;
-  return date.toLocaleDateString();
+  if (diff < minute) return vi ? "vừa xong" : "just now";
+  if (diff < hour) return vi ? `${Math.floor(diff / minute)} phút trước` : `${Math.floor(diff / minute)}m ago`;
+  if (diff < day) return vi ? `${Math.floor(diff / hour)} giờ trước` : `${Math.floor(diff / hour)}h ago`;
+  if (diff < 30 * day) return vi ? `${Math.floor(diff / day)} ngày trước` : `${Math.floor(diff / day)}d ago`;
+  return date.toLocaleDateString(vi ? "vi-VN" : undefined);
 }
 
 function parseDateParam(value: string | undefined): Date | undefined {
@@ -65,6 +66,8 @@ export default async function ProjectHistoryPage({
   const viewer = await requireViewer();
   const { projectId } = await params;
   const raw = await searchParams;
+  const locale = await getRequestLocale();
+  const vi = locale === "vi";
 
   // Activity is project-wide (spans all branches by design); the branch param is
   // honored only to keep the header switcher + tab links on the same branch.
@@ -124,14 +127,20 @@ export default async function ProjectHistoryPage({
         />
 
         <p className="font-mono text-[11px] uppercase tracking-[0.04em] text-muted">
-          Showing up to {HISTORY_LIMIT} matching events · {items.length} found
+          {vi
+            ? `Hiển thị tối đa ${HISTORY_LIMIT} sự kiện khớp · tìm thấy ${items.length}`
+            : `Showing up to ${HISTORY_LIMIT} matching events · ${items.length} found`}
         </p>
 
         <div className="ui-panel divide-y divide-border">
           {items.length === 0 ? (
             <div className="flex flex-col items-center px-5 py-10 text-center text-[13px] leading-7 text-muted">
               <Pulse className="size-5 text-muted" />
-              <p className="mt-3">No activity matches these filters.</p>
+              <p className="mt-3">
+                {vi
+                  ? "Không có hoạt động nào khớp với bộ lọc này."
+                  : "No activity matches these filters."}
+              </p>
             </div>
           ) : (
             items.map((item) => (
@@ -155,7 +164,7 @@ export default async function ProjectHistoryPage({
                       {item.entityType}
                     </span>
                     <span>·</span>
-                    <span>{formatRelative(item.createdAt)}</span>
+                    <span>{formatRelative(item.createdAt, vi)}</span>
                   </p>
                   {item.changes && item.changes.length ? (
                     <div className="mt-2">
@@ -170,7 +179,7 @@ export default async function ProjectHistoryPage({
                 <Link
                   href={item.href}
                   className="inline-flex size-7 items-center justify-center rounded-sm text-muted transition hover:bg-surface hover:text-foreground"
-                  aria-label="Open referenced entity"
+                  aria-label={vi ? "Mở đối tượng liên quan" : "Open referenced entity"}
                 >
                   <ArrowSquareOut className="size-4" />
                 </Link>

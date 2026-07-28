@@ -5,10 +5,11 @@ import { cloneElement, useEffect, useMemo, useRef, useState } from "react";
 import { ActivityCalendar } from "react-activity-calendar";
 
 import type { DashboardData } from "@/lib/data";
+import { useLocale } from "@/lib/use-locale";
 
 type HeatmapDay = DashboardData["heatmap"][number];
 
-function formatTooltipDate(dateKey: string) {
+function formatTooltipDate(dateKey: string, locale: "vi" | "en") {
   const [yearStr, monthStr, dayStr] = dateKey.split("-");
   const year = Number(yearStr);
   const month = Number(monthStr) - 1;
@@ -16,7 +17,7 @@ function formatTooltipDate(dateKey: string) {
   if (Number.isNaN(year) || Number.isNaN(month) || Number.isNaN(day)) {
     return dateKey;
   }
-  return new Date(year, month, day).toLocaleDateString(undefined, {
+  return new Date(year, month, day).toLocaleDateString(locale === "vi" ? "vi-VN" : undefined, {
     weekday: "short",
     month: "short",
     day: "numeric",
@@ -47,6 +48,7 @@ function readAccentStops(): string[] {
 }
 
 export function ActivityHeatmap({ data }: { data: DashboardData["heatmap"] }) {
+  const locale = useLocale();
   const containerRef = useRef<HTMLDivElement>(null);
   const [stops, setStops] = useState<string[] | null>(null);
   const [blockSize, setBlockSize] = useState(14);
@@ -89,9 +91,11 @@ export function ActivityHeatmap({ data }: { data: DashboardData["heatmap"] }) {
         <div className="mx-auto inline-flex size-10 items-center justify-center rounded-md border border-border bg-background text-muted">
           <Calendar className="size-5" />
         </div>
-        <p className="mt-3 text-[13px] font-medium text-foreground">No activity yet</p>
+        <p className="mt-3 text-[13px] font-medium text-foreground">
+          {locale === "vi" ? "Chưa có hoạt động" : "No activity yet"}
+        </p>
         <p className="mx-auto mt-1 max-w-sm text-[13px] leading-6 text-muted">
-          No project events in the last year.
+          {locale === "vi" ? "Chưa có sự kiện dự án trong năm qua." : "No project events in the last year."}
         </p>
       </div>
     );
@@ -112,15 +116,18 @@ export function ActivityHeatmap({ data }: { data: DashboardData["heatmap"] }) {
         showWeekdayLabels
         theme={{ light: stops, dark: stops }}
         labels={{
-          totalCount: "{{count}} activities in the last year",
-          legend: { less: "Less", more: "More" },
+          totalCount: locale === "vi" ? "{{count}} hoạt động trong năm qua" : "{{count}} activities in the last year",
+          legend: { less: locale === "vi" ? "Ít hơn" : "Less", more: locale === "vi" ? "Nhiều hơn" : "More" },
         }}
         style={{ color: "var(--muted)" }}
         renderBlock={(block, activity) => {
           const day = activity as HeatmapDay;
           const breakdown =
             breakdownByDate.get(day.date) ?? { shipped: 0, subtasks: 0, total: day.count };
-          const tooltip = `${formatTooltipDate(day.date)} — ${breakdown.shipped} shipped · ${breakdown.subtasks} subtasks · ${breakdown.total} total`;
+          const tooltip =
+            locale === "vi"
+              ? `${formatTooltipDate(day.date, locale)} — ${breakdown.shipped} đã phát hành · ${breakdown.subtasks} việc con · ${breakdown.total} tổng`
+              : `${formatTooltipDate(day.date, locale)} — ${breakdown.shipped} shipped · ${breakdown.subtasks} subtasks · ${breakdown.total} total`;
           return cloneElement(block, { title: tooltip });
         }}
       />

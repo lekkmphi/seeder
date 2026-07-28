@@ -36,6 +36,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { useOptionalProjectWorkspaceUi } from "@/components/projects/project-workspace-ui";
 import { SearchSelect } from "@/components/ui/search-select";
+import type { Locale } from "@/lib/i18n";
 import { parseRichText, richTextToPlainText } from "@/lib/rich-text";
 import { toast } from "@/lib/toast";
 import { cn, formatDate, withSearchParams } from "@/lib/utils";
@@ -127,6 +128,7 @@ type KanbanBoardProps = {
   allLabels?: { id: string; name: string; color: string }[];
   // Render minimal title-only cards (the compact overview "Execution board").
   compactCards?: boolean;
+  locale?: Locale;
 };
 
 // Columns keyed by status id. Order is driven by the `statuses` prop (and the
@@ -346,6 +348,7 @@ function hasRealOptions(options: FilterOption[]): boolean {
 function buildFilterOptions(
   tasks: BoardTask[],
   allLabels: { id: string; name: string; color: string }[] = [],
+  locale: Locale = "vi",
 ) {
   const phase = new Map<string, number>();
   let untaggedPhase = 0;
@@ -407,7 +410,7 @@ function buildFilterOptions(
   if (untaggedPhase)
     phaseOptions.push({
       value: UNTAGGED_PHASE_VALUE,
-      label: "Untagged",
+      label: locale === "vi" ? "Chưa gắn" : "Untagged",
       sublabel: count(untaggedPhase),
     });
 
@@ -419,7 +422,7 @@ function buildFilterOptions(
   if (noCategory)
     categoryOptions.push({
       value: NONE_VALUE,
-      label: "No category",
+      label: locale === "vi" ? "Chưa có danh mục" : "No category",
       sublabel: count(noCategory),
     });
 
@@ -428,7 +431,10 @@ function buildFilterOptions(
   const priorityOrder: TaskPriority[] = ["high", "medium", "low"];
   const priorityOptions: FilterOption[] = priorityOrder.map((p) => ({
     value: p,
-    label: p.charAt(0).toUpperCase() + p.slice(1),
+    label:
+      locale === "vi"
+        ? ({ high: "Cao", medium: "Trung bình", low: "Thấp" }[p])
+        : p.charAt(0).toUpperCase() + p.slice(1),
     sublabel: count(priority.get(p) ?? 0),
   }));
 
@@ -444,7 +450,7 @@ function buildFilterOptions(
   if (noLabel)
     labelOptions.push({
       value: NONE_VALUE,
-      label: "No label",
+      label: locale === "vi" ? "Chưa có nhãn" : "No label",
       sublabel: count(noLabel),
     });
 
@@ -460,7 +466,7 @@ function buildFilterOptions(
   if (unassigned)
     assigneeOptions.push({
       value: NONE_VALUE,
-      label: "Unassigned",
+      label: locale === "vi" ? "Chưa gán" : "Unassigned",
       sublabel: count(unassigned),
     });
 
@@ -479,12 +485,14 @@ function BoardFilters({
   options,
   resultCount,
   totalCount,
+  locale,
 }: {
   filters: BoardFilterState;
   onChange: (next: BoardFilterState) => void;
   options: ReturnType<typeof buildFilterOptions>;
   resultCount: number;
   totalCount: number;
+  locale: Locale;
 }) {
   const set = (patch: Partial<BoardFilterState>) =>
     onChange({ ...filters, ...patch });
@@ -498,8 +506,12 @@ function BoardFilters({
           type="search"
           value={filters.search}
           onChange={(event) => set({ search: event.target.value })}
-          placeholder="Search tasks by title, date, or description…"
-          aria-label="Search tasks"
+          placeholder={
+            locale === "vi"
+              ? "Tìm công việc theo tiêu đề, ngày hoặc mô tả..."
+              : "Search tasks by title, date, or description..."
+          }
+          aria-label={locale === "vi" ? "Tìm công việc" : "Search tasks"}
           className="w-full rounded-md border border-border bg-background py-2.5 pl-9 pr-3 text-[13px] text-foreground outline-none transition placeholder:text-muted focus:border-accent"
         />
       </div>
@@ -511,9 +523,9 @@ function BoardFilters({
             options={options.phase}
             value={filters.phase}
             onChange={(value) => set({ phase: value })}
-            placeholder="Phase"
-            searchPlaceholder="Search phases…"
-            clearLabel="All phases"
+            placeholder={locale === "vi" ? "Giai đoạn" : "Phase"}
+            searchPlaceholder={locale === "vi" ? "Tìm giai đoạn..." : "Search phases..."}
+            clearLabel={locale === "vi" ? "Tất cả giai đoạn" : "All phases"}
           />
         ) : null}
         {hasRealOptions(options.category) ? (
@@ -522,20 +534,22 @@ function BoardFilters({
             options={options.category}
             value={filters.category}
             onChange={(value) => set({ category: value })}
-            placeholder="Category"
-            searchPlaceholder="Search categories…"
-            clearLabel="All categories"
+            placeholder={locale === "vi" ? "Danh mục" : "Category"}
+            searchPlaceholder={locale === "vi" ? "Tìm danh mục..." : "Search categories..."}
+            clearLabel={locale === "vi" ? "Tất cả danh mục" : "All categories"}
           />
         ) : null}
         <div className="flex min-w-[240px] flex-1 items-center gap-2 rounded-md border border-border bg-background px-3 text-[13px] text-foreground">
           <CalendarDots className="size-4 shrink-0 text-muted" />
-          <span className="shrink-0 whitespace-nowrap text-muted">Due</span>
+          <span className="shrink-0 whitespace-nowrap text-muted">
+            {locale === "vi" ? "Hạn" : "Due"}
+          </span>
           <input
             type="date"
             value={filters.dueFrom ?? ""}
             max={filters.dueTo || undefined}
             onChange={(event) => set({ dueFrom: event.target.value || undefined })}
-            aria-label="Due date from"
+            aria-label={locale === "vi" ? "Hạn từ ngày" : "Due date from"}
             className="min-w-0 flex-1 bg-transparent py-2 text-foreground outline-none"
           />
           <span className="shrink-0 text-muted">–</span>
@@ -544,14 +558,14 @@ function BoardFilters({
             value={filters.dueTo ?? ""}
             min={filters.dueFrom || undefined}
             onChange={(event) => set({ dueTo: event.target.value || undefined })}
-            aria-label="Due date to"
+            aria-label={locale === "vi" ? "Hạn đến ngày" : "Due date to"}
             className="min-w-0 flex-1 bg-transparent py-2 text-foreground outline-none"
           />
           {filters.dueFrom || filters.dueTo ? (
             <button
               type="button"
               onClick={() => set({ dueFrom: undefined, dueTo: undefined })}
-              aria-label="Clear due date filter"
+              aria-label={locale === "vi" ? "Xóa lọc hạn chót" : "Clear due date filter"}
               className="shrink-0 text-muted transition hover:text-foreground"
             >
               <X className="size-3.5" />
@@ -564,9 +578,9 @@ function BoardFilters({
             options={options.label}
             value={filters.label}
             onChange={(value) => set({ label: value })}
-            placeholder="Label"
-            searchPlaceholder="Search labels…"
-            clearLabel="All labels"
+            placeholder={locale === "vi" ? "Nhãn" : "Label"}
+            searchPlaceholder={locale === "vi" ? "Tìm nhãn..." : "Search labels..."}
+            clearLabel={locale === "vi" ? "Tất cả nhãn" : "All labels"}
           />
         ) : null}
         {hasRealOptions(options.priority) ? (
@@ -575,9 +589,9 @@ function BoardFilters({
             options={options.priority}
             value={filters.priority}
             onChange={(value) => set({ priority: value })}
-            placeholder="Priority"
-            searchPlaceholder="Search priority…"
-            clearLabel="All priorities"
+            placeholder={locale === "vi" ? "Ưu tiên" : "Priority"}
+            searchPlaceholder={locale === "vi" ? "Tìm ưu tiên..." : "Search priority..."}
+            clearLabel={locale === "vi" ? "Tất cả ưu tiên" : "All priorities"}
           />
         ) : null}
         {hasRealOptions(options.assignee) ? (
@@ -586,9 +600,9 @@ function BoardFilters({
             options={options.assignee}
             value={filters.assignee}
             onChange={(value) => set({ assignee: value })}
-            placeholder="Assignee"
-            searchPlaceholder="Search assignees…"
-            clearLabel="Anyone"
+            placeholder={locale === "vi" ? "Người phụ trách" : "Assignee"}
+            searchPlaceholder={locale === "vi" ? "Tìm người phụ trách..." : "Search assignees..."}
+            clearLabel={locale === "vi" ? "Mọi người" : "Anyone"}
           />
         ) : null}
       </div>
@@ -601,10 +615,12 @@ function BoardFilters({
             className="inline-flex items-center gap-1.5 rounded-md border border-border bg-surface px-2.5 py-1.5 text-[12px] font-medium text-muted transition hover:border-border-strong hover:text-foreground"
           >
             <X className="size-3.5" />
-            Clear
+            {locale === "vi" ? "Xóa lọc" : "Clear"}
           </button>
           <span className="font-mono text-[11px] uppercase tracking-[0.04em] text-muted">
-            {resultCount} of {totalCount}
+            {locale === "vi"
+              ? `${resultCount} / ${totalCount}`
+              : `${resultCount} of ${totalCount}`}
           </span>
         </div>
       ) : null}
@@ -614,7 +630,16 @@ function BoardFilters({
 
 // The badge row shown atop a task card: category, labels, phase, and priority.
 // Shared by the full card and the compact overview card so they never drift.
-function CardBadges({ task }: { task: BoardTask }) {
+function priorityLabel(priority: TaskPriority, locale: Locale) {
+  const labels = {
+    low: locale === "vi" ? "Thấp" : "low",
+    medium: locale === "vi" ? "Trung bình" : "medium",
+    high: locale === "vi" ? "Cao" : "high",
+  };
+  return labels[priority];
+}
+
+function CardBadges({ task, locale }: { task: BoardTask; locale: Locale }) {
   return (
     <div className="flex flex-wrap gap-1.5">
       {task.categoryName ? (
@@ -630,7 +655,7 @@ function CardBadges({ task }: { task: BoardTask }) {
             backgroundColor: `${label.color}26`,
             border: `1px solid ${label.color}66`,
           }}
-          title="Label"
+          title={locale === "vi" ? "Nhãn" : "Label"}
         >
           <span
             aria-hidden
@@ -643,7 +668,7 @@ function CardBadges({ task }: { task: BoardTask }) {
       {task.phase ? (
         <span
           className="inline-flex rounded-sm border border-border bg-surface-strong px-1.5 py-0.5 font-mono text-[11px] font-medium uppercase tracking-[0.04em] text-muted"
-          title="Phase"
+          title={locale === "vi" ? "Giai đoạn" : "Phase"}
         >
           {task.phase}
         </span>
@@ -654,7 +679,7 @@ function CardBadges({ task }: { task: BoardTask }) {
           priorityCopy[task.priority],
         )}
       >
-        {task.priority}
+        {priorityLabel(task.priority, locale)}
       </span>
     </div>
   );
@@ -669,6 +694,7 @@ function TaskCardSurface({
   isDragging = false,
   highlightTokens,
   titleOnly = false,
+  locale,
 }: {
   task: BoardTask;
   hrefBase?: string;
@@ -679,6 +705,7 @@ function TaskCardSurface({
   highlightTokens?: string[];
   // Compact overview cards: render just the title (keeps the category tint).
   titleOnly?: boolean;
+  locale: Locale;
 }) {
   // Card body picks up a soft wash of the category color so tasks read like
   // tinted index cards rather than identical rectangles. Every column uses the
@@ -703,7 +730,7 @@ function TaskCardSurface({
         )}
         style={cardStyle}
       >
-        <CardBadges task={task} />
+        <CardBadges task={task} locale={locale} />
         <h3 className="text-[13px] font-medium leading-snug text-foreground">
           {highlightTokens?.length
             ? highlightMatches(task.title, highlightTokens)
@@ -724,7 +751,7 @@ function TaskCardSurface({
     >
       <div className="flex items-start justify-between gap-3">
         <div className="space-y-2">
-          <CardBadges task={task} />
+          <CardBadges task={task} locale={locale} />
           {task.code ? (
             <p className="font-mono text-[10px] uppercase tracking-[0.06em] text-muted">
               {task.code}
@@ -736,10 +763,14 @@ function TaskCardSurface({
             return (
               <p
                 className="inline-flex items-center gap-1 font-mono text-[10px] uppercase tracking-[0.06em] text-muted"
-                title={`In ${task.statusName} since ${entered.full}`}
+                title={
+                  locale === "vi"
+                    ? `Ở ${task.statusName} từ ${entered.full}`
+                    : `In ${task.statusName} since ${entered.full}`
+                }
               >
                 <Clock className="size-3" />
-                Since {entered.short}
+                {locale === "vi" ? "Từ" : "Since"} {entered.short}
               </p>
             );
           })()}
@@ -768,7 +799,9 @@ function TaskCardSurface({
             >
               <GitCommit className="size-4" />
               <span className="sr-only">
-                {task.hasStatusUpdate ? "Edit client commit" : "Publish client commit"}
+                {task.hasStatusUpdate
+                  ? locale === "vi" ? "Sửa cập nhật khách hàng" : "Edit client commit"
+                  : locale === "vi" ? "Đăng cập nhật khách hàng" : "Publish client commit"}
               </span>
             </button>
           ) : null}
@@ -782,7 +815,9 @@ function TaskCardSurface({
               className="rounded-md border border-border bg-background p-1.5 text-muted transition hover:border-border-strong hover:bg-surface-strong hover:text-foreground"
             >
               <ArrowSquareOut className="size-4" />
-              <span className="sr-only">Open task</span>
+              <span className="sr-only">
+                {locale === "vi" ? "Mở công việc" : "Open task"}
+              </span>
             </button>
           ) : hrefBase ? (
             <Link
@@ -821,12 +856,19 @@ function TaskCardSurface({
           ) : null}
           <span
             className="inline-flex items-center gap-1"
-            title="Subtasks done / total"
+            title={
+              locale === "vi"
+                ? "Công việc con hoàn tất / tổng"
+                : "Subtasks done / total"
+            }
           >
             <ListChecks className="size-3.5" />
             {task.subtaskDone ?? 0}/{task.subtaskTotal ?? 0}
           </span>
-          <span className="inline-flex items-center gap-1" title="Comments">
+          <span
+            className="inline-flex items-center gap-1"
+            title={locale === "vi" ? "Bình luận" : "Comments"}
+          >
             <ChatCircleText className="size-3.5" />
             {task.commentCount ?? 0}
           </span>
@@ -839,7 +881,11 @@ function TaskCardSurface({
       {task.assigneeName ? (
         <div
           className="mt-2 inline-flex items-center gap-1.5 rounded-sm border border-border bg-surface px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-[0.04em] text-muted"
-          title={`Assigned to ${task.assigneeName}`}
+          title={
+            locale === "vi"
+              ? `Gán cho ${task.assigneeName}`
+              : `Assigned to ${task.assigneeName}`
+          }
         >
           <span className="flex size-4 items-center justify-center rounded-full bg-accent-soft text-[9px] text-accent">
             {task.assigneeName
@@ -862,11 +908,13 @@ function SortableTaskCard({
   onOpenTask,
   onOpenStatusUpdate,
   task,
+  locale,
 }: {
   hrefBase: string;
   onOpenTask?: ((taskId: string) => void) | null;
   onOpenStatusUpdate?: ((taskId: string, isTerminal: boolean) => void) | null;
   task: BoardTask;
+  locale: Locale;
 }) {
   const {
     attributes,
@@ -907,13 +955,16 @@ function SortableTaskCard({
             ? () => onOpenStatusUpdate(task.id, task.isTerminal)
             : null
         }
+        locale={locale}
         dragHandle={
           <button
             ref={setActivatorNodeRef}
             type="button"
             {...attributes}
             {...listeners}
-            aria-label={`Drag ${task.title}`}
+            aria-label={
+              locale === "vi" ? `Kéo ${task.title}` : `Drag ${task.title}`
+            }
             className="touch-none rounded-md border border-border bg-background p-1.5 text-muted transition hover:border-border-strong hover:bg-surface-strong hover:text-foreground focus-visible:outline-none"
           >
             <DotsSixVertical className="size-4" />
@@ -1050,6 +1101,7 @@ export function KanbanBoard({
   scrollColumns = false,
   allLabels,
   compactCards = false,
+  locale = "vi",
 }: KanbanBoardProps) {
   const workspaceUi = useOptionalProjectWorkspaceUi();
   const [columns, setColumns] = useState<TaskColumns>(() =>
@@ -1071,8 +1123,8 @@ export function KanbanBoard({
     [statuses],
   );
   const filterOptions = useMemo(
-    () => buildFilterOptions(tasks, allLabels),
-    [tasks, allLabels],
+    () => buildFilterOptions(tasks, allLabels, locale),
+    [tasks, allLabels, locale],
   );
   const tokens = useMemo(() => searchTokens(filters.search), [filters.search]);
   const isFiltered = hasActiveFilters(filters);
@@ -1109,7 +1161,12 @@ export function KanbanBoard({
       // Revert the optimistic move and surface the failure (mirrors the daily
       // planner). The card visibly snapping back IS the success feedback, so a
       // success toast on every drag would just be noise.
-      toast("Couldn't save board changes", "danger");
+      toast(
+        locale === "vi"
+          ? "Không thể lưu thay đổi trên bảng"
+          : "Couldn't save board changes",
+        "danger",
+      );
       setColumns(previousColumns);
     }
   };
@@ -1277,6 +1334,7 @@ export function KanbanBoard({
       options={filterOptions}
       resultCount={resultCount}
       totalCount={tasks.length}
+      locale={locale}
     />
   ) : null;
 
@@ -1285,7 +1343,9 @@ export function KanbanBoard({
       <div className="mt-4 flex justify-center">
         {showMoreHref ? (
           <Link href={showMoreHref} className="ui-button-secondary">
-            Show more ({hiddenCount} more)
+            {locale === "vi"
+              ? `Hiển thị thêm (${hiddenCount} nữa)`
+              : `Show more (${hiddenCount} more)`}
           </Link>
         ) : (
           <button
@@ -1293,7 +1353,9 @@ export function KanbanBoard({
             onClick={() => setExpanded(true)}
             className="ui-button-secondary"
           >
-            Show more ({hiddenCount} more)
+            {locale === "vi"
+              ? `Hiển thị thêm (${hiddenCount} nữa)`
+              : `Show more (${hiddenCount} more)`}
           </button>
         )}
       </div>
@@ -1325,6 +1387,7 @@ export function KanbanBoard({
                           task={task}
                           highlightTokens={tokens}
                           titleOnly={compactCards}
+                          locale={locale}
                         />
                       </button>
                     ) : (
@@ -1333,12 +1396,13 @@ export function KanbanBoard({
                         task={task}
                         highlightTokens={tokens}
                         titleOnly={compactCards}
+                        locale={locale}
                       />
                     ),
                   )
                 ) : (
                   <div className="flex flex-1 items-center justify-center rounded-md border border-dashed border-border px-3 py-6 text-center text-[12px] leading-5 text-muted">
-                    No tasks here yet
+                    {locale === "vi" ? "Chưa có công việc ở đây" : "No tasks here yet"}
                   </div>
                 )}
               </StaticTaskColumn>
@@ -1373,11 +1437,12 @@ export function KanbanBoard({
                       onOpenTask={workspaceUi?.openTask}
                       onOpenStatusUpdate={workspaceUi?.openStatusUpdate}
                       task={task}
+                      locale={locale}
                     />
                   ))
                 ) : (
                   <div className="flex flex-1 items-center justify-center rounded-md border border-dashed border-border px-3 py-6 text-center text-[12px] leading-5 text-muted">
-                    Drop a task here
+                    {locale === "vi" ? "Thả công việc vào đây" : "Drop a task here"}
                   </div>
                 )}
               </SortableTaskColumn>
@@ -1390,7 +1455,9 @@ export function KanbanBoard({
             easing: "cubic-bezier(0.22, 1, 0.36, 1)",
           }}
         >
-          {activeTask ? <TaskCardSurface task={activeTask} isDragging /> : null}
+          {activeTask ? (
+            <TaskCardSurface task={activeTask} isDragging locale={locale} />
+          ) : null}
         </DragOverlay>
       </DndContext>
     </div>

@@ -5,17 +5,21 @@ import { createPortal, useFormStatus } from "react-dom";
 import { GitBranch, CircleNotch, Plus, X } from "@phosphor-icons/react";
 
 import { createBranchAction } from "@/lib/actions";
+import type { Locale } from "@/lib/i18n";
+import { useLocale } from "@/lib/use-locale";
 
 function ModalShell({
   title,
   description,
   children,
   onClose,
+  locale,
 }: {
   title: string;
   description: string;
   children: React.ReactNode;
   onClose: () => void;
+  locale: Locale;
 }) {
   // Portal to <body> so the .ui-header banner's scoped CSS vars don't wash out
   // the modal (same reason as CreateProjectModal).
@@ -30,7 +34,7 @@ function ModalShell({
     <div className="fixed inset-0 z-50 p-4 sm:p-6">
       <button
         type="button"
-        aria-label="Close modal"
+        aria-label={locale === "vi" ? "Đóng modal" : "Close modal"}
         onClick={onClose}
         className="ui-modal-backdrop absolute inset-0 bg-[rgba(10,10,10,0.44)] backdrop-blur-xs"
       />
@@ -39,7 +43,7 @@ function ModalShell({
           <div className="mb-5 flex items-start justify-between gap-4">
             <div className="space-y-2">
               <p className="font-mono text-[11px] font-medium uppercase tracking-[0.04em] text-muted">
-                Branches modal
+                {locale === "vi" ? "Modal nhánh" : "Branches modal"}
               </p>
               <div>
                 <h3 className="text-[1.2rem] font-medium tracking-[-0.022em] text-foreground">
@@ -56,7 +60,9 @@ function ModalShell({
               className="inline-flex size-9 items-center justify-center rounded-md border border-border bg-surface text-muted transition hover:border-border-strong hover:bg-surface-strong hover:text-foreground"
             >
               <X className="size-4" />
-              <span className="sr-only">Close modal</span>
+              <span className="sr-only">
+                {locale === "vi" ? "Đóng modal" : "Close modal"}
+              </span>
             </button>
           </div>
           {children}
@@ -67,7 +73,7 @@ function ModalShell({
   );
 }
 
-function SubmitButton() {
+function SubmitButton({ locale }: { locale: Locale }) {
   const { pending } = useFormStatus();
   return (
     <button
@@ -76,12 +82,15 @@ function SubmitButton() {
       className="ui-button-primary mt-2 w-full px-4 disabled:cursor-not-allowed disabled:opacity-60"
     >
       {pending ? <CircleNotch className="size-4 animate-spin" /> : null}
-      {pending ? "Creating branch..." : "Create branch"}
+      {pending
+        ? locale === "vi" ? "Đang tạo nhánh..." : "Creating branch..."
+        : locale === "vi" ? "Tạo nhánh" : "Create branch"}
     </button>
   );
 }
 
 export function CreateBranchModal({ projectId }: { projectId: string }) {
+  const locale = useLocale();
   const [isOpen, setIsOpen] = useState(false);
 
   return (
@@ -92,20 +101,25 @@ export function CreateBranchModal({ projectId }: { projectId: string }) {
         className="ui-button-primary"
       >
         <Plus className="size-4" />
-        New branch
+        {locale === "vi" ? "Nhánh mới" : "New branch"}
       </button>
 
       {isOpen ? (
         <ModalShell
           onClose={() => setIsOpen(false)}
-          title="Create branch"
-          description="A branch is a separate workstream for a feature — it starts empty. Add tasks and requirements to it, or move existing ones over from another branch."
+          locale={locale}
+          title={locale === "vi" ? "Tạo nhánh" : "Create branch"}
+          description={
+            locale === "vi"
+              ? "Nhánh là một luồng công việc riêng cho một tính năng và bắt đầu trống. Thêm công việc/yêu cầu vào đây hoặc chuyển từ nhánh khác sang."
+              : "A branch is a separate workstream for a feature - it starts empty. Add tasks and requirements to it, or move existing ones over from another branch."
+          }
         >
           <form action={createBranchAction} className="grid gap-4">
             <input type="hidden" name="projectId" value={projectId} />
             <label className="grid gap-2">
               <span className="text-sm font-medium text-foreground">
-                Branch name
+                {locale === "vi" ? "Tên nhánh" : "Branch name"}
               </span>
               <div className="relative">
                 <GitBranch className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted" />
@@ -122,18 +136,24 @@ export function CreateBranchModal({ projectId }: { projectId: string }) {
             </label>
             <label className="grid gap-2">
               <span className="text-sm font-medium text-foreground">
-                Description{" "}
-                <span className="font-normal text-muted">(optional)</span>
+                {locale === "vi" ? "Mô tả" : "Description"}{" "}
+                <span className="font-normal text-muted">
+                  ({locale === "vi" ? "không bắt buộc" : "optional"})
+                </span>
               </span>
               <textarea
                 name="description"
                 rows={3}
                 maxLength={500}
                 className="ui-textarea"
-                placeholder="What this branch is for."
+                placeholder={
+                  locale === "vi"
+                    ? "Nhánh này dùng để làm gì."
+                    : "What this branch is for."
+                }
               />
             </label>
-            <SubmitButton />
+            <SubmitButton locale={locale} />
           </form>
         </ModalShell>
       ) : null}

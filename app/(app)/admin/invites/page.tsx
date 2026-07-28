@@ -6,9 +6,11 @@ import { InviteForm } from "@/components/admin/invite-form";
 import { requireRole } from "@/lib/auth-server";
 import { getDb } from "@/lib/db";
 import { invitations } from "@/lib/db/schema";
+import { getRequestLocale } from "@/lib/i18n-server";
 
 export default async function AdminInvitesPage() {
   await requireRole(["owner", "admin"]);
+  const locale = await getRequestLocale();
 
   const db = getDb();
   const rows = await db
@@ -45,14 +47,15 @@ export default async function AdminInvitesPage() {
     <div className="space-y-6">
       <section className="ui-panel ui-header p-5 sm:p-6">
         <p className="font-mono text-[11px] uppercase tracking-[0.04em] text-muted">
-          Admin
+          {locale === "vi" ? "Quản trị" : "Admin"}
         </p>
         <h1 className="mt-2 text-[24px] font-medium tracking-[-0.022em] text-foreground">
-          Invitations
+          {locale === "vi" ? "Lời mời" : "Invitations"}
         </h1>
         <p className="mt-1 max-w-prose text-[13px] leading-6 text-muted">
-          Issue a tokenized link, then forward it to your colleague through any
-          channel. They open the link to set a password and join.
+          {locale === "vi"
+            ? "Tạo một liên kết mời, rồi gửi cho đồng nghiệp qua bất kỳ kênh nào. Họ mở liên kết để đặt mật khẩu và tham gia."
+            : "Issue a tokenized link, then forward it to your colleague through any channel. They open the link to set a password and join."}
         </p>
       </section>
 

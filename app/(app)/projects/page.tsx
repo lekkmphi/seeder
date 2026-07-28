@@ -5,6 +5,8 @@ import { CreateProjectModal } from "@/components/projects/create-project-modal";
 import { ProjectIndexList } from "@/components/projects/project-index-list";
 import { requireViewer } from "@/lib/auth-server";
 import { getProjectsDashboardForViewer } from "@/lib/data";
+import { t } from "@/lib/i18n";
+import { getRequestLocale } from "@/lib/i18n-server";
 import { listSpaces } from "@/lib/services/spaces";
 import { cn, withSearchParams } from "@/lib/utils";
 
@@ -106,7 +108,10 @@ export default async function ProjectsPage({
   const view = toSingleParam(resolvedSearchParams.view) === "archived"
     ? "archived"
     : "open";
-  const dashboard = await getProjectsDashboardForViewer(viewer, view);
+  const [dashboard, locale] = await Promise.all([
+    getProjectsDashboardForViewer(viewer, view),
+    getRequestLocale(),
+  ]);
   // Persisted space filter for the project index (set client-side by the list).
   const initialSpace = (await cookies()).get("seeder.projects.space")?.value;
   // Spaces the viewer may create a project in (their Personal + company spaces
@@ -133,19 +138,23 @@ export default async function ProjectsPage({
         <SectionFrame className="ui-header">
           <div className="flex flex-wrap items-start justify-between gap-5">
             <div className="max-w-3xl space-y-3">
-              <p className="font-mono text-[11px] uppercase tracking-[0.04em] text-muted">Projects</p>
+              <p className="font-mono text-[11px] uppercase tracking-[0.04em] text-muted">
+                {t(locale, "projects")}
+              </p>
               <h1 className="text-3xl font-medium tracking-tighter text-foreground sm:text-[40px]">
-                {view === "archived" ? "Archived workspaces" : "Project index"}
+                {view === "archived" ? t(locale, "archivedWorkspaces") : t(locale, "projectIndex")}
               </h1>
               <p className="max-w-2xl text-[13px] leading-6 text-muted sm:text-[15px]">
                 {view === "archived"
-                  ? "Keep archived work out of the main list, but close enough to restore when needed."
-                  : "Open active work fast, keep archived work separate, and avoid turning this page into a metrics wall."}
+                  ? t(locale, "archivedWorkspacesDescription")
+                  : locale === "vi"
+                    ? "Mở nhanh công việc đang chạy, tách riêng phần lưu trữ và giữ trang này gọn gàng."
+                    : "Open active work fast, keep archived work separate, and avoid turning this page into a metrics wall."}
               </p>
               <div className="flex flex-wrap gap-x-4 gap-y-1 font-mono text-[11px] uppercase tracking-[0.04em] text-muted">
-                <span>{dashboard.summary.totalProjects} open</span>
-                <span>{dashboard.archivedProjects.length} archived</span>
-                <span>{projectsNeedingAttention} need attention</span>
+                <span>{dashboard.summary.totalProjects} {t(locale, "open").toLowerCase()}</span>
+                <span>{dashboard.archivedProjects.length} {t(locale, "archived").toLowerCase()}</span>
+                <span>{projectsNeedingAttention} {t(locale, "needAttention")}</span>
                 <span>{viewer.email}</span>
               </div>
               <div className="flex flex-wrap gap-1.5">
@@ -158,7 +167,7 @@ export default async function ProjectsPage({
                       : "border-border bg-surface text-muted hover:border-border-strong hover:bg-surface-strong hover:text-foreground",
                   )}
                 >
-                  Open
+                  {t(locale, "open")}
                 </Link>
                 <Link
                   href={buildViewHref(currentPath, "archived")}
@@ -169,7 +178,7 @@ export default async function ProjectsPage({
                       : "border-border bg-surface text-muted hover:border-border-strong hover:bg-surface-strong hover:text-foreground",
                   )}
                 >
-                  Archived
+                  {t(locale, "archived")}
                 </Link>
               </div>
             </div>
@@ -187,32 +196,32 @@ export default async function ProjectsPage({
 
         <div className="grid gap-3 sm:grid-cols-2">
           <StatCard
-            label="Open"
+            label={t(locale, "open")}
             value={summary.tasksOpen.toString()}
             detail={
               view === "archived"
-                ? "Open tasks left in archived work."
-                : "Tasks still in an open status."
+                ? locale === "vi" ? "Công việc còn mở trong phần lưu trữ." : "Open tasks left in archived work."
+                : locale === "vi" ? "Công việc vẫn ở trạng thái đang mở." : "Tasks still in an open status."
             }
           />
           <StatCard
-            label="Finished"
+            label={t(locale, "finished")}
             value={summary.completedTasks.toString()}
             detail={
               view === "archived"
-                ? "Tasks completed inside archived workspaces."
-                : "Tasks completed across all open projects."
+                ? locale === "vi" ? "Công việc đã hoàn tất trong không gian lưu trữ." : "Tasks completed inside archived workspaces."
+                : locale === "vi" ? "Công việc đã hoàn tất trong mọi dự án đang mở." : "Tasks completed across all open projects."
             }
           />
         </div>
 
         <SectionFrame>
           <SectionHeader
-            title={view === "archived" ? "Archived workspaces" : "Your workspaces"}
+            title={view === "archived" ? t(locale, "archivedWorkspaces") : locale === "vi" ? "Không gian của bạn" : "Your workspaces"}
             description={
               view === "archived"
-                ? "Restore a workspace when it needs to return to the main list."
-                : "Open a project when you want to work. Keep the rest visible, but quiet."
+                ? locale === "vi" ? "Khôi phục không gian khi cần đưa lại vào danh sách chính." : "Restore a workspace when it needs to return to the main list."
+                : locale === "vi" ? "Mở dự án khi cần làm việc. Giữ phần còn lại vẫn thấy được nhưng gọn." : "Open a project when you want to work. Keep the rest visible, but quiet."
             }
           />
 
@@ -220,6 +229,7 @@ export default async function ProjectsPage({
             projects={dashboard.projects}
             view={view}
             initialSpace={initialSpace}
+            locale={locale}
           />
         </SectionFrame>
       </div>

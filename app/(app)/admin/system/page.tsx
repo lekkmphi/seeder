@@ -1,6 +1,7 @@
 import { SystemSettingsForm } from "@/components/admin/system/system-settings-form";
 import { PageHeader } from "@/components/app/page-header";
 import { requireRole } from "@/lib/auth-server";
+import { getRequestLocale } from "@/lib/i18n-server";
 import {
   brandingUrl,
   getSystemSettings,
@@ -11,14 +12,21 @@ export const dynamic = "force-dynamic";
 
 export default async function AdminSystemPage() {
   await requireRole(["owner", "admin"]);
-  const settings = await getSystemSettings();
+  const [settings, locale] = await Promise.all([
+    getSystemSettings(),
+    getRequestLocale(),
+  ]);
 
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="Admin · System"
-        title="System configuration"
-        description="Branding and appearance for the whole workspace — applied to every page, the sign-in screen, and shared client boards."
+        eyebrow={locale === "vi" ? "Quản trị · Hệ thống" : "Admin · System"}
+        title={locale === "vi" ? "Cấu hình hệ thống" : "System configuration"}
+        description={
+          locale === "vi"
+            ? "Thương hiệu và giao diện cho toàn bộ không gian làm việc, áp dụng cho mọi trang, màn hình đăng nhập và bảng khách hàng chia sẻ."
+            : "Branding and appearance for the whole workspace — applied to every page, the sign-in screen, and shared client boards."
+        }
       />
 
       <SystemSettingsForm

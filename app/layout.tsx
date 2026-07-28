@@ -11,6 +11,7 @@ import {
   getSystemSettings,
   safeAccentColor,
 } from "@/lib/system-settings";
+import { getRequestLocale } from "@/lib/i18n-server";
 import "./globals.css";
 
 const inter = Inter({
@@ -96,7 +97,10 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const settings = await getSystemSettings();
+  const [settings, locale] = await Promise.all([
+    getSystemSettings(),
+    getRequestLocale(),
+  ]);
   // Set the single accent base inline on <html>. Every other accent shade and
   // the sidebar palette derive from --brand via color-mix in globals.css, so one
   // validated hex re-tints the whole app in both themes — no FOUC (it's in the
@@ -107,7 +111,7 @@ export default async function RootLayout({
 
   return (
     <html
-      lang="en"
+      lang={locale}
       data-theme="light"
       suppressHydrationWarning
       style={accentStyle}

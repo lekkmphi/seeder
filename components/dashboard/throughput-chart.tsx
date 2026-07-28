@@ -12,10 +12,12 @@ import {
 } from "recharts";
 
 import type { DashboardData } from "@/lib/data";
+import { useLocale } from "@/lib/use-locale";
 
 const GRADIENT_ID = "throughput-area-gradient";
 
 export function ThroughputChart({ data }: { data: DashboardData["throughput"] }) {
+  const locale = useLocale();
   const shippedTotal = data.reduce((sum, day) => sum + day.shippedCount, 0);
   const subtasksTotal = data.reduce((sum, day) => sum + day.subtasksCompleted, 0);
 
@@ -25,9 +27,13 @@ export function ThroughputChart({ data }: { data: DashboardData["throughput"] })
         <div className="mx-auto inline-flex size-10 items-center justify-center rounded-md border border-border bg-background text-muted">
           <TrendUp className="size-5" />
         </div>
-        <p className="mt-3 text-[13px] font-medium text-foreground">No throughput yet</p>
+        <p className="mt-3 text-[13px] font-medium text-foreground">
+          {locale === "vi" ? "Chưa có thông lượng" : "No throughput yet"}
+        </p>
         <p className="mx-auto mt-1 max-w-sm text-[13px] leading-6 text-muted">
-          No client updates published or subtasks completed in the last 84 days. Publish an update or tick a subtask to start your log.
+          {locale === "vi"
+            ? "Chưa có cập nhật khách hàng hoặc việc con hoàn tất trong 84 ngày qua. Đăng cập nhật hoặc đánh dấu việc con để bắt đầu ghi nhận."
+            : "No client updates published or subtasks completed in the last 84 days. Publish an update or tick a subtask to start your log."}
         </p>
       </div>
     );
@@ -38,7 +44,7 @@ export function ThroughputChart({ data }: { data: DashboardData["throughput"] })
       <div className="flex items-center gap-4 font-mono text-[11px] uppercase tracking-[0.04em] text-muted">
         <span className="inline-flex items-center gap-1.5">
           <span className="size-2 rounded-sm" style={{ backgroundColor: "var(--accent)" }} />
-          Shipped
+          {locale === "vi" ? "Đã phát hành" : "Shipped"}
         </span>
         <span className="inline-flex items-center gap-1.5">
           <span
@@ -47,7 +53,7 @@ export function ThroughputChart({ data }: { data: DashboardData["throughput"] })
               borderTop: "1.5px dashed var(--muted)",
             }}
           />
-          Subtasks
+          {locale === "vi" ? "Việc con" : "Subtasks"}
         </span>
       </div>
       <div className="h-44">
@@ -81,7 +87,10 @@ export function ThroughputChart({ data }: { data: DashboardData["throughput"] })
               labelStyle={{ color: "var(--foreground)", fontWeight: 500 }}
               itemStyle={{ color: "var(--foreground)" }}
               formatter={(value: number, name) => {
-                const noun = name === "Shipped" ? "shipped" : "subtasks";
+                const noun =
+                  locale === "vi"
+                    ? name === "Shipped" ? "đã phát hành" : "việc con"
+                    : name === "Shipped" ? "shipped" : "subtasks";
                 return [`${value} ${noun}`, ""];
               }}
             />

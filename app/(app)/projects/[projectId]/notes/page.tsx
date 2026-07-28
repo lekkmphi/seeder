@@ -7,6 +7,7 @@ import { ProjectWorkspaceClientShell } from "@/components/projects/project-works
 import { requireViewer } from "@/lib/auth-server";
 import { getProjectWorkspace } from "@/lib/data";
 import { branchPath } from "@/lib/branch-path";
+import { getRequestLocale } from "@/lib/i18n-server";
 
 type ProjectNotesPageProps = {
   params: Promise<{ projectId: string }>;
@@ -18,6 +19,7 @@ export default async function ProjectNotesPage({
   searchParams,
 }: ProjectNotesPageProps) {
   const viewer = await requireViewer();
+  const locale = await getRequestLocale();
   const { projectId } = await params;
   const { branch } = await searchParams;
   const workspace = await getProjectWorkspace(projectId, viewer, branch);
@@ -41,6 +43,7 @@ export default async function ProjectNotesPage({
       <ProjectNotesSurface
         workspace={workspace}
         currentPath={currentPath}
+        locale={locale}
         expanded
       />
     </ProjectWorkspaceClientShell>

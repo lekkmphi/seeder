@@ -21,6 +21,7 @@ import {
 import { ProjectSlugForm } from "@/components/projects/project-slug-form";
 import { formatRequestCode, formatTaskCode } from "@/lib/codes";
 import { formatProjectStatus } from "@/lib/project-status";
+import { t, type Locale } from "@/lib/i18n";
 import { parseRichText, richTextToPlainText } from "@/lib/rich-text";
 import { ProjectWorkspaceModalTrigger } from "@/components/projects/project-workspace-ui";
 import {
@@ -53,8 +54,30 @@ const badgeClassNames = {
   high: "border-danger/30 bg-danger/10 text-danger",
 } as const;
 
-function formatDateLabel(value: Date | null) {
-  return formatDate(value, "No deadline");
+function priorityLabel(value: "low" | "medium" | "high", locale: Locale) {
+  const labels = {
+    low: locale === "vi" ? "Thấp" : "Low",
+    medium: locale === "vi" ? "Trung bình" : "Medium",
+    high: locale === "vi" ? "Cao" : "High",
+  };
+  return labels[value];
+}
+
+function requestStatusLabel(
+  value: "new" | "reviewed" | "converted" | "closed",
+  locale: Locale,
+) {
+  const labels = {
+    new: locale === "vi" ? "Mới" : "New",
+    reviewed: locale === "vi" ? "Đã rà soát" : "Reviewed",
+    converted: locale === "vi" ? "Đã chuyển" : "Converted",
+    closed: locale === "vi" ? "Đã đóng" : "Closed",
+  };
+  return labels[value];
+}
+
+function formatDateLabel(value: Date | null, locale: Locale) {
+  return formatDate(value, locale === "vi" ? "Không có hạn chót" : "No deadline");
 }
 
 function countTasksByStatus(workspace: ProjectWorkspace) {
@@ -125,23 +148,25 @@ function SectionHeader({
 
 export function ProjectMetricsStrip({
   workspace,
+  locale,
 }: {
   workspace: ProjectWorkspace;
+  locale: Locale;
 }) {
   const taskCounts = countTasksByStatus(workspace);
   const metrics = [
     {
-      label: "Inbox requests",
+      label: locale === "vi" ? "Yêu cầu trong hộp vào" : "Inbox requests",
       value: countRequestsInInbox(workspace),
       tone: "text-accent-strong",
     },
     {
-      label: "Open",
+      label: t(locale, "open"),
       value: taskCounts.open,
       tone: "text-foreground",
     },
     {
-      label: "Done",
+      label: t(locale, "done"),
       value: taskCounts.done,
       tone: "text-foreground",
     },
@@ -169,10 +194,12 @@ export function ProjectBoardSurface({
   // Overview renders a compact preview (top cards + "Show more" → full board);
   // the Board tab renders the full, draggable, filterable board.
   preview = false,
+  locale,
 }: {
   workspace: ProjectWorkspace;
   currentPath: string;
   preview?: boolean;
+  locale: Locale;
 }) {
   const boardKey = workspace.tasks
     .map(
@@ -190,18 +217,22 @@ export function ProjectBoardSurface({
   return (
     <SectionFrame>
       <SectionHeader
-        eyebrow="Board"
-        title="Execution board"
+        eyebrow={locale === "vi" ? "Bảng việc" : "Board"}
+        title={locale === "vi" ? "Bảng thực thi" : "Execution board"}
         description={
           preview
-            ? "The top of the board at a glance. Open the board tab for the full, filterable surface."
-            : "Keep the board visible as the operating surface. Open tasks in modals when you need to adjust details."
+            ? locale === "vi"
+              ? "Xem nhanh phần đầu bảng. Mở tab bảng việc để dùng đầy đủ bộ lọc."
+              : "The top of the board at a glance. Open the board tab for the full, filterable surface."
+            : locale === "vi"
+              ? "Giữ bảng việc làm bề mặt vận hành. Mở công việc trong modal khi cần chỉnh chi tiết."
+              : "Keep the board visible as the operating surface. Open tasks in modals when you need to adjust details."
         }
         action={
           <div className="flex flex-wrap gap-2">
             {preview ? (
               <Link href={boardPath} className="ui-button-secondary">
-                Open board
+                {locale === "vi" ? "Mở bảng việc" : "Open board"}
               </Link>
             ) : null}
             <ProjectWorkspaceModalTrigger
@@ -209,7 +240,7 @@ export function ProjectBoardSurface({
               className="ui-button-primary"
             >
               <Plus className="size-4" />
-              New task
+              {locale === "vi" ? "Công việc mới" : "New task"}
             </ProjectWorkspaceModalTrigger>
           </div>
         }
@@ -224,6 +255,7 @@ export function ProjectBoardSurface({
         previewLimit={preview ? 5 : undefined}
         showMoreHref={preview ? boardPath : undefined}
         compactCards={preview}
+        locale={locale}
         allLabels={workspace.labels.map((label) => ({
           id: label.id,
           name: label.name,
@@ -259,10 +291,12 @@ export function ProjectNotesSurface({
   workspace,
   currentPath,
   expanded = false,
+  locale,
 }: {
   workspace: ProjectWorkspace;
   currentPath: string;
   expanded?: boolean;
+  locale: Locale;
 }) {
   const notes = workspace.notes.map((note) => ({
     id: note.id,
@@ -274,9 +308,13 @@ export function ProjectNotesSurface({
   return (
     <SectionFrame className={expanded ? "" : "h-full"}>
       <SectionHeader
-        eyebrow="Notes"
-        title="Running context"
-        description="Keep decisions, client tone, blockers, and next-review notes here. Add as many dated notes as you need."
+        eyebrow={locale === "vi" ? "Ghi chú" : "Notes"}
+        title={locale === "vi" ? "Bối cảnh đang chạy" : "Running context"}
+        description={
+          locale === "vi"
+            ? "Lưu quyết định, sắc thái khách hàng, điểm nghẽn và ghi chú cho lần rà soát tiếp theo tại đây."
+            : "Keep decisions, client tone, blockers, and next-review notes here. Add as many dated notes as you need."
+        }
       />
       <ProjectNotesPanel
         projectId={workspace.project.id}
@@ -291,8 +329,10 @@ export function ProjectNotesSurface({
 
 export function ProjectRequestsSurface({
   workspace,
+  locale,
 }: {
   workspace: ProjectWorkspace;
+  locale: Locale;
 }) {
   // Index the linked task per request once (O(tasks)) instead of scanning the
   // full task list inside the requests loop (O(requests × tasks)) — that
@@ -310,16 +350,20 @@ export function ProjectRequestsSurface({
   return (
     <SectionFrame>
       <SectionHeader
-        eyebrow="Requests"
-        title="Client request inbox"
-        description="Keep incoming work separate from execution. Review the request, then convert it into a task when it is ready."
+        eyebrow={locale === "vi" ? "Yêu cầu" : "Requests"}
+        title={locale === "vi" ? "Hộp yêu cầu khách hàng" : "Client request inbox"}
+        description={
+          locale === "vi"
+            ? "Tách việc mới gửi khỏi phần thực thi. Rà soát yêu cầu rồi chuyển thành công việc khi đã sẵn sàng."
+            : "Keep incoming work separate from execution. Review the request, then convert it into a task when it is ready."
+        }
         action={
           <ProjectWorkspaceModalTrigger
             modal="new-request"
             className="ui-button-primary"
           >
             <Plus className="size-4" />
-            New request
+            {locale === "vi" ? "Yêu cầu mới" : "New request"}
           </ProjectWorkspaceModalTrigger>
         }
       />
@@ -349,7 +393,7 @@ export function ProjectRequestsSurface({
                         badgeClassNames[request.status],
                       )}
                     >
-                      {request.status}
+                      {requestStatusLabel(request.status, locale)}
                     </span>
                     <span
                       className={cn(
@@ -357,7 +401,7 @@ export function ProjectRequestsSurface({
                         badgeClassNames[request.priority],
                       )}
                     >
-                      {request.priority}
+                      {priorityLabel(request.priority, locale)}
                     </span>
                   </div>
                   <div>
@@ -371,7 +415,7 @@ export function ProjectRequestsSurface({
                     </h3>
                     <p className="mt-2 line-clamp-4 text-sm leading-6 text-muted">
                       {richTextToPlainText(parseRichText(request.description)) ||
-                        "No additional context yet."}
+                        (locale === "vi" ? "Chưa có bối cảnh bổ sung." : "No additional context yet.")}
                     </p>
                   </div>
                 </div>
@@ -381,7 +425,9 @@ export function ProjectRequestsSurface({
                   className="inline-flex size-9 items-center justify-center rounded-md border border-border bg-background text-muted transition hover:border-border-strong hover:bg-surface-strong hover:text-foreground"
                 >
                   <ArrowSquareOut className="size-4" />
-                  <span className="sr-only">Open request</span>
+                  <span className="sr-only">
+                    {locale === "vi" ? "Mở yêu cầu" : "Open request"}
+                  </span>
                 </ProjectWorkspaceModalTrigger>
               </div>
               {linkedTaskCode ? (
@@ -398,9 +444,13 @@ export function ProjectRequestsSurface({
           <div className="mx-auto inline-flex size-10 items-center justify-center rounded-md border border-border bg-background text-muted">
             <ChatCircleText className="size-5" />
           </div>
-          <p className="mt-3 text-[13px] font-medium text-foreground">Inbox is empty</p>
+          <p className="mt-3 text-[13px] font-medium text-foreground">
+            {locale === "vi" ? "Hộp vào đang trống" : "Inbox is empty"}
+          </p>
           <p className="mt-1 text-[13px] leading-6 text-muted">
-            Capture incoming asks here, then convert them into tasks once the work is ready to move.
+            {locale === "vi"
+              ? "Ghi nhận yêu cầu mới ở đây, rồi chuyển thành công việc khi đã sẵn sàng triển khai."
+              : "Capture incoming asks here, then convert them into tasks once the work is ready to move."}
           </p>
         </div>
       )}
@@ -411,9 +461,11 @@ export function ProjectRequestsSurface({
 export function ProjectSettingsSurface({
   workspace,
   currentPath,
+  locale,
 }: {
   workspace: ProjectWorkspace;
   currentPath: string;
+  locale: Locale;
 }) {
   const isArchived = Boolean(workspace.project.archivedAt);
   const shareEnabled = workspace.project.clientShareEnabled;
@@ -425,31 +477,39 @@ export function ProjectSettingsSurface({
       : clientBoardPath;
   const stats = [
     {
-      label: "Status",
-      value: formatProjectStatus(workspace.project.status),
+      label: locale === "vi" ? "Trạng thái" : "Status",
+      value: formatProjectStatus(workspace.project.status, locale),
     },
     {
-      label: "Client",
-      value: workspace.project.clientName || "No client assigned",
+      label: t(locale, "client"),
+      value:
+        workspace.project.clientName ||
+        (locale === "vi" ? "Chưa gán khách hàng" : "No client assigned"),
     },
     {
-      label: "Deadline",
-      value: formatDateLabel(workspace.project.deadline),
+      label: t(locale, "deadline"),
+      value: formatDateLabel(workspace.project.deadline, locale),
     },
     {
-      label: "Summary",
+      label: locale === "vi" ? "Tóm tắt" : "Summary",
       value:
         workspace.project.summary ||
-        "No project summary yet. Use the project modal to define the scope.",
+        (locale === "vi"
+          ? "Chưa có tóm tắt dự án. Dùng modal dự án để xác định phạm vi."
+          : "No project summary yet. Use the project modal to define the scope."),
     },
   ];
 
   return (
     <SettingsSearch>
       <SettingsSection
-        eyebrow="Settings"
-        title="Project configuration"
-        description="Keep core project metadata separate from the execution surface."
+        eyebrow={t(locale, "settings")}
+        title={locale === "vi" ? "Cấu hình dự án" : "Project configuration"}
+        description={
+          locale === "vi"
+            ? "Tách metadata cốt lõi của dự án khỏi bề mặt thực thi."
+            : "Keep core project metadata separate from the execution surface."
+        }
         keywords="edit details metadata name status client deadline summary"
         action={
           <ProjectWorkspaceModalTrigger
@@ -457,7 +517,7 @@ export function ProjectSettingsSurface({
             className="ui-button-secondary"
           >
             <SlidersHorizontal className="size-4" />
-            Edit project
+            {locale === "vi" ? "Sửa dự án" : "Edit project"}
           </ProjectWorkspaceModalTrigger>
         }
       >
@@ -477,9 +537,13 @@ export function ProjectSettingsSurface({
       </SettingsSection>
 
       <SettingsSection
-        eyebrow="Identity"
-        title="Project key"
-        description="Short code that prefixes every task (LFMS-50) and client request (LFMS-CR-3). Auto-derived at creation; rename with care."
+        eyebrow={locale === "vi" ? "Định danh" : "Identity"}
+        title={locale === "vi" ? "Mã dự án" : "Project key"}
+        description={
+          locale === "vi"
+            ? "Mã ngắn đứng trước mỗi công việc (LFMS-50) và yêu cầu khách hàng (LFMS-CR-3). Tự sinh khi tạo; đổi tên cẩn thận."
+            : "Short code that prefixes every task (LFMS-50) and client request (LFMS-CR-3). Auto-derived at creation; rename with care."
+        }
         keywords="slug code prefix url"
       >
         <ProjectSlugForm
@@ -490,9 +554,13 @@ export function ProjectSettingsSurface({
       </SettingsSection>
 
       <SettingsSection
-        eyebrow="Branding"
-        title="Project color"
-        description="Picks a soft tint for this project across the sidebar, search, and projects list. Leave empty for neutral."
+        eyebrow={locale === "vi" ? "Thương hiệu" : "Branding"}
+        title={locale === "vi" ? "Màu dự án" : "Project color"}
+        description={
+          locale === "vi"
+            ? "Chọn sắc màu nhẹ cho dự án trong sidebar, tìm kiếm và danh sách dự án. Để trống nếu muốn trung tính."
+            : "Picks a soft tint for this project across the sidebar, search, and projects list. Leave empty for neutral."
+        }
         keywords="accent tint theme swatch branding"
       >
         <ProjectColorPicker
@@ -503,9 +571,13 @@ export function ProjectSettingsSurface({
       </SettingsSection>
 
       <SettingsSection
-        eyebrow="Board"
-        title="Task statuses"
-        description="The columns on your board. Add custom statuses, recolor them, reorder left-to-right, and mark which one new tasks start in and which counts as Done. Deleting requires zero tasks in the column."
+        eyebrow={locale === "vi" ? "Bảng việc" : "Board"}
+        title={locale === "vi" ? "Trạng thái công việc" : "Task statuses"}
+        description={
+          locale === "vi"
+            ? "Các cột trên bảng. Thêm trạng thái tùy chỉnh, đổi màu, sắp xếp trái sang phải, đặt cột bắt đầu và cột được tính là hoàn tất."
+            : "The columns on your board. Add custom statuses, recolor them, reorder left-to-right, and mark which one new tasks start in and which counts as Done. Deleting requires zero tasks in the column."
+        }
         keywords="status statuses column columns board kanban workflow stage in review done terminal"
       >
         <StatusManager
@@ -525,9 +597,13 @@ export function ProjectSettingsSurface({
       </SettingsSection>
 
       <SettingsSection
-        eyebrow="Taxonomy"
-        title="Task categories"
-        description="Reusable labels and card tints. Rename or recolor anywhere and every linked task picks it up. Deleting requires zero linked tasks."
+        eyebrow={locale === "vi" ? "Phân loại" : "Taxonomy"}
+        title={locale === "vi" ? "Danh mục công việc" : "Task categories"}
+        description={
+          locale === "vi"
+            ? "Nhãn và màu thẻ có thể tái sử dụng. Đổi tên hoặc đổi màu một nơi, mọi công việc liên kết sẽ cập nhật theo."
+            : "Reusable labels and card tints. Rename or recolor anywhere and every linked task picks it up. Deleting requires zero linked tasks."
+        }
         keywords="category categories tag tint color"
       >
         <CategoryManager
@@ -543,9 +619,13 @@ export function ProjectSettingsSurface({
       </SettingsSection>
 
       <SettingsSection
-        eyebrow="Taxonomy"
-        title="Task labels"
-        description="Multi-assign tags for tasks — a task can carry several. Independent of categories; assign them from the task modal. Deleting a label untags it everywhere."
+        eyebrow={locale === "vi" ? "Phân loại" : "Taxonomy"}
+        title={locale === "vi" ? "Nhãn công việc" : "Task labels"}
+        description={
+          locale === "vi"
+            ? "Tag gắn nhiều cho công việc. Độc lập với danh mục; gắn từ modal công việc. Xóa nhãn sẽ gỡ nhãn ở mọi nơi."
+            : "Multi-assign tags for tasks - a task can carry several. Independent of categories; assign them from the task modal. Deleting a label untags it everywhere."
+        }
         keywords="label labels tag tags"
       >
         <LabelManager
@@ -562,24 +642,29 @@ export function ProjectSettingsSurface({
       </SettingsSection>
 
       <SettingsSection
-        eyebrow="Actions"
-        title="Workspace actions"
-        description="Use these when the project needs to move out of the main list, spin into a copy, or leave the app entirely."
+        eyebrow={locale === "vi" ? "Thao tác" : "Actions"}
+        title={locale === "vi" ? "Thao tác không gian" : "Workspace actions"}
+        description={
+          locale === "vi"
+            ? "Dùng khi dự án cần rời danh sách chính, nhân bản thành bản sao hoặc xóa khỏi ứng dụng."
+            : "Use these when the project needs to move out of the main list, spin into a copy, or leave the app entirely."
+        }
         keywords="duplicate archive restore delete publish client board public link rotate make private danger"
       >
         <div className="grid gap-4 xl:grid-cols-2 2xl:grid-cols-4">
           <div className="flex h-full flex-col rounded-md border border-border bg-surface px-4 py-4">
             <p className="font-mono text-[11px] font-medium uppercase tracking-[0.04em] text-muted">
-              Client view
+              {locale === "vi" ? "Góc nhìn khách hàng" : "Client view"}
             </p>
             <h3 className="mt-3 text-[15px] font-medium tracking-[-0.011em] text-foreground">
-              Public board link
+              {locale === "vi" ? "Liên kết bảng công khai" : "Public board link"}
             </h3>
             {shareEnabled && clientBoardPath ? (
               <>
                 <p className="mt-2 text-sm leading-7 text-muted">
-                  Anyone with this link can view the board. Rotate it to revoke
-                  the current link.
+                  {locale === "vi"
+                    ? "Ai có liên kết này đều xem được bảng. Xoay liên kết để thu hồi liên kết hiện tại."
+                    : "Anyone with this link can view the board. Rotate it to revoke the current link."}
                 </p>
                 <p className="mt-2 break-all text-sm leading-7 text-muted">
                   {clientBoardUrl}
@@ -591,7 +676,7 @@ export function ProjectSettingsSurface({
                     rel="noreferrer"
                     className="ui-button-secondary w-full"
                   >
-                    Open client board
+                    {locale === "vi" ? "Mở bảng khách hàng" : "Open client board"}
                   </Link>
                   <div className="grid grid-cols-2 gap-2">
                     <form action={rotateClientShareTokenAction}>
@@ -605,7 +690,7 @@ export function ProjectSettingsSurface({
                         type="submit"
                         className="ui-button-secondary w-full"
                       >
-                        Rotate link
+                        {locale === "vi" ? "Xoay liên kết" : "Rotate link"}
                       </button>
                     </form>
                     <form action={disableClientShareAction}>
@@ -619,7 +704,7 @@ export function ProjectSettingsSurface({
                         type="submit"
                         className="ui-button-secondary w-full"
                       >
-                        Make private
+                        {locale === "vi" ? "Chuyển riêng tư" : "Make private"}
                       </button>
                     </form>
                   </div>
@@ -628,8 +713,9 @@ export function ProjectSettingsSurface({
             ) : (
               <>
                 <p className="mt-2 text-sm leading-7 text-muted">
-                  The board is private. Publish it to share a read-only link with
-                  your client.
+                  {locale === "vi"
+                    ? "Bảng đang riêng tư. Xuất bản để chia sẻ liên kết chỉ đọc với khách hàng."
+                    : "The board is private. Publish it to share a read-only link with your client."}
                 </p>
                 <form
                   action={enableClientShareAction}
@@ -642,7 +728,7 @@ export function ProjectSettingsSurface({
                   />
                   <input type="hidden" name="returnTo" value={currentPath} />
                   <button type="submit" className="ui-button-secondary w-full">
-                    Publish client board
+                    {locale === "vi" ? "Xuất bản bảng khách hàng" : "Publish client board"}
                   </button>
                 </form>
               </>
@@ -651,34 +737,41 @@ export function ProjectSettingsSurface({
 
           <div className="flex h-full flex-col rounded-md border border-border bg-surface px-4 py-4">
             <p className="font-mono text-[11px] font-medium uppercase tracking-[0.04em] text-muted">
-              Duplicate
+              {locale === "vi" ? "Nhân bản" : "Duplicate"}
             </p>
             <h3 className="mt-3 text-[15px] font-medium tracking-[-0.011em] text-foreground">
-              Duplicate workspace
+              {locale === "vi" ? "Nhân bản không gian" : "Duplicate workspace"}
             </h3>
             <p className="mt-2 text-sm leading-7 text-muted">
-              Copy this project, its tasks, its requests, and its notes into a new
-              workspace.
+              {locale === "vi"
+                ? "Sao chép dự án, công việc, yêu cầu và ghi chú sang một không gian mới."
+                : "Copy this project, its tasks, its requests, and its notes into a new workspace."}
             </p>
             <form action={duplicateProjectAction} className="mt-auto pt-5">
               <input type="hidden" name="projectId" value={workspace.project.id} />
               <button type="submit" className="ui-button-secondary w-full">
-                Duplicate workspace
+                {locale === "vi" ? "Nhân bản không gian" : "Duplicate workspace"}
               </button>
             </form>
           </div>
 
           <div className="flex h-full flex-col rounded-md border border-border bg-surface px-4 py-4">
             <p className="font-mono text-[11px] font-medium uppercase tracking-[0.04em] text-muted">
-              Visibility
+              {locale === "vi" ? "Hiển thị" : "Visibility"}
             </p>
             <h3 className="mt-3 text-[15px] font-medium tracking-[-0.011em] text-foreground">
-              {isArchived ? "Restore project" : "Archive project"}
+              {isArchived
+                ? locale === "vi" ? "Khôi phục dự án" : "Restore project"
+                : locale === "vi" ? "Lưu trữ dự án" : "Archive project"}
             </h3>
             <p className="mt-2 text-sm leading-7 text-muted">
               {isArchived
-                ? "Move it back into the main workspace list."
-                : "Hide it from the main list without deleting any work."}
+                ? locale === "vi"
+                  ? "Đưa dự án trở lại danh sách không gian chính."
+                  : "Move it back into the main workspace list."
+                : locale === "vi"
+                  ? "Ẩn khỏi danh sách chính mà không xóa công việc."
+                  : "Hide it from the main list without deleting any work."}
             </p>
             <form
               action={isArchived ? restoreProjectAction : archiveProjectAction}
@@ -691,26 +784,30 @@ export function ProjectSettingsSurface({
                 value={isArchived ? currentPath : "/projects?view=archived"}
               />
               <button type="submit" className="ui-button-secondary w-full">
-                {isArchived ? "Restore project" : "Archive project"}
+                {isArchived
+                  ? locale === "vi" ? "Khôi phục dự án" : "Restore project"
+                  : locale === "vi" ? "Lưu trữ dự án" : "Archive project"}
               </button>
             </form>
           </div>
 
           <div className="flex h-full flex-col rounded-md border border-danger/20 bg-danger/10 px-4 py-4">
             <p className="font-mono text-[11px] font-medium uppercase tracking-[0.04em] text-danger">
-              Danger
+              {locale === "vi" ? "Nguy hiểm" : "Danger"}
             </p>
             <h3 className="mt-3 text-[15px] font-medium tracking-[-0.011em] text-foreground">
-              Delete workspace
+              {locale === "vi" ? "Xóa không gian" : "Delete workspace"}
             </h3>
             <p className="mt-2 text-sm leading-7 text-muted">
-              Remove the project and all of its requests, tasks, notes, and activity.
+              {locale === "vi"
+                ? "Xóa dự án cùng toàn bộ yêu cầu, công việc, ghi chú và hoạt động."
+                : "Remove the project and all of its requests, tasks, notes, and activity."}
             </p>
             <ProjectWorkspaceModalTrigger
               modal="delete-project"
               className="ui-button-danger mt-auto w-full"
             >
-              Delete workspace
+              {locale === "vi" ? "Xóa không gian" : "Delete workspace"}
             </ProjectWorkspaceModalTrigger>
           </div>
         </div>
@@ -718,9 +815,13 @@ export function ProjectSettingsSurface({
 
       {shareEnabled ? (
         <SettingsSection
-          eyebrow="Client view"
-          title="Public view options"
-          description="Choose what clients see on the shared board link. Hidden sections never reach the public page."
+          eyebrow={locale === "vi" ? "Góc nhìn khách hàng" : "Client view"}
+          title={locale === "vi" ? "Tùy chọn hiển thị công khai" : "Public view options"}
+          description={
+            locale === "vi"
+              ? "Chọn nội dung khách hàng thấy trên liên kết chia sẻ. Phần bị ẩn sẽ không xuất hiện ở trang công khai."
+              : "Choose what clients see on the shared board link. Hidden sections never reach the public page."
+          }
           keywords="public view show hide board description commit changes toggle visibility client"
         >
           <form action={setClientShareVisibilityAction} className="space-y-3">
@@ -728,25 +829,37 @@ export function ProjectSettingsSurface({
             <input type="hidden" name="returnTo" value={currentPath} />
             <ClientVisibilityToggle
               name="showBoard"
-              title="Task board"
-              description="Show the whole task board. Hiding it leaves only the project summary and updates."
+              title={locale === "vi" ? "Bảng công việc" : "Task board"}
+              description={
+                locale === "vi"
+                  ? "Hiển thị toàn bộ bảng công việc. Nếu ẩn, khách chỉ thấy tóm tắt dự án và cập nhật."
+                  : "Show the whole task board. Hiding it leaves only the project summary and updates."
+              }
               defaultChecked={workspace.project.clientShareShowBoard}
             />
             <ClientVisibilityToggle
               name="showDescription"
-              title="Full task description"
-              description="Let clients open a task to read its full description. When hidden, cards are not clickable."
+              title={locale === "vi" ? "Mô tả công việc đầy đủ" : "Full task description"}
+              description={
+                locale === "vi"
+                  ? "Cho phép khách mở công việc để đọc mô tả đầy đủ. Khi ẩn, thẻ sẽ không bấm được."
+                  : "Let clients open a task to read its full description. When hidden, cards are not clickable."
+              }
               defaultChecked={workspace.project.clientShareShowDescription}
             />
             <ClientVisibilityToggle
               name="showCommits"
-              title="Commit changes"
-              description="Show the published status-update log (commit history) on the public page."
+              title={locale === "vi" ? "Thay đổi đã cam kết" : "Commit changes"}
+              description={
+                locale === "vi"
+                  ? "Hiển thị nhật ký cập nhật trạng thái đã xuất bản trên trang công khai."
+                  : "Show the published status-update log (commit history) on the public page."
+              }
               defaultChecked={workspace.project.clientShareShowCommits}
             />
             <div className="pt-1">
               <button type="submit" className="ui-button-secondary">
-                Save public view
+                {locale === "vi" ? "Lưu hiển thị công khai" : "Save public view"}
               </button>
             </div>
           </form>
@@ -789,25 +902,36 @@ function ClientVisibilityToggle({
 
 export function ProjectOverviewQuickLinks({
   projectId,
+  locale,
 }: {
   projectId: string;
+  locale: Locale;
 }) {
   const links = [
     {
-      label: "Requests",
-      description: "Review the inbox before work moves onto the board.",
+      label: locale === "vi" ? "Yêu cầu" : "Requests",
+      description:
+        locale === "vi"
+          ? "Rà soát hộp vào trước khi công việc đi vào bảng."
+          : "Review the inbox before work moves onto the board.",
       href: `/projects/${projectId}/requests`,
       icon: ChatCircleText,
     },
     {
-      label: "Board",
-      description: "Open the full board view when you want execution to take over the screen.",
+      label: locale === "vi" ? "Bảng việc" : "Board",
+      description:
+        locale === "vi"
+          ? "Mở bảng đầy đủ khi muốn dành toàn bộ màn hình cho thực thi."
+          : "Open the full board view when you want execution to take over the screen.",
       href: `/projects/${projectId}/board`,
       icon: Kanban,
     },
     {
-      label: "Notes",
-      description: "Use a dedicated note view when you need room to think and write.",
+      label: locale === "vi" ? "Ghi chú" : "Notes",
+      description:
+        locale === "vi"
+          ? "Dùng vùng ghi chú riêng khi cần không gian để nghĩ và viết."
+          : "Use a dedicated note view when you need room to think and write.",
       href: `/projects/${projectId}/notes`,
       icon: NotePencil,
     },

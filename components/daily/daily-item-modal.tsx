@@ -14,6 +14,7 @@ import { RichTextField } from "@/components/rich-text/rich-text-field";
 import { SearchSelect } from "@/components/ui/search-select";
 import type { SearchSelectOption } from "@/components/ui/search-select";
 import { formatFriendlyDate, parseDateKey } from "@/lib/daily";
+import { useLocale } from "@/lib/use-locale";
 import { cn } from "@/lib/utils";
 
 export type PlannerProject = {
@@ -50,17 +51,16 @@ type ModalProps = {
   onClose: () => void;
 };
 
-const STATUS_OPTIONS = [
-  { value: "todo", label: "Todo" },
-  { value: "doing", label: "Doing" },
-  { value: "done", label: "Done" },
-];
-
-const PRIORITY_OPTIONS = [
-  { value: "low", label: "Low" },
-  { value: "medium", label: "Medium" },
-  { value: "high", label: "High" },
-];
+function formatModalDate(value: Date, locale: "vi" | "en") {
+  if (locale === "vi") {
+    return value.toLocaleDateString("vi-VN", {
+      weekday: "short",
+      month: "numeric",
+      day: "numeric",
+    });
+  }
+  return formatFriendlyDate(value);
+}
 
 function SubmitButton({ label, pendingLabel }: { label: string; pendingLabel: string }) {
   const { pending } = useFormStatus();
@@ -108,6 +108,7 @@ function Segmented({
 }
 
 export function DailyItemModal({ mode, dateKey, projects, item, onClose }: ModalProps) {
+  const locale = useLocale();
   const isEdit = mode === "edit";
 
   // Create-only relationship state.
@@ -121,7 +122,7 @@ export function DailyItemModal({ mode, dateKey, projects, item, onClose }: Modal
   const [confirmingDelete, setConfirmingDelete] = useState(false);
 
   const dateForForm = item?.dateKey ?? dateKey;
-  const friendlyDate = formatFriendlyDate(parseDateKey(dateForForm));
+  const friendlyDate = formatModalDate(parseDateKey(dateForForm), locale);
 
   const projectOptions: SearchSelectOption[] = projects.map((project) => ({
     value: project.id,
@@ -154,7 +155,7 @@ export function DailyItemModal({ mode, dateKey, projects, item, onClose }: Modal
     <div className="fixed inset-0 z-50 p-4 sm:p-6">
       <button
         type="button"
-        aria-label="Close modal"
+        aria-label={locale === "vi" ? "Đóng modal" : "Close modal"}
         onClick={onClose}
         className="ui-modal-backdrop absolute inset-0 bg-[rgba(10,10,10,0.44)] backdrop-blur-xs"
       />
@@ -163,16 +164,22 @@ export function DailyItemModal({ mode, dateKey, projects, item, onClose }: Modal
           <div className="mb-5 flex items-start justify-between gap-4">
             <div className="space-y-2">
               <p className="font-mono text-[11px] font-medium uppercase tracking-[0.04em] text-muted">
-                Daily ops
+                {locale === "vi" ? "Vận hành ngày" : "Daily ops"}
               </p>
               <div>
                 <h3 className="text-[1.2rem] font-medium tracking-[-0.022em] text-foreground">
-                  {isEdit ? "Edit item" : "Add item"}
+                  {isEdit
+                    ? locale === "vi" ? "Sửa việc" : "Edit item"
+                    : locale === "vi" ? "Thêm việc" : "Add item"}
                 </h3>
                 <p className="mt-2 text-[13px] leading-6 text-muted">
                   {isEdit
-                    ? "Update this planned item. Linked board cards stay independent."
-                    : `Plan a task on ${friendlyDate}. Bind it to a project board if it should also live on the Execution Board.`}
+                    ? locale === "vi"
+                      ? "Cập nhật việc đã lên kế hoạch. Thẻ bảng liên kết vẫn độc lập."
+                      : "Update this planned item. Linked board cards stay independent."
+                    : locale === "vi"
+                      ? `Lên kế hoạch một việc vào ${friendlyDate}. Gắn với bảng dự án nếu việc này cũng cần nằm trên Bảng thực thi.`
+                      : `Plan a task on ${friendlyDate}. Bind it to a project board if it should also live on the Execution Board.`}
                 </p>
               </div>
             </div>
@@ -182,7 +189,7 @@ export function DailyItemModal({ mode, dateKey, projects, item, onClose }: Modal
               className="inline-flex size-9 items-center justify-center rounded-md border border-border bg-surface text-muted transition hover:border-border-strong hover:bg-surface-strong hover:text-foreground"
             >
               <X className="size-4" />
-              <span className="sr-only">Close modal</span>
+              <span className="sr-only">{locale === "vi" ? "Đóng modal" : "Close modal"}</span>
             </button>
           </div>
 
@@ -192,29 +199,35 @@ export function DailyItemModal({ mode, dateKey, projects, item, onClose }: Modal
             ) : null}
 
             <label className="grid gap-2">
-              <span className="text-sm font-medium text-foreground">Title</span>
+              <span className="text-sm font-medium text-foreground">
+                {locale === "vi" ? "Tiêu đề" : "Title"}
+              </span>
               <input
                 name="title"
                 required
                 defaultValue={item?.title ?? ""}
                 className="ui-input"
-                placeholder="Finalize the Amway slides"
+                placeholder={locale === "vi" ? "Hoàn tất slide Amway" : "Finalize the Amway slides"}
                 autoFocus
               />
             </label>
 
             <div className="grid gap-2">
-              <span className="text-sm font-medium text-foreground">Description</span>
+              <span className="text-sm font-medium text-foreground">
+                {locale === "vi" ? "Mô tả" : "Description"}
+              </span>
               <RichTextField
                 name="description"
                 defaultValue={item?.description ?? null}
-                placeholder="Optional notes or context."
-                ariaLabel="Daily item description"
+                placeholder={locale === "vi" ? "Ghi chú hoặc ngữ cảnh tùy chọn." : "Optional notes or context."}
+                ariaLabel={locale === "vi" ? "Mô tả việc hằng ngày" : "Daily item description"}
               />
             </div>
 
             <label className="grid gap-2">
-              <span className="text-sm font-medium text-foreground">Date</span>
+              <span className="text-sm font-medium text-foreground">
+                {locale === "vi" ? "Ngày" : "Date"}
+              </span>
               <input
                 type="date"
                 name="plannedDate"
@@ -227,11 +240,13 @@ export function DailyItemModal({ mode, dateKey, projects, item, onClose }: Modal
             {!isEdit ? (
               <div className="grid gap-3 rounded-md border border-border bg-surface/60 p-3">
                 <div className="flex items-center justify-between gap-3">
-                  <span className="text-sm font-medium text-foreground">Type</span>
+                  <span className="text-sm font-medium text-foreground">
+                    {locale === "vi" ? "Loại" : "Type"}
+                  </span>
                   <Segmented
                     options={[
-                      { value: "adhoc", label: "Adhoc" },
-                      { value: "project", label: "Project" },
+                      { value: "adhoc", label: locale === "vi" ? "Việc lẻ" : "Adhoc" },
+                      { value: "project", label: locale === "vi" ? "Dự án" : "Project" },
                     ]}
                     value={kind}
                     onChange={(value) => setKind(value as "adhoc" | "project")}
@@ -243,7 +258,7 @@ export function DailyItemModal({ mode, dateKey, projects, item, onClose }: Modal
                   <div className="grid gap-3">
                     <div className="grid gap-2">
                       <span className="text-[12px] font-medium text-muted">
-                        Project
+                        {locale === "vi" ? "Dự án" : "Project"}
                       </span>
                       <input type="hidden" name="projectId" value={projectId ?? ""} />
                       <SearchSelect
@@ -253,8 +268,8 @@ export function DailyItemModal({ mode, dateKey, projects, item, onClose }: Modal
                           setProjectId(value);
                           setLinkedTaskId(undefined);
                         }}
-                        placeholder="Select a project"
-                        searchPlaceholder="Search by project name…"
+                        placeholder={locale === "vi" ? "Chọn dự án" : "Select a project"}
+                        searchPlaceholder={locale === "vi" ? "Tìm theo tên dự án..." : "Search by project name…"}
                       />
                     </div>
 
@@ -262,8 +277,8 @@ export function DailyItemModal({ mode, dateKey, projects, item, onClose }: Modal
                       <>
                         <Segmented
                           options={[
-                            { value: "new", label: "Create new" },
-                            { value: "existing", label: "Link existing" },
+                            { value: "new", label: locale === "vi" ? "Tạo mới" : "Create new" },
+                            { value: "existing", label: locale === "vi" ? "Liên kết có sẵn" : "Link existing" },
                           ]}
                           value={projectMode}
                           onChange={(value) =>
@@ -284,19 +299,19 @@ export function DailyItemModal({ mode, dateKey, projects, item, onClose }: Modal
                             <span className="grid gap-1">
                               <span className="inline-flex items-center gap-1.5 text-[13px] font-medium text-foreground">
                                 <Kanban className="size-4 text-accent" />
-                                Add to Execution Board
+                                {locale === "vi" ? "Thêm vào Bảng thực thi" : "Add to Execution Board"}
                               </span>
                               <span className="text-[12px] leading-5 text-muted">
-                                Creates a matching card on this project&apos;s board so
-                                the team sees it in the kanban. The two stay independent
-                                — completing one won&apos;t change the other.
+                                {locale === "vi"
+                                  ? "Tạo một thẻ tương ứng trên bảng dự án để đội thấy trong kanban. Hai việc vẫn độc lập, hoàn tất một bên sẽ không đổi bên còn lại."
+                                  : "Creates a matching card on this project's board so the team sees it in the kanban. The two stay independent — completing one won't change the other."}
                               </span>
                             </span>
                           </label>
                         ) : (
                           <div className="grid gap-2">
                             <span className="text-[12px] font-medium text-muted">
-                              Board task to reference
+                              {locale === "vi" ? "Công việc bảng để tham chiếu" : "Board task to reference"}
                             </span>
                             <input
                               type="hidden"
@@ -309,14 +324,15 @@ export function DailyItemModal({ mode, dateKey, projects, item, onClose }: Modal
                               onChange={setLinkedTaskId}
                               placeholder={
                                 taskOptions.length
-                                  ? "Pick an open board task"
-                                  : "No open tasks in this project"
+                                  ? locale === "vi" ? "Chọn một việc còn mở trên bảng" : "Pick an open board task"
+                                  : locale === "vi" ? "Dự án này chưa có việc còn mở" : "No open tasks in this project"
                               }
-                              searchPlaceholder="Search tasks…"
+                              searchPlaceholder={locale === "vi" ? "Tìm việc..." : "Search tasks…"}
                             />
                             <p className="text-[12px] leading-5 text-muted">
-                              Shows the board card&apos;s live status here so your
-                              executive can see what you&apos;re working on today.
+                              {locale === "vi"
+                                ? "Hiển thị trạng thái trực tiếp của thẻ bảng tại đây để quản lý thấy hôm nay bạn đang làm gì."
+                                : "Shows the board card's live status here so your executive can see what you're working on today."}
                             </p>
                           </div>
                         )}
@@ -329,13 +345,19 @@ export function DailyItemModal({ mode, dateKey, projects, item, onClose }: Modal
 
             <div className="grid gap-4 sm:grid-cols-2">
               <label className="grid gap-2">
-                <span className="text-sm font-medium text-foreground">Status</span>
+                <span className="text-sm font-medium text-foreground">
+                  {locale === "vi" ? "Trạng thái" : "Status"}
+                </span>
                 <select
                   name="status"
                   defaultValue={item?.status ?? "todo"}
                   className="ui-select"
                 >
-                  {STATUS_OPTIONS.map((option) => (
+                  {[
+                    { value: "todo", label: locale === "vi" ? "Cần làm" : "Todo" },
+                    { value: "doing", label: locale === "vi" ? "Đang làm" : "Doing" },
+                    { value: "done", label: locale === "vi" ? "Xong" : "Done" },
+                  ].map((option) => (
                     <option key={option.value} value={option.value}>
                       {option.label}
                     </option>
@@ -343,13 +365,19 @@ export function DailyItemModal({ mode, dateKey, projects, item, onClose }: Modal
                 </select>
               </label>
               <label className="grid gap-2">
-                <span className="text-sm font-medium text-foreground">Priority</span>
+                <span className="text-sm font-medium text-foreground">
+                  {locale === "vi" ? "Ưu tiên" : "Priority"}
+                </span>
                 <select
                   name="priority"
                   defaultValue={item?.priority ?? "medium"}
                   className="ui-select"
                 >
-                  {PRIORITY_OPTIONS.map((option) => (
+                  {[
+                    { value: "low", label: locale === "vi" ? "Thấp" : "Low" },
+                    { value: "medium", label: locale === "vi" ? "Vừa" : "Medium" },
+                    { value: "high", label: locale === "vi" ? "Cao" : "High" },
+                  ].map((option) => (
                     <option key={option.value} value={option.value}>
                       {option.label}
                     </option>
@@ -359,8 +387,16 @@ export function DailyItemModal({ mode, dateKey, projects, item, onClose }: Modal
             </div>
 
             <SubmitButton
-              label={isEdit ? "Save changes" : "Add item"}
-              pendingLabel={isEdit ? "Saving…" : "Adding…"}
+              label={
+                isEdit
+                  ? locale === "vi" ? "Lưu thay đổi" : "Save changes"
+                  : locale === "vi" ? "Thêm việc" : "Add item"
+              }
+              pendingLabel={
+                isEdit
+                  ? locale === "vi" ? "Đang lưu..." : "Saving…"
+                  : locale === "vi" ? "Đang thêm..." : "Adding…"
+              }
             />
           </form>
 
@@ -372,14 +408,18 @@ export function DailyItemModal({ mode, dateKey, projects, item, onClose }: Modal
                 className="ui-button-danger mt-3 w-full justify-center"
               >
                 <Trash className="size-4" />
-                Delete item
+                {locale === "vi" ? "Xóa việc" : "Delete item"}
               </button>
               <ConfirmDialog
                 open={confirmingDelete}
-                title="Delete this item?"
-                description="This removes it from your daily plan. Any linked board card stays on the Execution Board."
-                confirmLabel="Delete"
-                cancelLabel="Keep"
+                title={locale === "vi" ? "Xóa việc này?" : "Delete this item?"}
+                description={
+                  locale === "vi"
+                    ? "Thao tác này xóa việc khỏi kế hoạch hằng ngày của bạn. Thẻ bảng liên kết vẫn nằm trên Bảng thực thi."
+                    : "This removes it from your daily plan. Any linked board card stays on the Execution Board."
+                }
+                confirmLabel={locale === "vi" ? "Xóa" : "Delete"}
+                cancelLabel={locale === "vi" ? "Giữ lại" : "Keep"}
                 variant="danger"
                 onCancel={() => setConfirmingDelete(false)}
                 onConfirm={() => {

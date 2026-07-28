@@ -6,6 +6,7 @@ import { CircleNotch, Crown, Trash, UserPlus } from "@phosphor-icons/react";
 
 import { Avatar } from "@/components/ui/avatar";
 import { toast } from "@/lib/toast";
+import { useLocale } from "@/lib/use-locale";
 import { cn } from "@/lib/utils";
 
 type ProjectRole = "owner" | "leader" | "member";
@@ -45,6 +46,12 @@ const projectRoleStyles: Record<ProjectRole, string> = {
   member: "border-border bg-surface text-muted",
 };
 
+const projectRoleLabelsVi: Record<ProjectRole, string> = {
+  owner: "chủ sở hữu",
+  leader: "trưởng nhóm",
+  member: "thành viên",
+};
+
 export function MembersManager({
   projectId,
   owner,
@@ -53,6 +60,8 @@ export function MembersManager({
   canAdminister,
 }: Props) {
   const router = useRouter();
+  const locale = useLocale();
+  const vi = locale === "vi";
   const [email, setEmail] = useState("");
   const [addRole, setAddRole] = useState<"member" | "leader">("member");
   const [isPending, startTransition] = useTransition();
@@ -70,10 +79,13 @@ export function MembersManager({
         error?: string;
       };
       if (!response.ok || !data.ok) {
-        toast(data.error ?? "Failed to add member.", "danger");
+        toast(
+          data.error ?? (vi ? "Không thêm được thành viên." : "Failed to add member."),
+          "danger",
+        );
         return;
       }
-      toast(`Added ${target}`, "success");
+      toast(vi ? `Đã thêm ${target}` : `Added ${target}`, "success");
       setEmail("");
       setAddRole("member");
       router.refresh();
@@ -90,10 +102,13 @@ export function MembersManager({
         error?: string;
       };
       if (!response.ok) {
-        toast(data.error ?? "Could not remove member", "danger");
+        toast(
+          data.error ?? (vi ? "Không thể xóa thành viên" : "Could not remove member"),
+          "danger",
+        );
         return;
       }
-      toast("Member removed", "success");
+      toast(vi ? "Đã xóa thành viên" : "Member removed", "success");
       router.refresh();
     });
   };
@@ -109,10 +124,22 @@ export function MembersManager({
         error?: string;
       };
       if (!response.ok) {
-        toast(data.error ?? "Could not change role", "danger");
+        toast(
+          data.error ?? (vi ? "Không thể đổi vai trò" : "Could not change role"),
+          "danger",
+        );
         return;
       }
-      toast(role === "leader" ? "Promoted to Leader" : "Set to Member", "success");
+      toast(
+        role === "leader"
+          ? vi
+            ? "Đã thăng lên Trưởng nhóm"
+            : "Promoted to Leader"
+          : vi
+            ? "Đã đặt thành Thành viên"
+            : "Set to Member",
+        "success",
+      );
       router.refresh();
     });
   };
@@ -122,16 +149,30 @@ export function MembersManager({
       {canManage ? (
         <div className="ui-panel-soft p-5">
           <p className="font-mono text-[11px] uppercase tracking-[0.04em] text-muted">
-            Add member
+            {vi ? "Thêm thành viên" : "Add member"}
           </p>
           <p className="mt-1 text-[12px] leading-5 text-muted">
-            <span className="font-medium text-foreground">Leaders</span> run the
-            project; <span className="font-medium text-foreground">Members</span>{" "}
-            do the work. The email must belong to an existing account — invite
-            them from{" "}
-            <span className="font-medium text-foreground">/admin/invites</span>{" "}
-            first.
-            {canAdminister ? " Only you can grant the Leader role." : null}
+            {vi ? (
+              <>
+                <span className="font-medium text-foreground">Trưởng nhóm</span>{" "}
+                điều hành dự án;{" "}
+                <span className="font-medium text-foreground">Thành viên</span>{" "}
+                làm việc. Email phải thuộc về một tài khoản đã có — hãy mời họ từ{" "}
+                <span className="font-medium text-foreground">/admin/invites</span>{" "}
+                trước.
+                {canAdminister ? " Chỉ bạn mới có thể cấp vai trò Trưởng nhóm." : null}
+              </>
+            ) : (
+              <>
+                <span className="font-medium text-foreground">Leaders</span> run the
+                project; <span className="font-medium text-foreground">Members</span>{" "}
+                do the work. The email must belong to an existing account — invite
+                them from{" "}
+                <span className="font-medium text-foreground">/admin/invites</span>{" "}
+                first.
+                {canAdminister ? " Only you can grant the Leader role." : null}
+              </>
+            )}
           </p>
           <form
             className="mt-3 flex flex-wrap items-center gap-3"
@@ -156,12 +197,12 @@ export function MembersManager({
                   onChange={(e) =>
                     setAddRole(e.target.value as "member" | "leader")
                   }
-                  aria-label="Role for the new member"
+                  aria-label={vi ? "Vai trò cho thành viên mới" : "Role for the new member"}
                   className="ui-select"
                   disabled={isPending}
                 >
-                  <option value="member">Member</option>
-                  <option value="leader">Leader</option>
+                  <option value="member">{vi ? "Thành viên" : "Member"}</option>
+                  <option value="leader">{vi ? "Trưởng nhóm" : "Leader"}</option>
                 </select>
               </div>
             ) : null}
@@ -175,20 +216,21 @@ export function MembersManager({
               ) : (
                 <UserPlus className="size-4" />
               )}
-              Add
+              {vi ? "Thêm" : "Add"}
             </button>
           </form>
         </div>
       ) : (
         <div className="rounded-md border border-dashed border-border bg-surface px-4 py-3 text-[12px] leading-5 text-muted">
-          You can view this project&apos;s members. Only the owner, a leader, or
-          a workspace admin can add or remove members.
+          {vi
+            ? "Bạn có thể xem thành viên của dự án này. Chỉ chủ sở hữu, trưởng nhóm, hoặc quản trị viên không gian mới có thể thêm hoặc xóa thành viên."
+            : "You can view this project's members. Only the owner, a leader, or a workspace admin can add or remove members."}
         </div>
       )}
 
       <div>
         <p className="font-mono text-[11px] uppercase tracking-[0.04em] text-muted">
-          Current members
+          {vi ? "Thành viên hiện tại" : "Current members"}
         </p>
         <div className="mt-2 ui-panel-soft divide-y divide-border">
           {owner ? (
@@ -212,7 +254,7 @@ export function MembersManager({
                     )}
                   >
                     <Crown className="size-3" />
-                    Owner
+                    {vi ? "Chủ sở hữu" : "Owner"}
                   </span>
                 </div>
                 <p className="mt-0.5 truncate font-mono text-[11px] text-muted">
@@ -224,7 +266,7 @@ export function MembersManager({
 
           {members.length === 0 && !owner ? (
             <div className="px-5 py-10 text-center text-[13px] leading-7 text-muted">
-              No members yet.
+              {vi ? "Chưa có thành viên nào." : "No members yet."}
             </div>
           ) : null}
 
@@ -256,11 +298,12 @@ export function MembersManager({
                           projectRoleStyles.member,
                       )}
                     >
-                      {m.projectRole}
+                      {vi ? projectRoleLabelsVi[m.projectRole] ?? m.projectRole : m.projectRole}
                     </span>
                   </div>
                   <p className="mt-0.5 truncate font-mono text-[11px] text-muted">
-                    {m.email} · added {m.addedAt.toLocaleDateString()}
+                    {m.email} · {vi ? "đã thêm" : "added"}{" "}
+                    {m.addedAt.toLocaleDateString(vi ? "vi-VN" : undefined)}
                   </p>
                 </div>
                 <div className="flex shrink-0 items-center gap-2">
@@ -271,12 +314,12 @@ export function MembersManager({
                         onChange={(e) =>
                           changeRole(m.userId, e.target.value as ProjectRole)
                         }
-                        aria-label={`Role for ${m.name}`}
+                        aria-label={vi ? `Vai trò cho ${m.name}` : `Role for ${m.name}`}
                         className="ui-select"
                         disabled={isPending}
                       >
-                        <option value="member">Member</option>
-                        <option value="leader">Leader</option>
+                        <option value="member">{vi ? "Thành viên" : "Member"}</option>
+                        <option value="leader">{vi ? "Trưởng nhóm" : "Leader"}</option>
                       </select>
                     </div>
                   ) : null}
@@ -286,8 +329,8 @@ export function MembersManager({
                       onClick={() => removeMember(m.userId)}
                       disabled={isPending}
                       className="ui-button-ghost"
-                      title="Remove member"
-                      aria-label="Remove member"
+                      title={vi ? "Xóa thành viên" : "Remove member"}
+                      aria-label={vi ? "Xóa thành viên" : "Remove member"}
                     >
                       <Trash className="size-4" />
                     </button>

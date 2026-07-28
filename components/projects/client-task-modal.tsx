@@ -7,6 +7,7 @@ import { CalendarDots, CheckSquare, Square, X } from "@phosphor-icons/react";
 import RichTextRenderer from "@/components/rich-text/rich-text-renderer";
 import type { BoardTask } from "@/components/projects/kanban-board";
 import { StatusBadge } from "@/components/projects/status-badge";
+import { useLocale } from "@/lib/use-locale";
 import { formatDate } from "@/lib/utils";
 
 export type ClientSubtask = {
@@ -19,11 +20,14 @@ export type ClientTask = BoardTask & {
   subtasks: ClientSubtask[];
 };
 
-const PRIORITY_LABEL: Record<string, string> = {
-  low: "Low",
-  medium: "Medium",
-  high: "High",
-};
+function priorityLabel(priority: string, locale: "vi" | "en") {
+  const labels = {
+    low: locale === "vi" ? "Thấp" : "Low",
+    medium: locale === "vi" ? "Trung bình" : "Medium",
+    high: locale === "vi" ? "Cao" : "High",
+  };
+  return labels[priority as keyof typeof labels] ?? priority;
+}
 
 /**
  * Read-only detail row in the aside. Mirrors the owner modal's field layout —
@@ -61,6 +65,7 @@ export function ClientTaskModal({
   task: ClientTask | null;
   onClose: () => void;
 }) {
+  const locale = useLocale();
   useEffect(() => {
     if (!task) return;
     const onKey = (event: KeyboardEvent) => {
@@ -80,7 +85,7 @@ export function ClientTaskModal({
     <div className="fixed inset-0 z-[60] p-4 sm:p-6">
       <button
         type="button"
-        aria-label="Close"
+        aria-label={locale === "vi" ? "Đóng" : "Close"}
         onClick={onClose}
         className="ui-modal-backdrop absolute inset-0 backdrop-blur-xs"
       />
@@ -90,7 +95,7 @@ export function ClientTaskModal({
           <div className="mb-5 flex shrink-0 items-start justify-between gap-4">
             <div className="min-w-0 space-y-2">
               <p className="font-mono text-[11px] font-medium uppercase tracking-[0.04em] text-muted">
-                Task
+                {locale === "vi" ? "Công việc" : "Task"}
               </p>
               <h3 className="text-[20px] font-medium tracking-[-0.022em] text-foreground">
                 {task.title}
@@ -99,7 +104,7 @@ export function ClientTaskModal({
             <button
               type="button"
               onClick={onClose}
-              aria-label="Close"
+              aria-label={locale === "vi" ? "Đóng" : "Close"}
               className="inline-flex size-9 shrink-0 items-center justify-center rounded-md border border-border bg-surface text-muted transition hover:border-border-strong hover:bg-surface-strong hover:text-foreground"
             >
               <X className="size-4" />
@@ -114,7 +119,7 @@ export function ClientTaskModal({
               <div className="grid content-start gap-5">
                 <div className="grid gap-2">
                   <span className="text-sm font-medium text-foreground">
-                    Description
+                    {locale === "vi" ? "Mô tả" : "Description"}
                   </span>
                   <div className="rounded-md border border-border bg-background px-3 py-2.5">
                     <RichTextRenderer
@@ -122,7 +127,7 @@ export function ClientTaskModal({
                       className="text-[13px] leading-6 text-foreground"
                       fallback={
                         <p className="text-[13px] leading-6 text-muted">
-                          No description provided.
+                          {locale === "vi" ? "Chưa có mô tả." : "No description provided."}
                         </p>
                       }
                     />
@@ -133,10 +138,12 @@ export function ClientTaskModal({
                   <div className="grid gap-3 rounded-md border border-border bg-surface px-4 py-4">
                     <div className="flex items-center justify-between gap-3">
                       <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-muted">
-                        Subtasks
+                        {locale === "vi" ? "Công việc con" : "Subtasks"}
                       </p>
                       <span className="text-sm text-muted">
-                        {doneCount}/{task.subtasks.length} done
+                        {locale === "vi"
+                          ? `${doneCount}/${task.subtasks.length} hoàn tất`
+                          : `${doneCount}/${task.subtasks.length} done`}
                       </span>
                     </div>
                     <ul className="grid gap-2">
@@ -169,23 +176,23 @@ export function ClientTaskModal({
               {/* Aside: read-only details */}
               <aside className="grid content-start gap-4 rounded-md border border-border bg-surface p-4">
                 <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-muted">
-                  Details
+                  {locale === "vi" ? "Chi tiết" : "Details"}
                 </p>
-                <Detail label="Status">
+                <Detail label={locale === "vi" ? "Trạng thái" : "Status"}>
                   <StatusBadge name={task.statusName} color={task.statusColor} />
                 </Detail>
-                <Detail label="Priority">
+                <Detail label={locale === "vi" ? "Ưu tiên" : "Priority"}>
                   <span className="ui-badge">
-                    {PRIORITY_LABEL[task.priority] ?? task.priority}
+                    {priorityLabel(task.priority, locale)}
                   </span>
                 </Detail>
-                <Detail label="Due date">
+                <Detail label={locale === "vi" ? "Hạn chót" : "Due date"}>
                   <span className="inline-flex items-center gap-1.5">
                     <CalendarDots className="size-3.5 text-muted" />
                     {due}
                   </span>
                 </Detail>
-                <Detail label="Category">
+                <Detail label={locale === "vi" ? "Danh mục" : "Category"}>
                   {task.categoryName ? (
                     <span className="inline-flex items-center gap-1.5">
                       <span
@@ -201,7 +208,7 @@ export function ClientTaskModal({
                     <span className="text-muted">—</span>
                   )}
                 </Detail>
-                <Detail label="Phase">
+                <Detail label={locale === "vi" ? "Giai đoạn" : "Phase"}>
                   {task.phase || <span className="text-muted">—</span>}
                 </Detail>
               </aside>

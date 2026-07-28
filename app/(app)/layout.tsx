@@ -8,6 +8,7 @@ import { requireViewer } from "@/lib/auth-server";
 import {
   getAppShellDataForViewer,
 } from "@/lib/data";
+import { getRequestLocale } from "@/lib/i18n-server";
 import { brandingUrl, getSystemSettings } from "@/lib/system-settings";
 
 export const dynamic = "force-dynamic";
@@ -19,8 +20,11 @@ export default async function AppLayout({
   children: React.ReactNode;
 }>) {
   const viewer = await requireViewer();
-  const shellData = await getAppShellDataForViewer(viewer);
-  const settings = await getSystemSettings();
+  const [shellData, settings, locale] = await Promise.all([
+    getAppShellDataForViewer(viewer),
+    getSystemSettings(),
+    getRequestLocale(),
+  ]);
 
   return (
     <div
@@ -29,6 +33,7 @@ export default async function AppLayout({
     >
       <AppSidebar
         notificationCount={shellData.notificationCount}
+        initialNotifications={shellData.notifications}
         projects={shellData.projects}
         userEmail={viewer.email}
         userName={viewer.name}
@@ -38,6 +43,7 @@ export default async function AppLayout({
         logoDarkUrl={brandingUrl(settings.logoDarkKey, settings.updatedAt)}
         logoLightUrl={brandingUrl(settings.logoLightKey, settings.updatedAt)}
         sidebarMarkUrl={brandingUrl(settings.sidebarMarkKey, settings.updatedAt)}
+        locale={locale}
       />
       <div className="min-w-0 flex-1 overflow-x-hidden md:min-h-0 md:overflow-y-auto">
         <main className="relative mx-auto flex min-h-dvh w-full min-w-0 max-w-360 flex-col px-4 py-4 sm:px-5 sm:py-5 lg:px-6 lg:py-6 md:min-h-full [&>*]:min-w-0">

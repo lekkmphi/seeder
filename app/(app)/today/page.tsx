@@ -17,6 +17,7 @@ import {
   type TodayView,
 } from "@/lib/data";
 import { addDays, formatDateKey, startOfDay } from "@/lib/daily";
+import { getRequestLocale } from "@/lib/i18n-server";
 import { parseRichText, richTextToPlainText } from "@/lib/rich-text";
 import { cn, formatDate } from "@/lib/utils";
 
@@ -48,28 +49,28 @@ type UnifiedTodayItem = {
   boardHref: string | null;
 };
 
-function formatDateLabel(value: Date | null) {
-  return formatDate(value, "No due date");
+function formatDateLabel(value: Date | null, locale: "vi" | "en") {
+  return formatDate(value, locale === "vi" ? "Chưa có hạn" : "No due date");
 }
 
-function formatDueState(task: TodayView["overdue"][number]) {
+function formatDueState(task: TodayView["overdue"][number], locale: "vi" | "en") {
   if (task.isOverdue) {
-    return "Overdue";
+    return locale === "vi" ? "Quá hạn" : "Overdue";
   }
 
   if (task.daysUntilDue === 0) {
-    return "Due today";
+    return locale === "vi" ? "Hạn hôm nay" : "Due today";
   }
 
   if (task.daysUntilDue === 1) {
-    return "Due tomorrow";
+    return locale === "vi" ? "Hạn ngày mai" : "Due tomorrow";
   }
 
   if (typeof task.daysUntilDue === "number") {
-    return `Due in ${task.daysUntilDue} days`;
+    return locale === "vi" ? `Còn ${task.daysUntilDue} ngày` : `Due in ${task.daysUntilDue} days`;
   }
 
-  return "No due date";
+  return locale === "vi" ? "Chưa có hạn" : "No due date";
 }
 
 function SummaryCard({
@@ -99,11 +100,13 @@ function TaskSection({
   description,
   items,
   emptyCopy,
+  locale,
 }: {
   title: string;
   description: string;
   items: TodayView["overdue"];
   emptyCopy: string;
+  locale: "vi" | "en";
 }) {
   return (
     <section className="ui-panel p-5 sm:p-6">
@@ -144,7 +147,7 @@ function TaskSection({
                     </h3>
                     <p className="mt-1 text-[13px] leading-6 text-muted line-clamp-3">
                       {richTextToPlainText(parseRichText(task.description)) ||
-                        "No extra task context yet."}
+                        (locale === "vi" ? "Chưa có ngữ cảnh thêm cho công việc." : "No extra task context yet.")}
                     </p>
                   </div>
                 </div>
@@ -154,11 +157,11 @@ function TaskSection({
               <div className="mt-3 flex flex-wrap items-center gap-3 border-t border-border pt-3 font-mono text-[11px] uppercase tracking-[0.04em] text-muted">
                 <span className="inline-flex items-center gap-1.5">
                   <CalendarDots className="size-3.5" />
-                  {formatDateLabel(task.dueDate)}
+                  {formatDateLabel(task.dueDate, locale)}
                 </span>
                 <span className="inline-flex items-center gap-1.5">
                   <WarningCircle className="size-3.5" />
-                  {formatDueState(task)}
+                  {formatDueState(task, locale)}
                 </span>
               </div>
             </Link>
@@ -169,7 +172,9 @@ function TaskSection({
           <div className="mx-auto inline-flex size-10 items-center justify-center rounded-md border border-border bg-background text-muted">
             <CalendarDots className="size-5" />
           </div>
-          <p className="mt-3 text-[13px] font-medium text-foreground">All clear</p>
+          <p className="mt-3 text-[13px] font-medium text-foreground">
+            {locale === "vi" ? "Ổn cả" : "All clear"}
+          </p>
           <p className="mt-1 text-[13px] leading-6 text-muted">{emptyCopy}</p>
         </div>
       )}
@@ -177,16 +182,17 @@ function TaskSection({
   );
 }
 
-function UnifiedTodaySection({ items }: { items: UnifiedTodayItem[] }) {
+function UnifiedTodaySection({ items, locale }: { items: UnifiedTodayItem[]; locale: "vi" | "en" }) {
   return (
     <section className="ui-panel p-5 sm:p-6">
       <div className="mb-4">
         <h2 className="text-[17px] font-medium tracking-[-0.022em] text-foreground">
-          Today
+          {locale === "vi" ? "Hôm nay" : "Today"}
         </h2>
         <p className="mt-1 max-w-2xl text-[13px] leading-6 text-muted">
-          Everything on your plate today — what you planned and what is due —
-          in one list.
+          {locale === "vi"
+            ? "Mọi việc trên bàn hôm nay, gồm việc đã lên kế hoạch và việc đến hạn, trong một danh sách."
+            : "Everything on your plate today — what you planned and what is due — in one list."}
         </p>
       </div>
 
@@ -231,7 +237,9 @@ function UnifiedTodaySection({ items }: { items: UnifiedTodayItem[] }) {
                         </span>
                       )}
                       <span className="font-mono text-[10px] uppercase tracking-[0.06em] text-muted">
-                        {item.source === "daily" ? "Planned" : "Board"}
+                        {item.source === "daily"
+                          ? locale === "vi" ? "Đã lên lịch" : "Planned"
+                          : locale === "vi" ? "Bảng" : "Board"}
                       </span>
                     </div>
                     <div>
@@ -269,12 +277,12 @@ function UnifiedTodaySection({ items }: { items: UnifiedTodayItem[] }) {
                     <>
                       <span className="inline-flex items-center gap-1.5">
                         <CalendarCheck className="size-3.5" />
-                        Planned today
+                        {locale === "vi" ? "Đã lên lịch hôm nay" : "Planned today"}
                       </span>
                       {item.linkedStatus ? (
                         <span className="inline-flex items-center gap-1.5">
                           <Kanban className="size-3.5" />
-                          board:{" "}
+                          {locale === "vi" ? "bảng:" : "board:"}{" "}
                           <StatusBadge
                             name={item.linkedStatus}
                             color={item.linkedStatusColor}
@@ -294,12 +302,12 @@ function UnifiedTodaySection({ items }: { items: UnifiedTodayItem[] }) {
             <CalendarCheck className="size-5" />
           </div>
           <p className="mt-3 text-[13px] font-medium text-foreground">
-            Nothing planned or due today
+            {locale === "vi" ? "Hôm nay chưa có việc đã lên lịch hoặc đến hạn" : "Nothing planned or due today"}
           </p>
           <p className="mt-1 text-[13px] leading-6 text-muted">
-            Plan your day on the{" "}
+            {locale === "vi" ? "Lên kế hoạch ngày ở " : "Plan your day on the "}
             <Link href="/daily" className="text-accent hover:underline">
-              Daily planner
+              {locale === "vi" ? "Lịch ngày" : "Daily planner"}
             </Link>
             .
           </p>
@@ -315,9 +323,10 @@ export default async function TodayPage() {
   const tomorrow = addDays(today, 1);
   const todayKey = formatDateKey(today);
 
-  const [todayView, dailyToday] = await Promise.all([
+  const [todayView, dailyToday, locale] = await Promise.all([
     getTodayViewForUser(session.user.id),
     getDailyTasksForUser(session.user.id, today, tomorrow),
+    getRequestLocale(),
   ]);
 
   // Board tasks already represented by a linked daily item are deduped out.
@@ -341,8 +350,8 @@ export default async function TodayPage() {
     projectColor: task.projectColor,
     code: task.code,
     href: task.href,
-    dueLabel: formatDateLabel(task.dueDate),
-    dueState: formatDueState(task),
+    dueLabel: formatDateLabel(task.dueDate, locale),
+    dueState: formatDueState(task, locale),
     isOverdue: task.isOverdue,
     linkedStatus: null,
     linkedStatusColor: null,
@@ -359,7 +368,9 @@ export default async function TodayPage() {
     status: item.status,
     statusColor: null,
     kindLabel:
-      item.kind === "project" ? item.projectName ?? "Project" : "Adhoc",
+      item.kind === "project"
+        ? item.projectName ?? (locale === "vi" ? "Dự án" : "Project")
+        : locale === "vi" ? "Việc lẻ" : "Adhoc",
     isProject: item.kind === "project",
     projectColor: item.projectColor,
     code: item.projectCode,
@@ -384,13 +395,16 @@ export default async function TodayPage() {
       <section className="ui-panel ui-header p-5 sm:p-6">
         <div className="flex flex-wrap items-start justify-between gap-6">
           <div className="max-w-3xl space-y-3">
-            <p className="font-mono text-[11px] uppercase tracking-[0.04em] text-muted">Today</p>
+            <p className="font-mono text-[11px] uppercase tracking-[0.04em] text-muted">
+              {locale === "vi" ? "Hôm nay" : "Today"}
+            </p>
             <h1 className="text-3xl font-medium tracking-tighter text-foreground sm:text-[40px]">
-              Today queue
+              {locale === "vi" ? "Hàng đợi hôm nay" : "Today queue"}
             </h1>
             <p className="max-w-2xl text-[13px] leading-6 text-muted sm:text-[15px]">
-              See what is late, what is due next, and what is moving without a
-              deadline.
+              {locale === "vi"
+                ? "Xem việc đang trễ, việc sắp đến hạn và việc đang chạy nhưng chưa có hạn."
+                : "See what is late, what is due next, and what is moving without a deadline."}
             </p>
           </div>
 
@@ -400,11 +414,13 @@ export default async function TodayPage() {
               className="inline-flex min-h-9 items-center gap-2 rounded-md border border-border-strong bg-surface-strong px-3 py-1.5 text-[13px] font-medium text-foreground transition hover:bg-surface"
             >
               <CalendarCheck className="size-4" />
-              Daily Task
+              {locale === "vi" ? "Việc hằng ngày" : "Daily Task"}
             </Link>
             <div className="ui-panel-soft px-4 py-3 font-mono text-[11px] uppercase tracking-[0.04em] text-muted">
               <p>{session.user.email}</p>
-              <p className="mt-1 normal-case tracking-normal text-[13px] font-sans">Recent changes on the right. Due work in front.</p>
+              <p className="mt-1 normal-case tracking-normal text-[13px] font-sans">
+                {locale === "vi" ? "Thay đổi gần đây ở bên phải. Việc đến hạn ở phía trước." : "Recent changes on the right. Due work in front."}
+              </p>
             </div>
           </div>
         </div>
@@ -412,47 +428,49 @@ export default async function TodayPage() {
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <SummaryCard
-          label="Planned today"
+          label={locale === "vi" ? "Đã lên lịch hôm nay" : "Planned today"}
           value={dailyToday.length.toString()}
-          detail="Items you planned for today."
+          detail={locale === "vi" ? "Việc bạn đã lên lịch cho hôm nay." : "Items you planned for today."}
         />
         <SummaryCard
-          label="Overdue"
+          label={locale === "vi" ? "Quá hạn" : "Overdue"}
           value={todayView.summary.overdue.toString()}
-          detail="Tasks that already slipped."
+          detail={locale === "vi" ? "Công việc đã trễ hạn." : "Tasks that already slipped."}
         />
         <SummaryCard
-          label="Due today"
+          label={locale === "vi" ? "Hạn hôm nay" : "Due today"}
           value={todayView.summary.dueToday.toString()}
-          detail="Tasks that should close today."
+          detail={locale === "vi" ? "Công việc nên hoàn tất hôm nay." : "Tasks that should close today."}
         />
         <SummaryCard
-          label="Next 7 days"
+          label={locale === "vi" ? "7 ngày tới" : "Next 7 days"}
           value={todayView.summary.upcoming.toString()}
-          detail="Upcoming tasks worth keeping visible."
+          detail={locale === "vi" ? "Công việc sắp tới đáng để theo dõi." : "Upcoming tasks worth keeping visible."}
         />
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
         <div className="grid gap-6">
-          <UnifiedTodaySection items={mergedToday} />
+          <UnifiedTodaySection items={mergedToday} locale={locale} />
           <TaskSection
-            title="Next 7 days"
-            description="Short-horizon work so the week does not surprise you."
+            title={locale === "vi" ? "7 ngày tới" : "Next 7 days"}
+            description={locale === "vi" ? "Các việc ngắn hạn để tuần này không bị bất ngờ." : "Short-horizon work so the week does not surprise you."}
             items={todayView.upcoming}
-            emptyCopy="Nothing is due in the next seven days."
+            emptyCopy={locale === "vi" ? "Không có việc đến hạn trong bảy ngày tới." : "Nothing is due in the next seven days."}
+            locale={locale}
           />
           <TaskSection
-            title="Doing without due date"
-            description="Active tasks with no finish line yet."
+            title={locale === "vi" ? "Đang làm nhưng chưa có hạn" : "Doing without due date"}
+            description={locale === "vi" ? "Các việc đang hoạt động nhưng chưa có mốc hoàn tất." : "Active tasks with no finish line yet."}
             items={todayView.activeWithoutDate}
-            emptyCopy="Everything in progress already has a due date."
+            emptyCopy={locale === "vi" ? "Mọi việc đang làm đều đã có hạn." : "Everything in progress already has a due date."}
+            locale={locale}
           />
         </div>
 
         <ActivityFeed
-          title="Recent activity"
-          description="Small timeline of the latest changes across open projects."
+          title={locale === "vi" ? "Hoạt động gần đây" : "Recent activity"}
+          description={locale === "vi" ? "Dòng thời gian nhỏ của các thay đổi mới nhất trong dự án đang mở." : "Small timeline of the latest changes across open projects."}
           items={todayView.recentActivity}
           showProjectName
           className="h-fit"

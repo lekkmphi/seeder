@@ -13,6 +13,7 @@ import {
 
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { deleteBranchAction } from "@/lib/actions";
+import { useLocale } from "@/lib/use-locale";
 import type { BranchSummary } from "@/lib/services/branches";
 import { cn, formatDate } from "@/lib/utils";
 
@@ -40,6 +41,7 @@ function DeleteBranchButton({
   projectId: string;
   branch: BranchSummary;
 }) {
+  const locale = useLocale();
   const formRef = useRef<HTMLFormElement>(null);
   const [open, setOpen] = useState(false);
   const [pending, setPending] = useState(false);
@@ -52,8 +54,12 @@ function DeleteBranchButton({
         <button
           type="button"
           onClick={() => setOpen(true)}
-          title="Delete branch"
-          aria-label={`Delete branch ${branch.name}`}
+          title={locale === "vi" ? "Xóa nhánh" : "Delete branch"}
+          aria-label={
+            locale === "vi"
+              ? `Xóa nhánh ${branch.name}`
+              : `Delete branch ${branch.name}`
+          }
           className="inline-flex size-8 items-center justify-center rounded-md border border-border bg-surface text-muted transition hover:border-danger/40 hover:bg-danger/10 hover:text-danger"
         >
           <Trash className="size-4" />
@@ -61,19 +67,25 @@ function DeleteBranchButton({
       </form>
       <ConfirmDialog
         open={open}
-        title={`Delete "${branch.name}"?`}
+        title={
+          locale === "vi" ? `Xóa "${branch.name}"?` : `Delete "${branch.name}"?`
+        }
         description={
           <>
-            This permanently deletes the branch and{" "}
+            {locale === "vi"
+              ? "Thao tác này xóa vĩnh viễn nhánh cùng "
+              : "This permanently deletes the branch and "}
             <strong className="text-foreground">
-              all {branch.taskCount} task{branch.taskCount === 1 ? "" : "s"} and{" "}
-              {branch.requestCount} requirement
-              {branch.requestCount === 1 ? "" : "s"}
+              {locale === "vi"
+                ? `${branch.taskCount} công việc và ${branch.requestCount} yêu cầu`
+                : `all ${branch.taskCount} task${branch.taskCount === 1 ? "" : "s"} and ${branch.requestCount} requirement${branch.requestCount === 1 ? "" : "s"}`}
             </strong>{" "}
-            on it. This cannot be undone.
+            {locale === "vi"
+              ? " trên nhánh đó. Không thể hoàn tác."
+              : "on it. This cannot be undone."}
           </>
         }
-        confirmLabel="Delete branch"
+        confirmLabel={locale === "vi" ? "Xóa nhánh" : "Delete branch"}
         variant="danger"
         isPending={pending}
         onConfirm={() => {
@@ -92,6 +104,7 @@ export function BranchIndexList({
   viewerId,
   canManage,
 }: Props) {
+  const locale = useLocale();
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<SortKey>("updated");
   const [mineOnly, setMineOnly] = useState(false);
@@ -126,8 +139,12 @@ export function BranchIndexList({
             type="search"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search branches by name, description, or creator…"
-            aria-label="Search branches"
+            placeholder={
+              locale === "vi"
+                ? "Tìm nhánh theo tên, mô tả hoặc người tạo..."
+                : "Search branches by name, description, or creator..."
+            }
+            aria-label={locale === "vi" ? "Tìm nhánh" : "Search branches"}
             className="w-full rounded-md border border-border bg-background py-2.5 pl-9 pr-3 text-[13px] text-foreground outline-none transition placeholder:text-muted focus:border-accent"
           />
         </div>
@@ -143,17 +160,21 @@ export function BranchIndexList({
             )}
           >
             <User className="size-4" />
-            Yours
+            {locale === "vi" ? "Của bạn" : "Yours"}
           </button>
           <select
             value={sort}
             onChange={(event) => setSort(event.target.value as SortKey)}
-            aria-label="Sort branches"
+            aria-label={locale === "vi" ? "Sắp xếp nhánh" : "Sort branches"}
             className="ui-select min-h-9 py-2 text-[13px]"
           >
-            <option value="updated">Recently updated</option>
-            <option value="name">Name (A–Z)</option>
-            <option value="tasks">Most tasks</option>
+            <option value="updated">
+              {locale === "vi" ? "Mới cập nhật" : "Recently updated"}
+            </option>
+            <option value="name">{locale === "vi" ? "Tên (A-Z)" : "Name (A-Z)"}</option>
+            <option value="tasks">
+              {locale === "vi" ? "Nhiều công việc nhất" : "Most tasks"}
+            </option>
           </select>
         </div>
       </div>
@@ -161,8 +182,12 @@ export function BranchIndexList({
       <div className="px-1">
         <span className="font-mono text-[11px] uppercase tracking-[0.04em] text-muted">
           {query.trim() || mineOnly
-            ? `${filtered.length} of ${branches.length} branches`
-            : `${branches.length} branch${branches.length === 1 ? "" : "es"}`}
+            ? locale === "vi"
+              ? `${filtered.length} / ${branches.length} nhánh`
+              : `${filtered.length} of ${branches.length} branches`
+            : locale === "vi"
+              ? `${branches.length} nhánh`
+              : `${branches.length} branch${branches.length === 1 ? "" : "es"}`}
         </span>
       </div>
 
@@ -191,7 +216,9 @@ export function BranchIndexList({
                       {branch.name}
                     </h3>
                     {branch.isDefault ? (
-                      <span className="ui-badge">default</span>
+                      <span className="ui-badge">
+                        {locale === "vi" ? "mặc định" : "default"}
+                      </span>
                     ) : null}
                   </div>
                   {branch.description ? (
@@ -202,16 +229,23 @@ export function BranchIndexList({
                   <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] text-muted">
                     <span className="inline-flex items-center gap-1.5">
                       <User className="size-3.5" />
-                      {branch.createdByName ?? "Unknown"}
-                    </span>
-                    <span>Updated {formatDate(branch.updatedAt)}</span>
-                    <span className="inline-flex items-center gap-1.5">
-                      <ListChecks className="size-3.5" />
-                      {branch.taskCount} task{branch.taskCount === 1 ? "" : "s"}
+                      {branch.createdByName ??
+                        (locale === "vi" ? "Không rõ" : "Unknown")}
                     </span>
                     <span>
-                      {branch.requestCount} requirement
-                      {branch.requestCount === 1 ? "" : "s"}
+                      {locale === "vi" ? "Cập nhật" : "Updated"}{" "}
+                      {formatDate(branch.updatedAt)}
+                    </span>
+                    <span className="inline-flex items-center gap-1.5">
+                      <ListChecks className="size-3.5" />
+                      {locale === "vi"
+                        ? `${branch.taskCount} công việc`
+                        : `${branch.taskCount} task${branch.taskCount === 1 ? "" : "s"}`}
+                    </span>
+                    <span>
+                      {locale === "vi"
+                        ? `${branch.requestCount} yêu cầu`
+                        : `${branch.requestCount} requirement${branch.requestCount === 1 ? "" : "s"}`}
                     </span>
                   </div>
                 </Link>
@@ -223,7 +257,7 @@ export function BranchIndexList({
                     href={branchHref(projectId, branch)}
                     className="inline-flex items-center gap-1.5 whitespace-nowrap text-[13px] text-muted transition hover:text-foreground"
                   >
-                    Open
+                    {locale === "vi" ? "Mở" : "Open"}
                     <ArrowSquareOut className="size-4" />
                   </Link>
                 </div>
@@ -238,13 +272,17 @@ export function BranchIndexList({
           </div>
           <p className="mt-3 text-[13px] font-medium text-foreground">
             {query.trim() || mineOnly
-              ? "No branches match your filters"
-              : "No branches yet"}
+              ? locale === "vi" ? "Không có nhánh khớp bộ lọc" : "No branches match your filters"
+              : locale === "vi" ? "Chưa có nhánh" : "No branches yet"}
           </p>
           <p className="mx-auto mt-1 max-w-sm text-[13px] leading-6 text-muted">
             {query.trim() || mineOnly
-              ? "Try a different search or clear the “Yours” filter."
-              : "Create a branch to split a feature's tasks and requirements off from Main."}
+              ? locale === "vi"
+                ? "Thử tìm kiếm khác hoặc bỏ lọc “Của bạn”."
+                : "Try a different search or clear the “Yours” filter."
+              : locale === "vi"
+                ? "Tạo nhánh để tách công việc và yêu cầu của một tính năng khỏi Main."
+                : "Create a branch to split a feature's tasks and requirements off from Main."}
           </p>
         </div>
       )}

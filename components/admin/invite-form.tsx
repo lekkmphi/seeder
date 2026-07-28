@@ -5,10 +5,12 @@ import { useState, useTransition } from "react";
 import { CircleNotch, PaperPlaneTilt } from "@phosphor-icons/react";
 
 import { toast } from "@/lib/toast";
+import { useLocale } from "@/lib/use-locale";
 
 type Role = "member" | "admin";
 
 export function InviteForm() {
+  const locale = useLocale();
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [role, setRole] = useState<Role>("member");
@@ -30,13 +32,24 @@ export function InviteForm() {
       };
 
       if (!response.ok || !data.ok) {
-        toast(data.error ?? "Failed to create invitation.", "danger");
+        toast(
+          data.error ??
+            (locale === "vi"
+              ? "Không thể tạo lời mời."
+              : "Failed to create invitation."),
+          "danger",
+        );
         return;
       }
 
       // No email is sent — the invite is a shareable link the admin copies from
       // the list below. Don't imply the invitee will receive a message.
-      toast(`Invite created for ${target} — copy the link to share`, "success");
+      toast(
+        locale === "vi"
+          ? `Đã tạo lời mời cho ${target} - sao chép liên kết để chia sẻ`
+          : `Invite created for ${target} — copy the link to share`,
+        "success",
+      );
       setEmail("");
       setRole("member");
       router.refresh();
@@ -46,7 +59,7 @@ export function InviteForm() {
   return (
     <div className="ui-panel-soft p-5">
       <p className="font-mono text-[11px] uppercase tracking-[0.04em] text-muted">
-        New invitation
+        {locale === "vi" ? "Lời mời mới" : "New invitation"}
       </p>
       <form
         className="mt-3 grid gap-3 sm:grid-cols-[1fr_180px_auto]"
@@ -70,8 +83,8 @@ export function InviteForm() {
           className="ui-select"
           disabled={isPending}
         >
-          <option value="member">Member</option>
-          <option value="admin">Admin</option>
+          <option value="member">{locale === "vi" ? "Thành viên" : "Member"}</option>
+          <option value="admin">{locale === "vi" ? "Quản trị" : "Admin"}</option>
         </select>
         <button
           type="submit"
@@ -83,13 +96,14 @@ export function InviteForm() {
           ) : (
             <PaperPlaneTilt className="size-4" />
           )}
-          Create invite
+          {locale === "vi" ? "Tạo lời mời" : "Create invite"}
         </button>
       </form>
 
       <p className="mt-3 text-[12px] leading-5 text-muted">
-        Links expire after 7 days. Admins can invite members; only the owner can
-        invite other admins.
+        {locale === "vi"
+          ? "Liên kết hết hạn sau 7 ngày. Quản trị viên có thể mời thành viên; chỉ chủ sở hữu mới có thể mời quản trị viên khác."
+          : "Links expire after 7 days. Admins can invite members; only the owner can invite other admins."}
       </p>
     </div>
   );

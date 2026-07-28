@@ -5,6 +5,7 @@ import { ActivityActionBadge } from "@/components/projects/activity-action-badge
 import { ActivityChangesButton } from "@/components/projects/activity-changes-modal";
 import { ProjectColorBadge } from "@/components/projects/project-color-badge";
 import type { RecentActivityItem } from "@/lib/data";
+import { getRequestLocale } from "@/lib/i18n-server";
 import { cn } from "@/lib/utils";
 
 function formatActivityTime(value: Date) {
@@ -16,7 +17,7 @@ function formatActivityTime(value: Date) {
   });
 }
 
-export function ActivityFeed({
+export async function ActivityFeed({
   title,
   description,
   items,
@@ -29,6 +30,8 @@ export function ActivityFeed({
   showProjectName?: boolean;
   className?: string;
 }) {
+  const locale = await getRequestLocale();
+  const vi = locale === "vi";
   return (
     <section
       className={cn(
@@ -98,7 +101,8 @@ export function ActivityFeed({
                   </p>
                 ) : null}
                 <p className="mt-1 font-mono text-[11px] uppercase tracking-[0.04em] text-muted">
-                  by <span className="text-foreground">{item.actorName}</span>
+                  {vi ? "bởi" : "by"}{" "}
+                  <span className="text-foreground">{item.actorName}</span>
                 </p>
                 {item.changes && item.changes.length ? (
                   <div className="relative z-10 mt-2">
@@ -121,7 +125,7 @@ export function ActivityFeed({
         </div>
       ) : (
         <div className="rounded-md border border-dashed border-border bg-surface px-5 py-10 text-[13px] leading-7 text-muted">
-          No recent changes yet.
+          {vi ? "Chưa có thay đổi nào gần đây." : "No recent changes yet."}
         </div>
       )}
     </section>

@@ -12,6 +12,8 @@ import {
   UsersThree,
 } from "@phosphor-icons/react";
 
+import { t, type Locale } from "@/lib/i18n";
+import { useLocale } from "@/lib/use-locale";
 import { cn, withSearchParams } from "@/lib/utils";
 
 type ProjectTabsProps = {
@@ -19,16 +21,36 @@ type ProjectTabsProps = {
 };
 
 const tabs = [
-  { label: "Overview", icon: SquaresFour, suffix: "" },
-  { label: "Requests", icon: ChatCircleText, suffix: "/requests" },
-  { label: "Board", icon: Kanban, suffix: "/board" },
-  { label: "Notes", icon: NotePencil, suffix: "/notes" },
-  { label: "History", icon: ClockCounterClockwise, suffix: "/history" },
-  { label: "Members", icon: UsersThree, suffix: "/settings/members" },
-  { label: "Settings", icon: SlidersHorizontal, suffix: "/settings" },
+  { key: "overview", icon: SquaresFour, suffix: "" },
+  { key: "requests", icon: ChatCircleText, suffix: "/requests" },
+  { key: "board", icon: Kanban, suffix: "/board" },
+  { key: "notes", icon: NotePencil, suffix: "/notes" },
+  { key: "history", icon: ClockCounterClockwise, suffix: "/history" },
+  { key: "members", icon: UsersThree, suffix: "/settings/members" },
+  { key: "settings", icon: SlidersHorizontal, suffix: "/settings" },
 ] as const;
 
+function tabLabel(key: (typeof tabs)[number]["key"], locale: Locale) {
+  switch (key) {
+    case "overview":
+      return locale === "vi" ? "Tổng quan" : "Overview";
+    case "requests":
+      return locale === "vi" ? "Yêu cầu" : "Requests";
+    case "board":
+      return locale === "vi" ? "Bảng việc" : "Board";
+    case "notes":
+      return locale === "vi" ? "Ghi chú" : "Notes";
+    case "history":
+      return locale === "vi" ? "Lịch sử" : "History";
+    case "members":
+      return locale === "vi" ? "Thành viên" : "Members";
+    case "settings":
+      return t(locale, "settings");
+  }
+}
+
 export function ProjectTabs({ projectId }: ProjectTabsProps) {
+  const locale = useLocale();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   // Preserve the selected branch when moving between tabs so the workspace
@@ -45,7 +67,7 @@ export function ProjectTabs({ projectId }: ProjectTabsProps) {
 
         return (
           <Link
-            key={tab.label}
+            key={tab.key}
             href={linkHref}
             className={cn(
               "inline-flex min-h-9 shrink-0 items-center gap-2 rounded-md border px-3 py-2 text-[13px] font-medium transition",
@@ -55,7 +77,7 @@ export function ProjectTabs({ projectId }: ProjectTabsProps) {
             )}
           >
             <Icon className="size-4" />
-            {tab.label}
+            {tabLabel(tab.key, locale)}
           </Link>
         );
       })}

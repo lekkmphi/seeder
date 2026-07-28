@@ -815,6 +815,7 @@ export const taskComments = sqliteTable(
     authorId: text("author_id")
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),
+    parentCommentId: text("parent_comment_id"),
     content: text("content").notNull(),
     createdAt: integer("created_at", { mode: "timestamp_ms" })
       .notNull()
@@ -827,6 +828,7 @@ export const taskComments = sqliteTable(
     index("task_comments_task_idx").on(table.taskId),
     index("task_comments_project_idx").on(table.projectId),
     index("task_comments_author_idx").on(table.authorId),
+    index("task_comments_parent_idx").on(table.parentCommentId),
     index("task_comments_created_idx").on(table.createdAt),
   ],
 );
@@ -844,6 +846,7 @@ export const requestComments = sqliteTable(
     authorId: text("author_id")
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),
+    parentCommentId: text("parent_comment_id"),
     content: text("content").notNull(),
     createdAt: integer("created_at", { mode: "timestamp_ms" })
       .notNull()
@@ -856,6 +859,7 @@ export const requestComments = sqliteTable(
     index("request_comments_request_idx").on(table.requestId),
     index("request_comments_project_idx").on(table.projectId),
     index("request_comments_author_idx").on(table.authorId),
+    index("request_comments_parent_idx").on(table.parentCommentId),
     index("request_comments_created_idx").on(table.createdAt),
   ],
 );

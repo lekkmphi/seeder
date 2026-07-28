@@ -6,6 +6,7 @@ import { getViewer } from "@/lib/auth-server";
 import { getDb } from "@/lib/db";
 import { invitations, user } from "@/lib/db/schema";
 import { serverEnv } from "@/lib/env";
+import { getRequestLocale } from "@/lib/i18n-server";
 import { brandingUrl, getSystemSettings } from "@/lib/system-settings";
 
 type SignInPageProps = {
@@ -77,7 +78,10 @@ export default async function SignInPage({ searchParams }: SignInPageProps) {
     }
   }
 
-  const settings = await getSystemSettings();
+  const [settings, locale] = await Promise.all([
+    getSystemSettings(),
+    getRequestLocale(),
+  ]);
 
   return (
     <main className="flex min-h-dvh items-center justify-center px-4 py-8 sm:px-6 lg:px-10">
@@ -90,6 +94,7 @@ export default async function SignInPage({ searchParams }: SignInPageProps) {
         logoDarkUrl={brandingUrl(settings.logoDarkKey, settings.updatedAt)}
         logoLightUrl={brandingUrl(settings.logoLightKey, settings.updatedAt)}
         initialError={googleErrorMessage(errorCode)}
+        locale={locale}
       />
     </main>
   );

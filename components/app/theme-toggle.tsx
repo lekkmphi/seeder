@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { Moon, Sun } from "@phosphor-icons/react";
 
+import { useLocale } from "@/lib/use-locale";
+
 type Theme = "light" | "dark";
 
 const STORAGE_KEY = "seeder-theme";
@@ -27,6 +29,8 @@ function applyTheme(next: Theme) {
 }
 
 export function ThemeToggle() {
+  const locale = useLocale();
+  const vi = locale === "vi";
   const [mounted, setMounted] = useState(false);
   const [theme, setTheme] = useState<Theme>("light");
 
@@ -42,7 +46,13 @@ export function ThemeToggle() {
   };
 
   const label =
-    theme === "light" ? "Switch to dark mode" : "Switch to light mode";
+    theme === "light"
+      ? vi
+        ? "Chuyển sang chế độ tối"
+        : "Switch to dark mode"
+      : vi
+        ? "Chuyển sang chế độ sáng"
+        : "Switch to light mode";
 
   return (
     <button

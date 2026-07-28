@@ -1,4 +1,5 @@
 import type { DashboardData } from "@/lib/data";
+import { t, type Locale } from "@/lib/i18n";
 
 function KpiCard({ label, value, detail }: { label: string; value: string; detail: string }) {
   return (
@@ -14,28 +15,34 @@ function KpiCard({ label, value, detail }: { label: string; value: string; detai
   );
 }
 
-export function HeroKpis({ totals }: { totals: DashboardData["totals"] }) {
+export function HeroKpis({
+  totals,
+  locale = "en",
+}: {
+  totals: DashboardData["totals"];
+  locale?: Locale;
+}) {
   return (
     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
       <KpiCard
-        label="Shipped 7d"
+        label={t(locale, "shipped7d")}
         value={totals.shipped7d.toString()}
-        detail="Updates published this week."
+        detail={t(locale, "shipped7dDetail")}
       />
       <KpiCard
-        label="Shipped 30d"
+        label={t(locale, "shipped30d")}
         value={totals.shipped30d.toString()}
-        detail="Updates in the last 30 days."
+        detail={t(locale, "shipped30dDetail")}
       />
       <KpiCard
-        label="All-time shipped"
+        label={t(locale, "shippedAllTime")}
         value={totals.shippedAllTime.toString()}
-        detail="Lifetime client updates."
+        detail={t(locale, "shippedAllTimeDetail")}
       />
       <KpiCard
-        label="Active days (30d)"
+        label={t(locale, "activeDays30d")}
         value={totals.activeDays30d.toString()}
-        detail="Days with at least one activity."
+        detail={t(locale, "activeDays30dDetail")}
       />
     </div>
   );

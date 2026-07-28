@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { GitBranch } from "@phosphor-icons/react";
 
+import { useLocale } from "@/lib/use-locale";
 import { cn } from "@/lib/utils";
 
 type BranchOption = { id: string; name: string; isDefault: boolean };
@@ -21,6 +22,8 @@ type BranchIndicatorProps = {
  * "Main" branch when none is selected.
  */
 export function BranchIndicator({ projectId, branches }: BranchIndicatorProps) {
+  const locale = useLocale();
+  const vi = locale === "vi";
   const searchParams = useSearchParams();
   const requested = searchParams.get("branch");
   const current =
@@ -29,12 +32,12 @@ export function BranchIndicator({ projectId, branches }: BranchIndicatorProps) {
     branches[0];
 
   const branchesHref = `/projects/${projectId}/branches`;
-  const label = current?.name ?? "Branches";
+  const label = current?.name ?? (vi ? "Nhánh" : "Branches");
 
   return (
     <Link
       href={branchesHref}
-      title="View and switch branches"
+      title={vi ? "Xem và chuyển nhánh" : "View and switch branches"}
       className={cn(
         "inline-flex min-h-9 shrink-0 items-center gap-2 rounded-md border border-border bg-surface px-3 py-2 text-[13px] font-medium text-foreground transition",
         "hover:border-border-strong hover:bg-surface-strong",
@@ -42,10 +45,12 @@ export function BranchIndicator({ projectId, branches }: BranchIndicatorProps) {
     >
       <GitBranch className="size-4 text-muted" />
       <span className="font-mono text-[11px] uppercase tracking-[0.04em] text-muted">
-        Branch
+        {vi ? "Nhánh" : "Branch"}
       </span>
       <span className="max-w-40 truncate">{label}</span>
-      {current?.isDefault ? <span className="ui-badge">default</span> : null}
+      {current?.isDefault ? (
+        <span className="ui-badge">{vi ? "mặc định" : "default"}</span>
+      ) : null}
       {branches.length > 1 ? (
         <span className="font-mono text-[11px] text-muted">
           · {branches.length}

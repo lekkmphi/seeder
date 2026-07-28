@@ -9,6 +9,7 @@ import {
 } from "@phosphor-icons/react";
 
 import { SearchSelect } from "@/components/ui/search-select";
+import { useLocale } from "@/lib/use-locale";
 
 type Props = {
   projects: { id: string; name: string }[];
@@ -33,6 +34,7 @@ function buildSearch(state: Props["initial"]) {
 
 export function ActivityFilters({ projects, users, initial }: Props) {
   const router = useRouter();
+  const locale = useLocale();
   const [state, setState] = useState(initial);
   const [isPending, startTransition] = useTransition();
 
@@ -65,7 +67,7 @@ export function ActivityFilters({ projects, users, initial }: Props) {
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <label className="flex flex-col gap-1">
           <span className="font-mono text-[11px] uppercase tracking-[0.04em] text-muted">
-            From
+            {locale === "vi" ? "Từ" : "From"}
           </span>
           <input
             type="date"
@@ -77,7 +79,7 @@ export function ActivityFilters({ projects, users, initial }: Props) {
         </label>
         <label className="flex flex-col gap-1">
           <span className="font-mono text-[11px] uppercase tracking-[0.04em] text-muted">
-            To
+            {locale === "vi" ? "Đến" : "To"}
           </span>
           <input
             type="date"
@@ -89,20 +91,20 @@ export function ActivityFilters({ projects, users, initial }: Props) {
         </label>
         <div className="flex flex-col gap-1">
           <span className="font-mono text-[11px] uppercase tracking-[0.04em] text-muted">
-            Project
+            {locale === "vi" ? "Dự án" : "Project"}
           </span>
           <SearchSelect
             options={projects.map((p) => ({ value: p.id, label: p.name }))}
             value={state.projectId || undefined}
             onChange={(v) => update("projectId", v ?? "")}
-            placeholder="All projects"
-            searchPlaceholder="Search projects…"
-            clearLabel="All projects"
+            placeholder={locale === "vi" ? "Tất cả dự án" : "All projects"}
+            searchPlaceholder={locale === "vi" ? "Tìm dự án..." : "Search projects..."}
+            clearLabel={locale === "vi" ? "Tất cả dự án" : "All projects"}
           />
         </div>
         <div className="flex flex-col gap-1">
           <span className="font-mono text-[11px] uppercase tracking-[0.04em] text-muted">
-            User
+            {locale === "vi" ? "Người dùng" : "User"}
           </span>
           <SearchSelect
             options={users.map((u) => ({
@@ -112,9 +114,9 @@ export function ActivityFilters({ projects, users, initial }: Props) {
             }))}
             value={state.actorId || undefined}
             onChange={(v) => update("actorId", v ?? "")}
-            placeholder="All users"
-            searchPlaceholder="Search users…"
-            clearLabel="All users"
+            placeholder={locale === "vi" ? "Tất cả người dùng" : "All users"}
+            searchPlaceholder={locale === "vi" ? "Tìm người dùng..." : "Search users..."}
+            clearLabel={locale === "vi" ? "Tất cả người dùng" : "All users"}
           />
         </div>
       </div>
@@ -127,7 +129,7 @@ export function ActivityFilters({ projects, users, initial }: Props) {
           className="ui-button-primary disabled:cursor-not-allowed disabled:opacity-60"
         >
           <Funnel className="size-4" />
-          Apply
+          {locale === "vi" ? "Áp dụng" : "Apply"}
         </button>
         <button
           type="button"
@@ -136,17 +138,21 @@ export function ActivityFilters({ projects, users, initial }: Props) {
           className="ui-button-secondary disabled:cursor-not-allowed disabled:opacity-60"
         >
           <ArrowCounterClockwise className="size-4" />
-          Clear
+          {locale === "vi" ? "Xóa lọc" : "Clear"}
         </button>
         <span className="flex-1" />
         <button
           type="button"
           onClick={exportCsv}
           className="ui-button-secondary"
-          title="Download CSV of the current filter"
+          title={
+            locale === "vi"
+              ? "Tải CSV theo bộ lọc hiện tại"
+              : "Download CSV of the current filter"
+          }
         >
           <DownloadSimple className="size-4" />
-          Export CSV
+          {locale === "vi" ? "Xuất CSV" : "Export CSV"}
         </button>
       </div>
     </div>

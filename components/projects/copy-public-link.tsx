@@ -13,6 +13,7 @@ import {
 } from "@phosphor-icons/react";
 
 import { enableClientShareAction } from "@/lib/actions";
+import { useLocale } from "@/lib/use-locale";
 import { cn } from "@/lib/utils";
 
 type CopyPublicLinkProps = {
@@ -45,6 +46,7 @@ export function CopyPublicLink({
   projectId,
   settingsHref,
 }: CopyPublicLinkProps) {
+  const locale = useLocale();
   const [open, setOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -96,7 +98,9 @@ export function CopyPublicLink({
         ) : (
           <LockSimple className="size-4" />
         )}
-        {isPublished ? "Public link" : "Client board private"}
+        {isPublished
+          ? locale === "vi" ? "Liên kết công khai" : "Public link"
+          : locale === "vi" ? "Bảng khách hàng riêng tư" : "Client board private"}
       </button>
 
       {open && mounted && typeof document !== "undefined"
@@ -104,7 +108,7 @@ export function CopyPublicLink({
             <div className="fixed inset-0 z-50 p-4 sm:p-6">
               <button
                 type="button"
-                aria-label="Close"
+                aria-label={locale === "vi" ? "Đóng" : "Close"}
                 onClick={() => setOpen(false)}
                 className="ui-modal-backdrop absolute inset-0 bg-[rgba(10,10,10,0.44)] backdrop-blur-xs"
               />
@@ -113,18 +117,22 @@ export function CopyPublicLink({
                   <div className="mb-5 flex items-start justify-between gap-4">
                     <div className="space-y-2">
                       <p className="font-mono text-[11px] font-medium uppercase tracking-[0.04em] text-muted">
-                        Client board
+                        {locale === "vi" ? "Bảng khách hàng" : "Client board"}
                       </p>
                       <div>
                         <h3 className="text-[1.2rem] font-medium tracking-[-0.022em] text-foreground">
                           {isPublished
-                            ? "Share the public board"
-                            : "Client board is private"}
+                            ? locale === "vi" ? "Chia sẻ bảng công khai" : "Share the public board"
+                            : locale === "vi" ? "Bảng khách hàng đang riêng tư" : "Client board is private"}
                         </h3>
                         <p className="mt-2 text-[13px] leading-6 text-muted">
                           {isPublished
-                            ? "Anyone with this link can view a read-only version of the board. Rotate or unpublish it in Settings."
-                            : "Publish the board to get a shareable, read-only link for your client."}
+                            ? locale === "vi"
+                              ? "Ai có liên kết này đều xem được phiên bản chỉ đọc của bảng. Xoay hoặc hủy xuất bản trong Cài đặt."
+                              : "Anyone with this link can view a read-only version of the board. Rotate or unpublish it in Settings."
+                            : locale === "vi"
+                              ? "Xuất bản bảng để lấy liên kết chỉ đọc có thể chia sẻ cho khách hàng."
+                              : "Publish the board to get a shareable, read-only link for your client."}
                         </p>
                       </div>
                     </div>
@@ -134,7 +142,9 @@ export function CopyPublicLink({
                       className="inline-flex size-9 items-center justify-center rounded-md border border-border bg-surface text-muted transition hover:border-border-strong hover:bg-surface-strong hover:text-foreground"
                     >
                       <X className="size-4" />
-                      <span className="sr-only">Close</span>
+                      <span className="sr-only">
+                        {locale === "vi" ? "Đóng" : "Close"}
+                      </span>
                     </button>
                   </div>
 
@@ -147,14 +157,18 @@ export function CopyPublicLink({
                             readOnly
                             value={fullUrl}
                             onFocus={(event) => event.currentTarget.select()}
-                            aria-label="Public client board link"
+                            aria-label={
+                              locale === "vi"
+                                ? "Liên kết bảng khách hàng công khai"
+                                : "Public client board link"
+                            }
                             className="w-full rounded-md border border-border bg-surface py-2.5 pl-9 pr-3 font-mono text-[13px] text-foreground outline-none focus:border-border-strong"
                           />
                         </span>
                         <button
                           type="button"
                           onClick={handleCopy}
-                          aria-label="Copy public link"
+                          aria-label={locale === "vi" ? "Sao chép liên kết công khai" : "Copy public link"}
                           className={cn(
                             "inline-flex min-h-[42px] shrink-0 items-center gap-2 rounded-md px-4 text-[13px] font-medium transition",
                             copied
@@ -167,7 +181,9 @@ export function CopyPublicLink({
                           ) : (
                             <Copy className="size-4" />
                           )}
-                          {copied ? "Copied!" : "Copy"}
+                          {copied
+                            ? locale === "vi" ? "Đã sao chép!" : "Copied!"
+                            : locale === "vi" ? "Sao chép" : "Copy"}
                         </button>
                       </div>
                       <a
@@ -177,13 +193,15 @@ export function CopyPublicLink({
                         className="ui-button-secondary w-full justify-center"
                       >
                         <ArrowSquareOut className="size-4" />
-                        Open in new tab
+                        {locale === "vi" ? "Mở trong tab mới" : "Open in new tab"}
                       </a>
                       <Link
                         href={settingsHref}
                         className="text-center text-[12px] text-muted transition hover:text-foreground"
                       >
-                        Rotate or unpublish in Settings
+                        {locale === "vi"
+                          ? "Xoay hoặc hủy xuất bản trong Cài đặt"
+                          : "Rotate or unpublish in Settings"}
                       </Link>
                     </div>
                   ) : (
@@ -195,14 +213,14 @@ export function CopyPublicLink({
                           className="ui-button-primary w-full justify-center"
                         >
                           <LinkSimple className="size-4" />
-                          Publish board
+                          {locale === "vi" ? "Xuất bản bảng" : "Publish board"}
                         </button>
                       </form>
                       <Link
                         href={settingsHref}
                         className="text-center text-[12px] text-muted transition hover:text-foreground"
                       >
-                        Manage in Settings
+                        {locale === "vi" ? "Quản lý trong Cài đặt" : "Manage in Settings"}
                       </Link>
                     </div>
                   )}

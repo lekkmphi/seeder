@@ -8,6 +8,8 @@ import { CopyPublicLink } from "@/components/projects/copy-public-link";
 import { ProjectTabs } from "@/components/projects/project-tabs";
 import { requireViewer } from "@/lib/auth-server";
 import { getProjectForUser } from "@/lib/data";
+import { t } from "@/lib/i18n";
+import { getRequestLocale } from "@/lib/i18n-server";
 import { listBranches } from "@/lib/services/branches";
 import { serverEnv } from "@/lib/env";
 import { formatProjectStatus } from "@/lib/project-status";
@@ -30,7 +32,10 @@ export default async function ProjectLayout({
     notFound();
   }
 
-  const branchList = await listBranches(viewer, { projectId });
+  const [branchList, locale] = await Promise.all([
+    listBranches(viewer, { projectId }),
+    getRequestLocale(),
+  ]);
   const branchOptions = branchList.map((branch) => ({
     id: branch.id,
     name: branch.name,
@@ -54,16 +59,16 @@ export default async function ProjectLayout({
               <div className="flex flex-wrap items-center gap-2">
                 <div className="inline-flex items-center gap-2 rounded-md border border-border bg-surface px-2.5 py-1.5 font-mono text-[11px] font-medium uppercase tracking-[0.04em] text-foreground">
                   <StackSimple className="size-4" />
-                  Project workspace
+                  {t(locale, "projectWorkspace")}
                 </div>
                 {project.archivedAt ? (
-                  <div className="ui-badge">Archived</div>
+                  <div className="ui-badge">{t(locale, "archived")}</div>
                 ) : null}
               </div>
               <div>
                 <p className="font-mono text-[11px] uppercase tracking-[0.04em] text-muted">
                   <Link href="/projects" className="hover:text-foreground">
-                    Projects
+                    {t(locale, "projects")}
                   </Link>
                   {" / "}
                   <span className="text-foreground">
@@ -75,7 +80,9 @@ export default async function ProjectLayout({
                 </h1>
                 <p className="mt-2 max-w-3xl text-[13px] leading-6 text-muted sm:text-[15px]">
                   {project.summary ||
-                    "A focused operating space for requests, execution, and project memory."}
+                    (locale === "vi"
+                      ? "Một không gian tập trung cho yêu cầu, triển khai và ghi nhớ dự án."
+                      : "A focused operating space for requests, execution, and project memory.")}
                 </p>
               </div>
             </div>
@@ -83,23 +90,23 @@ export default async function ProjectLayout({
             <div className="grid gap-3 rounded-md border border-border bg-surface px-4 py-3 sm:min-w-65">
               <div>
                 <p className="font-mono text-[11px] font-medium uppercase tracking-[0.04em] text-muted">
-                  Status
+                  {locale === "vi" ? "Trạng thái" : "Status"}
                 </p>
                 <p className="mt-1 text-[15px] font-medium text-foreground">
-                  {formatProjectStatus(project.status)}
+                  {formatProjectStatus(project.status, locale)}
                 </p>
               </div>
               <div>
                 <p className="font-mono text-[11px] font-medium uppercase tracking-[0.04em] text-muted">
-                  Client
+                  {t(locale, "client")}
                 </p>
                 <p className="mt-1 text-[13px] text-foreground">
-                  {project.clientName || "No client assigned"}
+                  {project.clientName || (locale === "vi" ? "Chưa gán khách hàng" : "No client assigned")}
                 </p>
               </div>
               <div className="inline-flex items-center gap-1.5 font-mono text-[11px] uppercase tracking-[0.04em] text-muted">
                 <CalendarDots className="size-3.5" />
-                {formatDate(project.deadline, "No deadline set")}
+                {formatDate(project.deadline, t(locale, "noDeadlineSet"))}
               </div>
             </div>
           </div>

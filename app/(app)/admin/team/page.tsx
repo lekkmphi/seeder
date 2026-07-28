@@ -1,4 +1,5 @@
 import { requireViewer } from "@/lib/auth-server";
+import { getRequestLocale } from "@/lib/i18n-server";
 import { listSpaces } from "@/lib/services/spaces";
 import { PageHeader } from "@/components/app/page-header";
 import { SpacesList } from "@/components/spaces/spaces-list";
@@ -9,6 +10,7 @@ export const dynamic = "force-dynamic";
 // requires owner/admin.) Each opens to its detail to manage members + see projects.
 export default async function AdminTeamsPage() {
   const viewer = await requireViewer();
+  const locale = await getRequestLocale();
   const spaces = (await listSpaces(viewer))
     .filter((s) => s.kind === "company")
     .map((s) => ({
@@ -22,9 +24,13 @@ export default async function AdminTeamsPage() {
   return (
     <div className="grid gap-6">
       <PageHeader
-        eyebrow="Admin · Teams"
-        title="Teams"
-        description="Create and manage shared company teams. Open one to manage its members and see its projects."
+        eyebrow={locale === "vi" ? "Quản trị · Đội nhóm" : "Admin · Teams"}
+        title={locale === "vi" ? "Đội nhóm" : "Teams"}
+        description={
+          locale === "vi"
+            ? "Tạo và quản lý các đội dùng chung của công ty. Mở một đội để quản lý thành viên và xem dự án."
+            : "Create and manage shared company teams. Open one to manage its members and see its projects."
+        }
       />
       <section className="ui-panel p-5 sm:p-6">
         <SpacesList spaces={spaces} canCreate />

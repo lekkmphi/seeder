@@ -6,6 +6,7 @@ import { CreateBranchModal } from "@/components/projects/create-branch-modal";
 import { requireViewer } from "@/lib/auth-server";
 import { canManageProject } from "@/lib/authz";
 import { getProjectForUser } from "@/lib/data";
+import { getRequestLocale } from "@/lib/i18n-server";
 import { listBranches } from "@/lib/services/branches";
 
 type ProjectBranchesPageProps = {
@@ -27,6 +28,8 @@ export default async function ProjectBranchesPage({
     listBranches(viewer, { projectId }),
     canManageProject(viewer, projectId),
   ]);
+  const locale = await getRequestLocale();
+  const vi = locale === "vi";
 
   return (
     <section className="ui-panel p-5 sm:p-6">
@@ -34,12 +37,12 @@ export default async function ProjectBranchesPage({
         <div className="space-y-2">
           <div className="inline-flex items-center gap-2 rounded-md border border-border bg-surface px-2.5 py-1.5 font-mono text-[11px] font-medium uppercase tracking-[0.04em] text-foreground">
             <GitBranch className="size-4" />
-            Branches
+            {vi ? "Nhánh" : "Branches"}
           </div>
           <p className="max-w-2xl text-[13px] leading-6 text-muted">
-            Each branch is its own set of tasks and requirements. Pick one to
-            open its board, or split a feature off Main into a new branch. All
-            branches are visible to every project member.
+            {vi
+              ? "Mỗi nhánh có tập việc và yêu cầu riêng. Chọn một nhánh để mở bảng của nó, hoặc tách một tính năng khỏi nhánh Main sang nhánh mới. Mọi nhánh đều hiển thị với tất cả thành viên dự án."
+              : "Each branch is its own set of tasks and requirements. Pick one to open its board, or split a feature off Main into a new branch. All branches are visible to every project member."}
           </p>
         </div>
         <CreateBranchModal projectId={projectId} />

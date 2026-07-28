@@ -11,6 +11,8 @@ import {
 
 import { formatProjectStatus } from "@/lib/project-status";
 import type { AdminProjectSummary } from "@/lib/data-admin";
+import { t } from "@/lib/i18n";
+import { useLocale } from "@/lib/use-locale";
 import { cn, formatDate } from "@/lib/utils";
 
 const projectStatusBadgeClassNames = {
@@ -21,8 +23,8 @@ const projectStatusBadgeClassNames = {
   completed: "border-border bg-surface text-foreground",
 } as const;
 
-function formatDeadline(value: Date | null) {
-  return formatDate(value, "Open-ended");
+function formatDeadline(value: Date | null, locale: "vi" | "en") {
+  return formatDate(value, locale === "vi" ? "Không thời hạn" : "Open-ended");
 }
 
 type Props = {
@@ -30,6 +32,7 @@ type Props = {
 };
 
 export function AdminProjectsList({ projects }: Props) {
+  const locale = useLocale();
   const [query, setQuery] = useState("");
 
   const filtered = useMemo(() => {
@@ -59,8 +62,12 @@ export function AdminProjectsList({ projects }: Props) {
           type="search"
           value={query}
           onChange={(event) => setQuery(event.target.value)}
-          placeholder="Search by project, client, owner, or summary…"
-          aria-label="Search projects"
+          placeholder={
+            locale === "vi"
+              ? "Tìm theo dự án, khách hàng, chủ sở hữu hoặc tóm tắt..."
+              : "Search by project, client, owner, or summary..."
+          }
+          aria-label={locale === "vi" ? "Tìm dự án" : "Search projects"}
           className="w-full rounded-md border border-border bg-background py-2.5 pl-9 pr-3 text-[13px] text-foreground outline-none transition placeholder:text-muted focus:border-accent"
         />
       </div>
@@ -68,8 +75,12 @@ export function AdminProjectsList({ projects }: Props) {
       <div className="flex items-center justify-between px-1">
         <span className="font-mono text-[11px] uppercase tracking-[0.04em] text-muted">
           {query.trim()
-            ? `${filtered.length} of ${projects.length} projects`
-            : `${projects.length} projects`}
+            ? locale === "vi"
+              ? `${filtered.length} / ${projects.length} dự án`
+              : `${filtered.length} of ${projects.length} projects`
+            : locale === "vi"
+              ? `${projects.length} dự án`
+              : `${projects.length} projects`}
         </span>
       </div>
 
@@ -102,7 +113,7 @@ export function AdminProjectsList({ projects }: Props) {
                           projectStatusBadgeClassNames[project.status],
                         )}
                       >
-                        {formatProjectStatus(project.status)}
+                        {formatProjectStatus(project.status, locale)}
                       </span>
                       {project.slug ? (
                         <span className="font-mono text-[11px] uppercase tracking-[0.04em] text-muted">
@@ -110,7 +121,9 @@ export function AdminProjectsList({ projects }: Props) {
                         </span>
                       ) : null}
                       {project.archivedAt ? (
-                        <span className="ui-badge">archived</span>
+                        <span className="ui-badge">
+                          {locale === "vi" ? "đã lưu trữ" : "archived"}
+                        </span>
                       ) : null}
                     </div>
 
@@ -121,7 +134,8 @@ export function AdminProjectsList({ projects }: Props) {
                       <p className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[13px] leading-6 text-muted">
                         <span className="inline-flex items-center gap-1">
                           <UserIcon className="size-3.5" />
-                          {project.ownerName ?? "Unknown owner"}
+                          {project.ownerName ??
+                            (locale === "vi" ? "Chưa rõ chủ sở hữu" : "Unknown owner")}
                         </span>
                         {project.ownerEmail ? (
                           <span className="font-mono text-[11px]">
@@ -133,21 +147,22 @@ export function AdminProjectsList({ projects }: Props) {
                   </div>
 
                   <div className="grid grid-cols-3 gap-2 lg:max-w-130 lg:flex-1">
-                    <Stat label="Open" value={project.tasksOpen} />
-                    <Stat label="Done" value={project.tasksDone} />
-                    <Stat label="Members" value={project.memberCount} />
+                    <Stat label={t(locale, "open")} value={project.tasksOpen} />
+                    <Stat label={t(locale, "done")} value={project.tasksDone} />
+                    <Stat label={locale === "vi" ? "Thành viên" : "Members"} value={project.memberCount} />
                   </div>
                 </div>
 
                 <div className="mt-3 flex flex-wrap items-center justify-between gap-3 border-t border-border pt-3 text-[13px] text-muted">
                   <p className="min-w-0 flex-1 truncate leading-6">
-                    {project.summary || "No project summary yet."}
+                    {project.summary ||
+                      (locale === "vi" ? "Chưa có tóm tắt dự án." : "No project summary yet.")}
                   </p>
                   <span className="whitespace-nowrap font-mono text-[11px] uppercase tracking-[0.04em]">
-                    {formatDeadline(project.deadline)}
+                    {formatDeadline(project.deadline, locale)}
                   </span>
                   <span className="inline-flex items-center gap-1.5 whitespace-nowrap text-foreground">
-                    Open
+                    {locale === "vi" ? "Mở" : "Open"}
                     <ArrowSquareOut className="size-4 text-muted transition group-hover:text-foreground" />
                   </span>
                 </div>
@@ -162,15 +177,23 @@ export function AdminProjectsList({ projects }: Props) {
           </div>
           <p className="mt-3 text-[13px] font-medium text-foreground">
             {query.trim() ? (
-              <>No projects match “{query.trim()}”</>
+              <>
+                {locale === "vi"
+                  ? `Không có dự án khớp “${query.trim()}”`
+                  : `No projects match “${query.trim()}”`}
+              </>
             ) : (
-              "No projects yet"
+              locale === "vi" ? "Chưa có dự án" : "No projects yet"
             )}
           </p>
           <p className="mt-1 mx-auto max-w-sm text-[13px] leading-6 text-muted">
             {query.trim()
-              ? "Try a different project name, client, or owner."
-              : "Projects created by any member will show up here."}
+              ? locale === "vi"
+                ? "Thử tên dự án, khách hàng hoặc chủ sở hữu khác."
+                : "Try a different project name, client, or owner."
+              : locale === "vi"
+                ? "Dự án do bất kỳ thành viên nào tạo sẽ xuất hiện ở đây."
+                : "Projects created by any member will show up here."}
           </p>
         </div>
       )}

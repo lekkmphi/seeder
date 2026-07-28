@@ -19,6 +19,8 @@ import {
 } from "@/lib/actions";
 import { PROJECT_SWATCHES } from "@/lib/swatches";
 import { toast } from "@/lib/toast";
+import { t } from "@/lib/i18n";
+import { useLocale } from "@/lib/use-locale";
 import { cn } from "@/lib/utils";
 
 export type ManagedStatus = {
@@ -72,6 +74,7 @@ export function StatusManager({
   projectId: string;
   statuses: ManagedStatus[];
 }) {
+  const locale = useLocale();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [reordering, startReorder] = useTransition();
@@ -92,7 +95,9 @@ export function StatusManager({
         await reorderTaskStatusesAction(formData);
       } catch (error) {
         toast(
-          error instanceof Error ? error.message : "Could not reorder statuses",
+          error instanceof Error
+            ? error.message
+            : locale === "vi" ? "Không thể sắp xếp trạng thái" : "Could not reorder statuses",
           "danger",
         );
       }
@@ -126,11 +131,17 @@ export function StatusManager({
                   {status.name}
                 </span>
                 {status.isInitial ? (
-                  <span className="ui-badge">Initial</span>
+                  <span className="ui-badge">
+                    {locale === "vi" ? "Ban đầu" : "Initial"}
+                  </span>
                 ) : null}
-                {status.isTerminal ? <span className="ui-badge">Done</span> : null}
+                {status.isTerminal ? (
+                  <span className="ui-badge">{t(locale, "done")}</span>
+                ) : null}
                 <span className="ui-badge">
-                  {status.taskCount} task{status.taskCount === 1 ? "" : "s"}
+                  {locale === "vi"
+                    ? `${status.taskCount} công việc`
+                    : `${status.taskCount} task${status.taskCount === 1 ? "" : "s"}`}
                 </span>
               </div>
               <div className="flex items-center gap-1">
@@ -139,38 +150,46 @@ export function StatusManager({
                   onClick={() => move(index, -1)}
                   disabled={index === 0 || reordering}
                   className="inline-flex size-7 items-center justify-center rounded-sm text-muted transition hover:bg-background hover:text-foreground disabled:opacity-30"
-                  title="Move left"
+                  title={locale === "vi" ? "Di chuyển sang trái" : "Move left"}
                 >
                   <ArrowUp className="size-3.5" />
-                  <span className="sr-only">Move earlier</span>
+                  <span className="sr-only">
+                    {locale === "vi" ? "Di chuyển lên trước" : "Move earlier"}
+                  </span>
                 </button>
                 <button
                   type="button"
                   onClick={() => move(index, 1)}
                   disabled={index === ordered.length - 1 || reordering}
                   className="inline-flex size-7 items-center justify-center rounded-sm text-muted transition hover:bg-background hover:text-foreground disabled:opacity-30"
-                  title="Move right"
+                  title={locale === "vi" ? "Di chuyển sang phải" : "Move right"}
                 >
                   <ArrowDown className="size-3.5" />
-                  <span className="sr-only">Move later</span>
+                  <span className="sr-only">
+                    {locale === "vi" ? "Di chuyển xuống sau" : "Move later"}
+                  </span>
                 </button>
                 <button
                   type="button"
                   onClick={() => setEditingId(status.id)}
                   className="inline-flex size-7 items-center justify-center rounded-sm text-muted transition hover:bg-background hover:text-foreground"
-                  title="Edit status"
+                  title={locale === "vi" ? "Sửa trạng thái" : "Edit status"}
                 >
                   <Pencil className="size-3.5" />
-                  <span className="sr-only">Edit status</span>
+                  <span className="sr-only">
+                    {locale === "vi" ? "Sửa trạng thái" : "Edit status"}
+                  </span>
                 </button>
                 <button
                   type="button"
                   onClick={() => setConfirmDeleteId(status.id)}
                   className="inline-flex size-7 items-center justify-center rounded-sm text-muted transition hover:bg-danger/10 hover:text-danger"
-                  title="Delete status"
+                  title={locale === "vi" ? "Xóa trạng thái" : "Delete status"}
                 >
                   <Trash className="size-3.5" />
-                  <span className="sr-only">Delete status</span>
+                  <span className="sr-only">
+                    {locale === "vi" ? "Xóa trạng thái" : "Delete status"}
+                  </span>
                 </button>
               </div>
             </li>
@@ -191,6 +210,7 @@ export function StatusManager({
 }
 
 function StatusCreateForm({ projectId }: { projectId: string }) {
+  const locale = useLocale();
   const [name, setName] = useState("");
   const [color, setColor] = useState(DEFAULT_COLOR);
   const [isTerminal, setIsTerminal] = useState(false);
@@ -207,13 +227,15 @@ function StatusCreateForm({ projectId }: { projectId: string }) {
     startTransition(async () => {
       try {
         await createTaskStatusAction(formData);
-        toast("Status added", "success");
+        toast(locale === "vi" ? "Đã thêm trạng thái" : "Status added", "success");
         setName("");
         setColor(DEFAULT_COLOR);
         setIsTerminal(false);
       } catch (error) {
         toast(
-          error instanceof Error ? error.message : "Could not add status",
+          error instanceof Error
+            ? error.message
+            : locale === "vi" ? "Không thể thêm trạng thái" : "Could not add status",
           "danger",
         );
       }
@@ -229,16 +251,20 @@ function StatusCreateForm({ projectId }: { projectId: string }) {
         addStatus();
       }}
     >
-      <p className="text-[12px] font-medium text-foreground">Add a status</p>
+      <p className="text-[12px] font-medium text-foreground">
+        {locale === "vi" ? "Thêm trạng thái" : "Add a status"}
+      </p>
       <div className="flex flex-wrap items-end gap-3">
         <label className="grid min-w-48 flex-1 gap-1.5">
-          <span className="text-[12px] font-medium text-muted">Name</span>
+          <span className="text-[12px] font-medium text-muted">
+            {locale === "vi" ? "Tên" : "Name"}
+          </span>
           <input
             value={name}
             onChange={(event) => setName(event.target.value)}
             className="ui-input"
             maxLength={40}
-            placeholder="e.g. In Review"
+            placeholder={locale === "vi" ? "VD: Đang rà soát" : "e.g. In Review"}
           />
         </label>
         <label className="flex items-center gap-2 pb-2 text-[12px] text-foreground">
@@ -247,7 +273,7 @@ function StatusCreateForm({ projectId }: { projectId: string }) {
             checked={isTerminal}
             onChange={(event) => setIsTerminal(event.target.checked)}
           />
-          Done column
+          {locale === "vi" ? "Cột hoàn tất" : "Done column"}
         </label>
       </div>
       <SwatchPicker color={color} onChange={setColor} />
@@ -262,7 +288,7 @@ function StatusCreateForm({ projectId }: { projectId: string }) {
           ) : (
             <Plus className="size-4" />
           )}
-          Add status
+          {locale === "vi" ? "Thêm trạng thái" : "Add status"}
         </button>
       </div>
     </form>
@@ -278,6 +304,7 @@ function StatusEditForm({
   onDone: () => void;
   onCancel: () => void;
 }) {
+  const locale = useLocale();
   const [name, setName] = useState(status.name);
   const [color, setColor] = useState(status.color);
   const [isTerminal, setIsTerminal] = useState(status.isTerminal);
@@ -296,11 +323,13 @@ function StatusEditForm({
     startTransition(async () => {
       try {
         await updateTaskStatusDefAction(formData);
-        toast("Status updated", "success");
+        toast(locale === "vi" ? "Đã cập nhật trạng thái" : "Status updated", "success");
         onDone();
       } catch (error) {
         toast(
-          error instanceof Error ? error.message : "Could not update status",
+          error instanceof Error
+            ? error.message
+            : locale === "vi" ? "Không thể cập nhật trạng thái" : "Could not update status",
           "danger",
         );
       }
@@ -317,7 +346,9 @@ function StatusEditForm({
       }}
     >
       <label className="grid gap-1.5">
-        <span className="text-[12px] font-medium text-foreground">Name</span>
+        <span className="text-[12px] font-medium text-foreground">
+          {locale === "vi" ? "Tên" : "Name"}
+        </span>
         <input
           value={name}
           onChange={(event) => setName(event.target.value)}
@@ -326,7 +357,9 @@ function StatusEditForm({
         />
       </label>
       <div className="grid gap-1.5">
-        <span className="text-[12px] font-medium text-foreground">Color</span>
+        <span className="text-[12px] font-medium text-foreground">
+          {locale === "vi" ? "Màu" : "Color"}
+        </span>
         <SwatchPicker color={color} onChange={setColor} />
       </div>
       <div className="flex flex-wrap gap-4">
@@ -336,7 +369,7 @@ function StatusEditForm({
             checked={isInitial}
             onChange={(event) => setIsInitial(event.target.checked)}
           />
-          New tasks start here
+          {locale === "vi" ? "Công việc mới bắt đầu tại đây" : "New tasks start here"}
         </label>
         <label className="flex items-center gap-2 text-[12px] text-foreground">
           <input
@@ -344,7 +377,7 @@ function StatusEditForm({
             checked={isTerminal}
             onChange={(event) => setIsTerminal(event.target.checked)}
           />
-          Done column
+          {locale === "vi" ? "Cột hoàn tất" : "Done column"}
         </label>
       </div>
       <div className="flex items-center justify-end gap-2">
@@ -354,7 +387,7 @@ function StatusEditForm({
           className="ui-button-ghost px-3"
           disabled={isPending}
         >
-          Cancel
+          {t(locale, "cancel")}
         </button>
         <button
           type="submit"
@@ -362,7 +395,7 @@ function StatusEditForm({
           disabled={isPending}
         >
           {isPending ? <CircleNotch className="size-4 animate-spin" /> : null}
-          Save
+          {locale === "vi" ? "Lưu" : "Save"}
         </button>
       </div>
     </form>
@@ -376,26 +409,28 @@ function DeleteStatusDialog({
   status: ManagedStatus;
   onClose: () => void;
 }) {
+  const locale = useLocale();
   const [isPending, startTransition] = useTransition();
 
   if (status.taskCount > 0) {
     return (
       <ConfirmDialog
         open
-        title="Status still in use"
+        title={locale === "vi" ? "Trạng thái vẫn đang được dùng" : "Status still in use"}
         description={
           <>
             <span className="font-medium text-foreground">{status.name}</span>{" "}
-            still has{" "}
+            {locale === "vi" ? " vẫn có " : " still has "}
             <span className="font-medium text-foreground">
               {status.taskCount}
             </span>{" "}
-            task{status.taskCount === 1 ? "" : "s"} in it. Move them to another
-            status first, then delete this column.
+            {locale === "vi"
+              ? " công việc. Hãy chuyển chúng sang trạng thái khác trước, rồi xóa cột này."
+              : ` task${status.taskCount === 1 ? "" : "s"} in it. Move them to another status first, then delete this column.`}
           </>
         }
-        confirmLabel="Got it"
-        cancelLabel="Close"
+        confirmLabel={locale === "vi" ? "Đã hiểu" : "Got it"}
+        cancelLabel={t(locale, "close")}
         variant="primary"
         onCancel={onClose}
         onConfirm={onClose}
@@ -406,15 +441,17 @@ function DeleteStatusDialog({
   return (
     <ConfirmDialog
       open
-      title="Delete status?"
+      title={locale === "vi" ? "Xóa trạng thái?" : "Delete status?"}
       description={
         <>
-          Permanently remove the{" "}
+          {locale === "vi" ? "Xóa vĩnh viễn cột " : "Permanently remove the "}
           <span className="font-medium text-foreground">{status.name}</span>{" "}
-          column from this project. This cannot be undone.
+          {locale === "vi"
+            ? " khỏi dự án này. Thao tác này không thể hoàn tác."
+            : " column from this project. This cannot be undone."}
         </>
       }
-      confirmLabel="Delete"
+      confirmLabel={locale === "vi" ? "Xóa" : "Delete"}
       variant="danger"
       isPending={isPending}
       onCancel={onClose}
@@ -424,11 +461,13 @@ function DeleteStatusDialog({
         startTransition(async () => {
           try {
             await deleteTaskStatusAction(formData);
-            toast("Status deleted", "success");
+            toast(locale === "vi" ? "Đã xóa trạng thái" : "Status deleted", "success");
             onClose();
           } catch (error) {
             toast(
-              error instanceof Error ? error.message : "Could not delete status",
+              error instanceof Error
+                ? error.message
+                : locale === "vi" ? "Không thể xóa trạng thái" : "Could not delete status",
               "danger",
             );
           }

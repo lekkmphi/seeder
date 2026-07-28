@@ -3,6 +3,7 @@
 import { createContext, useContext, useState } from "react";
 import { MagnifyingGlass } from "@phosphor-icons/react";
 
+import { useLocale } from "@/lib/use-locale";
 import { cn } from "@/lib/utils";
 
 // Real-time settings filter: a search box at the top narrows the page to the
@@ -32,6 +33,7 @@ function highlight(text: string, query: string): React.ReactNode {
 }
 
 export function SettingsSearch({ children }: { children: React.ReactNode }) {
+  const locale = useLocale();
   const [query, setQuery] = useState("");
   const normalized = query.trim().toLowerCase();
 
@@ -44,8 +46,8 @@ export function SettingsSearch({ children }: { children: React.ReactNode }) {
             type="search"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search settings…"
-            aria-label="Search settings"
+            placeholder={locale === "vi" ? "Tìm cài đặt..." : "Search settings..."}
+            aria-label={locale === "vi" ? "Tìm cài đặt" : "Search settings"}
             className="w-full rounded-md border border-border bg-background py-2.5 pl-9 pr-3 text-[13px] text-foreground outline-none transition placeholder:text-muted"
           />
         </div>

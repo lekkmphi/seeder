@@ -7,33 +7,7 @@ import { MagnifyingGlass, X } from "@phosphor-icons/react";
 import { SearchSelect, type SearchSelectOption } from "@/components/ui/search-select";
 import { activityActionValues } from "@/lib/db/schema";
 import type { ProjectActivityActor } from "@/lib/data";
-
-const ACTION_OPTIONS: SearchSelectOption[] = activityActionValues.map(
-  (action) => ({
-    value: action,
-    label: action.charAt(0).toUpperCase() + action.slice(1),
-  }),
-);
-
-// Fields that carry structured before→after diffs. Mirrors the `field` keys
-// written in lib/actions.ts so the History list can be narrowed to "only rows
-// where the status changed", etc.
-const FIELD_OPTIONS: SearchSelectOption[] = [
-  { value: "title", label: "Title" },
-  { value: "description", label: "Description" },
-  { value: "status", label: "Status" },
-  { value: "priority", label: "Priority" },
-  { value: "dueDate", label: "Due date" },
-  { value: "category", label: "Category" },
-  { value: "phase", label: "Phase" },
-  { value: "name", label: "Name" },
-  { value: "clientName", label: "Client" },
-  { value: "summary", label: "Summary" },
-  { value: "deadline", label: "Deadline" },
-  { value: "content", label: "Notes" },
-  { value: "state", label: "Subtask state" },
-  { value: "comment", label: "Comment" },
-];
+import { useLocale } from "@/lib/use-locale";
 
 type Initial = {
   q: string;
@@ -53,6 +27,7 @@ export function ProjectHistoryFilters({
   actors: ProjectActivityActor[];
   initial: Initial;
 }) {
+  const locale = useLocale();
   const router = useRouter();
   const searchParams = useSearchParams();
   const [q, setQ] = useState(initial.q);
@@ -76,6 +51,33 @@ export function ProjectHistoryFilters({
         sublabel: actor.email,
       })),
     [actors],
+  );
+  const actionOptions = useMemo<SearchSelectOption[]>(
+    () =>
+      activityActionValues.map((action) => ({
+        value: action,
+        label: action.charAt(0).toUpperCase() + action.slice(1),
+      })),
+    [],
+  );
+  const fieldOptions = useMemo<SearchSelectOption[]>(
+    () => [
+      { value: "title", label: locale === "vi" ? "Tiêu đề" : "Title" },
+      { value: "description", label: locale === "vi" ? "Mô tả" : "Description" },
+      { value: "status", label: locale === "vi" ? "Trạng thái" : "Status" },
+      { value: "priority", label: locale === "vi" ? "Ưu tiên" : "Priority" },
+      { value: "dueDate", label: locale === "vi" ? "Hạn chót" : "Due date" },
+      { value: "category", label: locale === "vi" ? "Danh mục" : "Category" },
+      { value: "phase", label: locale === "vi" ? "Giai đoạn" : "Phase" },
+      { value: "name", label: locale === "vi" ? "Tên" : "Name" },
+      { value: "clientName", label: locale === "vi" ? "Khách hàng" : "Client" },
+      { value: "summary", label: locale === "vi" ? "Tóm tắt" : "Summary" },
+      { value: "deadline", label: locale === "vi" ? "Hạn chót" : "Deadline" },
+      { value: "content", label: locale === "vi" ? "Ghi chú" : "Notes" },
+      { value: "state", label: locale === "vi" ? "Trạng thái việc con" : "Subtask state" },
+      { value: "comment", label: locale === "vi" ? "Bình luận" : "Comment" },
+    ],
+    [locale],
   );
 
   const hasActive =
@@ -127,7 +129,7 @@ export function ProjectHistoryFilters({
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-[1.4fr_1fr_1fr_1fr_1fr_1fr]">
         <label className="grid gap-1.5">
           <span className="font-mono text-[11px] uppercase tracking-[0.04em] text-muted">
-            Search
+            {locale === "vi" ? "Tìm kiếm" : "Search"}
           </span>
           <div className="relative">
             <MagnifyingGlass className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted" />
@@ -135,7 +137,7 @@ export function ProjectHistoryFilters({
               type="search"
               value={q}
               onChange={(e) => setQ(e.target.value)}
-              placeholder="Label or detail…"
+              placeholder={locale === "vi" ? "Nhãn hoặc chi tiết..." : "Label or detail..."}
               className="ui-input"
               style={{ paddingLeft: 32 }}
             />
@@ -144,41 +146,41 @@ export function ProjectHistoryFilters({
 
         <div className="grid gap-1.5">
           <span className="font-mono text-[11px] uppercase tracking-[0.04em] text-muted">
-            Action
+            {locale === "vi" ? "Hành động" : "Action"}
           </span>
           <SearchSelect
-            options={ACTION_OPTIONS}
+            options={actionOptions}
             value={action}
             onChange={(next) => {
               setAction(next);
               pushParams({ action: next ?? "" });
             }}
-            placeholder="All actions"
-            searchPlaceholder="Filter actions…"
-            clearLabel="All actions"
+            placeholder={locale === "vi" ? "Tất cả hành động" : "All actions"}
+            searchPlaceholder={locale === "vi" ? "Lọc hành động..." : "Filter actions..."}
+            clearLabel={locale === "vi" ? "Tất cả hành động" : "All actions"}
           />
         </div>
 
         <div className="grid gap-1.5">
           <span className="font-mono text-[11px] uppercase tracking-[0.04em] text-muted">
-            Field changed
+            {locale === "vi" ? "Trường đã đổi" : "Field changed"}
           </span>
           <SearchSelect
-            options={FIELD_OPTIONS}
+            options={fieldOptions}
             value={field}
             onChange={(next) => {
               setField(next);
               pushParams({ field: next ?? "" });
             }}
-            placeholder="Any field"
-            searchPlaceholder="Filter fields…"
-            clearLabel="Any field"
+            placeholder={locale === "vi" ? "Trường bất kỳ" : "Any field"}
+            searchPlaceholder={locale === "vi" ? "Lọc trường..." : "Filter fields..."}
+            clearLabel={locale === "vi" ? "Trường bất kỳ" : "Any field"}
           />
         </div>
 
         <div className="grid gap-1.5">
           <span className="font-mono text-[11px] uppercase tracking-[0.04em] text-muted">
-            Actor
+            {locale === "vi" ? "Người thao tác" : "Actor"}
           </span>
           <SearchSelect
             options={actorOptions}
@@ -187,15 +189,15 @@ export function ProjectHistoryFilters({
               setActorId(next);
               pushParams({ actorId: next ?? "" });
             }}
-            placeholder="Everyone"
-            searchPlaceholder="Search by name or email…"
-            clearLabel="Everyone"
+            placeholder={locale === "vi" ? "Mọi người" : "Everyone"}
+            searchPlaceholder={locale === "vi" ? "Tìm theo tên hoặc email..." : "Search by name or email..."}
+            clearLabel={locale === "vi" ? "Mọi người" : "Everyone"}
           />
         </div>
 
         <label className="grid gap-1.5">
           <span className="font-mono text-[11px] uppercase tracking-[0.04em] text-muted">
-            From
+            {locale === "vi" ? "Từ" : "From"}
           </span>
           <input
             type="date"
@@ -210,7 +212,7 @@ export function ProjectHistoryFilters({
 
         <label className="grid gap-1.5">
           <span className="font-mono text-[11px] uppercase tracking-[0.04em] text-muted">
-            To
+            {locale === "vi" ? "Đến" : "To"}
           </span>
           <input
             type="date"
@@ -231,7 +233,7 @@ export function ProjectHistoryFilters({
           className="ui-button-ghost self-start px-3"
         >
           <X className="size-4" />
-          Clear filters
+          {locale === "vi" ? "Xóa bộ lọc" : "Clear filters"}
         </button>
       ) : null}
     </div>

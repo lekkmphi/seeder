@@ -5,6 +5,7 @@ import { useState, useTransition } from "react";
 import { CheckCircle, CircleNotch, LockKey } from "@phosphor-icons/react";
 
 import { authClient } from "@/lib/auth-client";
+import { useLocale } from "@/lib/use-locale";
 
 type ChangePasswordFormProps = {
   closeHref?: string;
@@ -18,6 +19,7 @@ export function ChangePasswordForm({
   closeHref,
   onClose,
 }: ChangePasswordFormProps) {
+  const locale = useLocale();
   const router = useRouter();
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -32,7 +34,7 @@ export function ChangePasswordForm({
     setSuccessMessage(null);
 
     if (newPassword !== confirmPassword) {
-      setErrorMessage("New password and confirmation do not match.");
+      setErrorMessage(locale === "vi" ? "Mật khẩu mới và xác nhận không khớp." : "New password and confirmation do not match.");
       return;
     }
 
@@ -45,7 +47,7 @@ export function ChangePasswordForm({
         },
         {
           onSuccess: () => {
-            setSuccessMessage("Password updated.");
+            setSuccessMessage(locale === "vi" ? "Đã cập nhật mật khẩu." : "Password updated.");
             setCurrentPassword("");
             setNewPassword("");
             setConfirmPassword("");
@@ -63,7 +65,7 @@ export function ChangePasswordForm({
       );
 
       if (result.error) {
-        setErrorMessage(result.error.message ?? "Unable to change password.");
+        setErrorMessage(result.error.message ?? (locale === "vi" ? "Không thể đổi mật khẩu." : "Unable to change password."));
       }
     });
   };
@@ -78,7 +80,7 @@ export function ChangePasswordForm({
     >
       <label className="grid gap-2">
         <span className="text-sm font-medium text-foreground">
-          Current password
+          {locale === "vi" ? "Mật khẩu hiện tại" : "Current password"}
         </span>
         <input
           type="password"
@@ -86,14 +88,14 @@ export function ChangePasswordForm({
           value={currentPassword}
           onChange={(event) => setCurrentPassword(event.target.value)}
           className={fieldClassName}
-          placeholder="Enter your current password"
+          placeholder={locale === "vi" ? "Nhập mật khẩu hiện tại" : "Enter your current password"}
         />
       </label>
 
       <div className="grid gap-4 sm:grid-cols-2">
         <label className="grid gap-2">
           <span className="text-sm font-medium text-foreground">
-            New password
+            {locale === "vi" ? "Mật khẩu mới" : "New password"}
           </span>
           <input
             type="password"
@@ -102,13 +104,13 @@ export function ChangePasswordForm({
             value={newPassword}
             onChange={(event) => setNewPassword(event.target.value)}
             className={fieldClassName}
-            placeholder="At least 8 characters"
+            placeholder={locale === "vi" ? "Ít nhất 8 ký tự" : "At least 8 characters"}
           />
         </label>
 
         <label className="grid gap-2">
           <span className="text-sm font-medium text-foreground">
-            Confirm password
+            {locale === "vi" ? "Xác nhận mật khẩu" : "Confirm password"}
           </span>
           <input
             type="password"
@@ -117,7 +119,7 @@ export function ChangePasswordForm({
             value={confirmPassword}
             onChange={(event) => setConfirmPassword(event.target.value)}
             className={fieldClassName}
-            placeholder="Repeat the new password"
+            placeholder={locale === "vi" ? "Nhập lại mật khẩu mới" : "Repeat the new password"}
           />
         </label>
       </div>
@@ -131,10 +133,12 @@ export function ChangePasswordForm({
         />
         <div>
           <p className="text-sm font-medium text-foreground">
-            Revoke other sessions
+            {locale === "vi" ? "Thu hồi phiên khác" : "Revoke other sessions"}
           </p>
           <p className="mt-1 text-sm leading-6 text-muted">
-            Recommended after a reset. Your current session will stay active.
+            {locale === "vi"
+              ? "Khuyến nghị sau khi đặt lại. Phiên hiện tại của bạn vẫn hoạt động."
+              : "Recommended after a reset. Your current session will stay active."}
           </p>
         </div>
       </label>
@@ -158,7 +162,7 @@ export function ChangePasswordForm({
         className="ui-button-primary mt-2 w-full disabled:cursor-not-allowed disabled:opacity-60"
       >
         {isPending ? <CircleNotch className="size-4 animate-spin" /> : <LockKey className="size-4" />}
-        Update password
+        {locale === "vi" ? "Cập nhật mật khẩu" : "Update password"}
       </button>
     </form>
   );
