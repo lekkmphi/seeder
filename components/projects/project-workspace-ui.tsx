@@ -1609,6 +1609,11 @@ function ProjectWorkspaceModalHost({
               parentId={selectedTask.id}
               viewerId={viewer.id}
               viewerCanModerate={viewerCanModerate}
+              mentionUsers={workspace.members.map((member) => ({
+                id: member.userId,
+                name: member.name,
+                email: member.email,
+              }))}
               actions={{
                 create: withDetailRefresh(createTaskCommentAction),
                 update: withDetailRefresh(updateTaskCommentAction),
@@ -2075,6 +2080,11 @@ function ProjectWorkspaceModalHost({
               parentId={selectedRequest.id}
               viewerId={viewer.id}
               viewerCanModerate={viewerCanModerate}
+              mentionUsers={workspace.members.map((member) => ({
+                id: member.userId,
+                name: member.name,
+                email: member.email,
+              }))}
               actions={{
                 create: withDetailRefresh(createRequestCommentAction),
                 update: withDetailRefresh(updateRequestCommentAction),

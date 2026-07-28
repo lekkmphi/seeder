@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { ArrowBendUpLeft, CircleNotch, X } from "@phosphor-icons/react";
 
 import { RichTextEditor, RichTextRenderer } from "@/components/rich-text";
+import type { MentionUser } from "@/components/rich-text/rich-text-editor";
 import { Avatar } from "@/components/ui/avatar";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import {
@@ -61,6 +62,7 @@ export function CommentThread({
   parentId,
   viewerId,
   viewerCanModerate,
+  mentionUsers,
   actions,
 }: {
   comments: CommentItem[];
@@ -68,6 +70,7 @@ export function CommentThread({
   parentId: string;
   viewerId: string;
   viewerCanModerate: boolean;
+  mentionUsers: MentionUser[];
   actions: Actions;
 }) {
   const locale = useLocale();
@@ -115,6 +118,7 @@ export function CommentThread({
               onReply={setReplyingToId}
               actions={actions}
               locale={locale}
+              mentionUsers={mentionUsers}
             />
           ))}
         </ul>
@@ -130,6 +134,7 @@ export function CommentThread({
         parentCommentId={null}
         createAction={actions.create}
         locale={locale}
+        mentionUsers={mentionUsers}
         onDone={() => setReplyingToId(null)}
       />
     </section>
@@ -151,6 +156,7 @@ function CommentNode({
   onReply,
   actions,
   locale,
+  mentionUsers,
 }: {
   comment: CommentItem;
   repliesByParent: Map<string, CommentItem[]>;
@@ -166,6 +172,7 @@ function CommentNode({
   onReply: (id: string | null) => void;
   actions: Actions;
   locale: Locale;
+  mentionUsers: MentionUser[];
 }) {
   const isAuthor = comment.authorId === viewerId;
   const canEdit = isAuthor;
@@ -189,6 +196,7 @@ function CommentNode({
               onCancel={() => onEdit(null)}
               onDone={() => onEdit(null)}
               updateAction={actions.update}
+              mentionUsers={mentionUsers}
             />
           ) : (
             <>
@@ -259,6 +267,7 @@ function CommentNode({
             }
             createAction={actions.create}
             locale={locale}
+            mentionUsers={mentionUsers}
             replyingToName={comment.authorName}
             onDone={() => onReply(null)}
           />
@@ -284,6 +293,7 @@ function CommentNode({
               onReply={onReply}
               actions={actions}
               locale={locale}
+              mentionUsers={mentionUsers}
             />
           ))}
         </ul>
@@ -298,6 +308,7 @@ function ComposeForm({
   parentCommentId,
   createAction,
   locale,
+  mentionUsers,
   replyingToName,
   onDone,
 }: {
@@ -306,6 +317,7 @@ function ComposeForm({
   parentCommentId: string | null;
   createAction: (formData: FormData) => Promise<void>;
   locale: Locale;
+  mentionUsers: MentionUser[];
   replyingToName?: string;
   onDone?: () => void;
 }) {
@@ -367,6 +379,7 @@ function ComposeForm({
           key={resetKey}
           value={serializeRichText(parseRichText(null))}
           onChange={setDoc}
+          mentionUsers={mentionUsers}
           placeholder={
             parentCommentId
               ? locale === "vi" ? "Viết phản hồi..." : "Write a reply..."
@@ -475,11 +488,13 @@ function CommentEditForm({
   onCancel,
   onDone,
   updateAction,
+  mentionUsers,
 }: {
   comment: CommentItem;
   onCancel: () => void;
   onDone: () => void;
   updateAction: (formData: FormData) => Promise<void>;
+  mentionUsers: MentionUser[];
 }) {
   const locale = useLocale();
   const [doc, setDoc] = useState<RichTextDoc>(parseRichText(comment.content));
@@ -525,6 +540,7 @@ function CommentEditForm({
       <RichTextEditor
         value={comment.content}
         onChange={setDoc}
+        mentionUsers={mentionUsers}
         editorClassName="min-h-24 max-h-64 rounded-xl border-transparent bg-background/70 px-3 py-2 leading-5 focus:border-border"
         ariaLabel={locale === "vi" ? "Sửa bình luận" : "Edit comment"}
       />
