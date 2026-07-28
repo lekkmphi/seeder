@@ -2,7 +2,7 @@
 
 # Seeder: Your Personal Project Manager
 
-[![CI](https://github.com/danielsyauqi/Seeder/actions/workflows/ci.yml/badge.svg)](https://github.com/danielsyauqi/Seeder/actions/workflows/ci.yml)
+[![CI](https://github.com/lekkmphi/seeder/actions/workflows/ci.yml/badge.svg)](https://github.com/lekkmphi/seeder/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Docs](https://img.shields.io/badge/docs-seederpm.xyz-2ea043.svg)](https://seederpm.xyz/docs)
 
@@ -44,6 +44,22 @@ stance:
 - **White-labeling** — customizable system name, logo, favicon, and accent color.
 - **Built-in MCP server** — let AI assistants read and edit your data over the
   Model Context Protocol ([docs](https://seederpm.xyz/docs/mcp)).
+
+## Vietnamese localization
+
+This fork ships with a Vietnamese-first interface:
+
+- **Default language:** Vietnamese (`vi`), with English (`en`) fallback strings
+  kept in place where the UI supports switching locales.
+- **Localized areas:** dashboard, projects, Kanban/task modals, requests, daily
+  planner, activity/history views, members/spaces, admin screens, settings,
+  client board, comments, rich-text editor controls, toasts, tooltips,
+  accessibility labels, empty states, and error/not-found pages.
+- **Locale plumbing:** client components use `useLocale()` and server components
+  use `getRequestLocale()` so labels, relative-time text, dates, aria labels, and
+  action feedback can follow the selected locale.
+- **Language control:** the app includes a language toggle and stores the current
+  choice in the `seeder-locale` cookie.
 
 ## Quick start
 
@@ -92,12 +108,12 @@ Seeder is yours to fork — and people do. Community variants built on top of it
 
 - **[goutou](https://github.com/jhfnetboy/goutou)** by [@jhfnetboy](https://github.com/jhfnetboy) — a Seeder variant that adds multi-repo Claude Code coordination skills (狗头军师): a "commander" dispatches work to a central board and per-repo "soldiers" pick it up over the MCP bus.
 
-Built your own variant? [Open an issue](https://github.com/danielsyauqi/Seeder/issues) or a PR adding it here.
+Built your own variant? [Open an issue](https://github.com/lekkmphi/seeder/issues) or a PR adding it here.
 
 ## Support
 
 Hit a bug or have an idea? Open an issue on
-[GitHub](https://github.com/danielsyauqi/Seeder/issues), or email
+[GitHub](https://github.com/lekkmphi/seeder/issues), or email
 [seeder.admin@gmail.com](mailto:seeder.admin@gmail.com).
 
 ## Contributing
