@@ -27,6 +27,7 @@ type Props = {
   onChange: (next: RichTextDoc) => void;
   placeholder?: string;
   className?: string;
+  editorClassName?: string;
   uploadEndpoint?: string;
   ariaLabel?: string;
 };
@@ -54,6 +55,7 @@ export default function RichTextEditor({
   onChange,
   placeholder,
   className,
+  editorClassName,
   uploadEndpoint = "/api/uploads/image",
   ariaLabel,
 }: Props) {
@@ -72,6 +74,7 @@ export default function RichTextEditor({
       attributes: {
         class: cn(
           "ui-prose min-h-52 max-h-[60vh] overflow-y-auto rounded-md border border-border bg-background px-3 py-2.5 text-[13px] leading-6 text-foreground focus:outline-none focus:border-border-strong",
+          editorClassName,
         ),
         "aria-label": ariaLabel ?? (vi ? "Trình soạn mô tả" : "Description editor"),
       },

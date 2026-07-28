@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { ArrowBendUpLeft, CircleNotch, Pencil, Trash, X } from "@phosphor-icons/react";
+import { ArrowBendUpLeft, CircleNotch, X } from "@phosphor-icons/react";
 
 import { RichTextEditor, RichTextRenderer } from "@/components/rich-text";
 import { Avatar } from "@/components/ui/avatar";
@@ -12,8 +12,8 @@ import {
   serializeRichText,
   type RichTextDoc,
 } from "@/lib/rich-text";
-import { toast } from "@/lib/toast";
 import { type Locale } from "@/lib/i18n";
+import { toast } from "@/lib/toast";
 import { useLocale } from "@/lib/use-locale";
 import { cn } from "@/lib/utils";
 
@@ -87,10 +87,15 @@ export function CommentThread({
   }
 
   return (
-    <div className="grid gap-4">
-      <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-muted">
-        {locale === "vi" ? "Bình luận" : "Comments"} · {comments.length}
-      </p>
+    <section className="grid gap-4">
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-[15px] font-semibold text-foreground">
+          {locale === "vi" ? "Bình luận" : "Comments"}
+        </p>
+        <span className="rounded-full bg-surface-subtle px-2.5 py-1 text-[12px] font-medium text-muted">
+          {comments.length}
+        </span>
+      </div>
 
       {comments.length ? (
         <ul className="grid gap-3">
@@ -127,7 +132,7 @@ export function CommentThread({
         locale={locale}
         onDone={() => setReplyingToId(null)}
       />
-    </div>
+    </section>
   );
 }
 
@@ -135,6 +140,7 @@ function CommentNode({
   comment,
   repliesByParent,
   depth,
+  replyTargetName,
   projectId,
   parentId,
   viewerId,
@@ -149,6 +155,7 @@ function CommentNode({
   comment: CommentItem;
   repliesByParent: Map<string, CommentItem[]>;
   depth: number;
+  replyTargetName?: string;
   projectId: string;
   parentId: string;
   viewerId: string;
@@ -167,47 +174,66 @@ function CommentNode({
   const replies = repliesByParent.get(comment.id) ?? [];
 
   return (
-    <li className={cn(depth > 0 && "ml-6 border-l border-border pl-3")}>
-      <div className="rounded-md border border-border bg-surface p-3">
-        {isEditing ? (
-          <CommentEditForm
-            comment={comment}
-            onCancel={() => onEdit(null)}
-            onDone={() => onEdit(null)}
-            updateAction={actions.update}
-          />
-        ) : (
-          <>
-            <div className="mb-1 flex items-center justify-between gap-2 text-[12px]">
-              <div className="flex min-w-0 items-center gap-2">
-                <Avatar
-                  name={comment.authorName}
-                  image={comment.authorImage}
-                  px={24}
-                  className="size-6 text-[10px]"
-                />
-                <span className="truncate font-medium text-foreground">
-                  {comment.authorName}
-                </span>
-                <span className="font-mono text-[11px] uppercase tracking-[0.04em] text-muted">
-                  {timeAgo(comment.createdAt, locale)}
-                  {comment.updatedAt.getTime() !== comment.createdAt.getTime()
-                    ? locale === "vi" ? " · đã sửa" : " · edited"
-                    : null}
-                </span>
+    <li>
+      <div className="flex gap-2.5">
+        <Avatar
+          name={comment.authorName}
+          image={comment.authorImage}
+          px={32}
+          className="mt-0.5 size-8 rounded-full text-[11px]"
+        />
+        <div className="min-w-0 flex-1">
+          {isEditing ? (
+            <CommentEditForm
+              comment={comment}
+              onCancel={() => onEdit(null)}
+              onDone={() => onEdit(null)}
+              updateAction={actions.update}
+            />
+          ) : (
+            <>
+              <div className="inline-block max-w-full rounded-[18px] bg-surface-subtle px-3 py-2 align-top">
+                <div className="mb-0.5 flex min-w-0 items-center gap-2">
+                  <span className="truncate text-[13px] font-semibold text-foreground">
+                    {comment.authorName}
+                  </span>
+                  <span className="shrink-0 text-[11px] text-muted">
+                    {timeAgo(comment.createdAt, locale)}
+                    {comment.updatedAt.getTime() !== comment.createdAt.getTime()
+                      ? locale === "vi" ? " · đã sửa" : " · edited"
+                      : null}
+                  </span>
+                </div>
+                <div className="flex min-w-0 flex-wrap items-baseline gap-x-1">
+                  {replyTargetName ? (
+                    <span className="text-[13px] font-semibold text-accent">
+                      @{replyTargetName}
+                    </span>
+                  ) : null}
+                  <RichTextRenderer
+                    value={comment.content}
+                    className="comment-prose min-w-0 text-[13px] leading-5"
+                  />
+                </div>
               </div>
-              <div className="flex items-center gap-1">
+
+              <div className="mt-1 flex items-center gap-3 px-3 text-[12px] font-medium text-muted">
+                <button
+                  type="button"
+                  onClick={() => onReply(replyingToId === comment.id ? null : comment.id)}
+                  className="inline-flex items-center gap-1 transition hover:text-foreground"
+                >
+                  <ArrowBendUpLeft className="size-3.5" />
+                  {locale === "vi" ? "Trả lời" : "Reply"}
+                </button>
                 {canEdit ? (
                   <button
                     type="button"
                     onClick={() => onEdit(comment.id)}
-                    className="inline-flex size-7 items-center justify-center rounded-sm text-muted transition hover:bg-background hover:text-foreground"
+                    className="transition hover:text-foreground"
                     title={locale === "vi" ? "Sửa bình luận" : "Edit comment"}
                   >
-                    <Pencil className="size-3.5" />
-                    <span className="sr-only">
-                      {locale === "vi" ? "Sửa bình luận" : "Edit comment"}
-                    </span>
+                    {locale === "vi" ? "Sửa" : "Edit"}
                   </button>
                 ) : null}
                 {canDelete ? (
@@ -218,26 +244,19 @@ function CommentNode({
                   />
                 ) : null}
               </div>
-            </div>
-            <RichTextRenderer value={comment.content} className="text-[13px]" />
-            <button
-              type="button"
-              onClick={() => onReply(replyingToId === comment.id ? null : comment.id)}
-              className="mt-2 inline-flex items-center gap-1.5 text-[12px] font-medium text-muted transition hover:text-foreground"
-            >
-              <ArrowBendUpLeft className="size-3.5" />
-              {locale === "vi" ? "Trả lời" : "Reply"}
-            </button>
-          </>
-        )}
+            </>
+          )}
+        </div>
       </div>
 
       {replyingToId === comment.id ? (
-        <div className="mt-2 ml-6">
+        <div className={cn("mt-2", depth === 0 ? "ml-10" : "ml-0")}>
           <ComposeForm
             projectId={projectId}
             parentId={parentId}
-            parentCommentId={comment.id}
+            parentCommentId={
+              depth === 0 ? comment.id : comment.parentCommentId ?? comment.id
+            }
             createAction={actions.create}
             locale={locale}
             replyingToName={comment.authorName}
@@ -247,13 +266,14 @@ function CommentNode({
       ) : null}
 
       {replies.length ? (
-        <ul className="mt-2 grid gap-2">
+        <ul className={cn("mt-2 grid gap-2", depth === 0 && "ml-10")}>
           {replies.map((reply) => (
             <CommentNode
               key={reply.id}
               comment={reply}
               repliesByParent={repliesByParent}
-              depth={Math.min(depth + 1, 2)}
+              depth={1}
+              replyTargetName={comment.authorName}
               projectId={projectId}
               parentId={parentId}
               viewerId={viewerId}
@@ -324,10 +344,9 @@ function ComposeForm({
   };
 
   return (
-    // Enter inserts a newline in the editor (it's rich text — paragraphs,
-    // lists, pasted screenshots), so Cmd/Ctrl+Enter is the post shortcut.
+    // Enter inserts a newline in the editor, so Cmd/Ctrl+Enter posts.
     <div
-      className="grid gap-2 rounded-md border border-border bg-surface p-3"
+      className="flex gap-2.5"
       onKeyDown={(event) => {
         if (event.key === "Enter" && (event.metaKey || event.ctrlKey)) {
           event.preventDefault();
@@ -335,50 +354,52 @@ function ComposeForm({
         }
       }}
     >
-      <span className="font-mono text-[11px] uppercase tracking-[0.04em] text-muted">
-        {parentCommentId
-          ? locale === "vi" ? `Trả lời ${replyingToName ?? ""}` : `Reply to ${replyingToName ?? "comment"}`
-          : locale === "vi" ? "Thêm bình luận" : "Add comment"}
-      </span>
-      <RichTextEditor
-        key={resetKey}
-        value={serializeRichText(parseRichText(null))}
-        onChange={setDoc}
-        placeholder={
-          parentCommentId
-            ? locale === "vi"
-              ? "Viết phản hồi..."
-              : "Write a reply..."
-            : locale === "vi"
-            ? "Ghi chú, dán ảnh chụp màn hình hoặc thêm liên kết tham khảo."
-            : "Drop notes, paste screenshots, or link references."
-        }
-        ariaLabel={
-          parentCommentId
-            ? locale === "vi" ? "Trả lời bình luận" : "Reply to comment"
-            : locale === "vi" ? "Bình luận mới" : "New comment"
-        }
-      />
-      <button
-        type="button"
-        onClick={post}
-        disabled={isPending || richTextIsEmpty(doc)}
-        className={cn(
-          "ui-button-primary self-end px-4 disabled:cursor-not-allowed disabled:opacity-60",
-        )}
-        title={
-          locale === "vi"
-            ? "Đăng bình luận (⌘/Ctrl + Enter)"
-            : "Post comment (⌘/Ctrl + Enter)"
-        }
-      >
-        {isPending ? <CircleNotch className="size-4 animate-spin" /> : null}
-        {isPending
-          ? locale === "vi" ? "Đang đăng..." : "Posting..."
-          : parentCommentId
-            ? locale === "vi" ? "Trả lời" : "Reply"
-            : locale === "vi" ? "Bình luận" : "Comment"}
-      </button>
+      <div className="size-8 shrink-0 rounded-full border border-border bg-surface-subtle" />
+      <div className="grid min-w-0 flex-1 gap-2 rounded-2xl bg-surface-subtle p-2">
+        {parentCommentId ? (
+          <p className="px-1 text-[12px] font-medium text-muted">
+            {locale === "vi"
+              ? `Trả lời ${replyingToName ?? ""}`
+              : `Reply to ${replyingToName ?? "comment"}`}
+          </p>
+        ) : null}
+        <RichTextEditor
+          key={resetKey}
+          value={serializeRichText(parseRichText(null))}
+          onChange={setDoc}
+          placeholder={
+            parentCommentId
+              ? locale === "vi" ? "Viết phản hồi..." : "Write a reply..."
+              : locale === "vi" ? "Viết bình luận..." : "Write a comment..."
+          }
+          editorClassName="min-h-16 max-h-64 rounded-xl border-transparent bg-background/70 px-3 py-2 leading-5 focus:border-border"
+          ariaLabel={
+            parentCommentId
+              ? locale === "vi" ? "Trả lời bình luận" : "Reply to comment"
+              : locale === "vi" ? "Bình luận mới" : "New comment"
+          }
+        />
+        <button
+          type="button"
+          onClick={post}
+          disabled={isPending || richTextIsEmpty(doc)}
+          className={cn(
+            "ui-button-primary justify-self-end px-4 disabled:cursor-not-allowed disabled:opacity-60",
+          )}
+          title={
+            locale === "vi"
+              ? "Đăng bình luận (⌘/Ctrl + Enter)"
+              : "Post comment (⌘/Ctrl + Enter)"
+          }
+        >
+          {isPending ? <CircleNotch className="size-4 animate-spin" /> : null}
+          {isPending
+            ? locale === "vi" ? "Đang đăng..." : "Posting..."
+            : parentCommentId
+              ? locale === "vi" ? "Trả lời" : "Reply"
+              : locale === "vi" ? "Bình luận" : "Comment"}
+        </button>
+      </div>
     </div>
   );
 }
@@ -401,13 +422,13 @@ function DeleteCommentButton({
         type="button"
         onClick={() => setShowConfirm(true)}
         disabled={isPending}
-        className="inline-flex size-7 items-center justify-center rounded-sm text-muted transition hover:bg-danger/10 hover:text-danger"
+        className="transition hover:text-danger disabled:cursor-not-allowed disabled:opacity-60"
         title={locale === "vi" ? "Xóa bình luận" : "Delete comment"}
       >
         {isPending ? (
           <CircleNotch className="size-3.5 animate-spin" />
         ) : (
-          <Trash className="size-3.5" />
+          locale === "vi" ? "Xóa" : "Delete"
         )}
         <span className="sr-only">
           {locale === "vi" ? "Xóa bình luận" : "Delete comment"}
@@ -486,10 +507,9 @@ function CommentEditForm({
   };
 
   return (
-    // Enter is a newline in the editor, so Cmd/Ctrl+Enter saves and Escape
-    // backs out — the same pair the composer above uses.
+    // Enter is a newline in the editor, so Cmd/Ctrl+Enter saves and Escape cancels.
     <div
-      className="grid gap-2"
+      className="grid gap-2 rounded-2xl bg-surface-subtle p-2"
       onKeyDown={(event) => {
         if (event.key === "Enter" && (event.metaKey || event.ctrlKey)) {
           event.preventDefault();
@@ -505,6 +525,7 @@ function CommentEditForm({
       <RichTextEditor
         value={comment.content}
         onChange={setDoc}
+        editorClassName="min-h-24 max-h-64 rounded-xl border-transparent bg-background/70 px-3 py-2 leading-5 focus:border-border"
         ariaLabel={locale === "vi" ? "Sửa bình luận" : "Edit comment"}
       />
       <div className="flex items-center justify-end gap-2">
