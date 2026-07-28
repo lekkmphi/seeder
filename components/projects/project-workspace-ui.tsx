@@ -689,6 +689,7 @@ function ActionButton({
   icon,
   onClick,
   autoFocus = false,
+  form,
 }: {
   children: React.ReactNode;
   type?: "button" | "submit";
@@ -698,6 +699,7 @@ function ActionButton({
   className?: string;
   icon?: React.ReactNode;
   onClick?: () => void | Promise<void>;
+  form?: string;
   // For confirm-style modals with no text field: focusing the action makes
   // Enter confirm it. Never set this on a form's Save button — the form
   // already handles Enter, and stealing focus from the first field is worse.
@@ -714,6 +716,7 @@ function ActionButton({
     <button
       autoFocus={autoFocus}
       type={type}
+      form={form}
       disabled={isPending}
       onClick={onClick}
       className={cn(
@@ -769,10 +772,10 @@ function ModalShell({
         onClick={onClose}
         className="ui-modal-backdrop absolute inset-0 backdrop-blur-xs"
       />
-      <div className="relative flex min-h-full items-end justify-center sm:items-center">
+      <div className="pointer-events-none relative flex min-h-full items-end justify-center sm:items-center">
         <div
           className={cn(
-            "ui-modal-panel relative flex max-h-[calc(100dvh-2rem)] w-full flex-col overflow-hidden rounded-md border border-border bg-surface-strong p-5 shadow-xl sm:max-h-[calc(100dvh-3rem)] sm:p-6",
+            "ui-modal-panel pointer-events-auto relative flex max-h-[calc(100dvh-2rem)] w-full flex-col overflow-hidden rounded-md border border-border bg-surface-strong p-5 shadow-xl sm:max-h-[calc(100dvh-3rem)] sm:p-6",
             maxWidthClassName,
           )}
         >
@@ -1154,6 +1157,7 @@ function ProjectWorkspaceModalHost({
   }
 
   if (modalState.kind === "task" && selectedTask) {
+    const taskEditFormId = `task-edit-form-${selectedTask.id}`;
     const taskCode = formatTaskCode(
       workspace.project.slug,
       selectedTask.codeNumber,
@@ -1175,6 +1179,7 @@ function ProjectWorkspaceModalHost({
         maxWidthClassName="max-w-6xl"
       >
         <form
+          id={taskEditFormId}
           className="grid gap-5"
           onSubmit={async (event) => {
             event.preventDefault();
@@ -1576,33 +1581,9 @@ function ProjectWorkspaceModalHost({
 
           {errorNotice}
 
-          <div className="grid gap-2 lg:grid-cols-[minmax(0,1fr)_280px]">
-            <ActionButton
-              type="submit"
-              isPending={pendingAction === "update-task"}
-              pendingLabel={locale === "vi" ? "Đang lưu công việc..." : "Saving task..."}
-              className="w-full"
-            >
-              {locale === "vi" ? "Lưu công việc" : "Save task"}
-            </ActionButton>
-            <button
-              type="button"
-              onClick={() =>
-                openModal({
-                  kind: "delete-task",
-                  taskId: selectedTask.id,
-                  taskIsTerminal: modalState.taskIsTerminal ?? selectedTask.isTerminal,
-                })
-              }
-              className="ui-button-danger w-full"
-            >
-              <Trash className="size-4" />
-              {locale === "vi" ? "Xóa công việc" : "Delete task"}
-            </button>
-          </div>
         </form>
 
-        <div className="mt-6 border-t border-border pt-5">
+        <div className="mt-4 border-t border-border pt-4">
           {taskDetail ? (
             <CommentThread
               comments={taskDetail.comments.map((c) => ({
@@ -1633,6 +1614,31 @@ function ProjectWorkspaceModalHost({
           ) : (
             <CommentsLoading locale={locale} />
           )}
+        </div>
+        <div className="mt-4 grid gap-2 lg:grid-cols-[minmax(0,1fr)_280px]">
+          <ActionButton
+            type="submit"
+            form={taskEditFormId}
+            isPending={pendingAction === "update-task"}
+            pendingLabel={locale === "vi" ? "Đang lưu công việc..." : "Saving task..."}
+            className="w-full"
+          >
+            {locale === "vi" ? "Lưu công việc" : "Save task"}
+          </ActionButton>
+          <button
+            type="button"
+            onClick={() =>
+              openModal({
+                kind: "delete-task",
+                taskId: selectedTask.id,
+                taskIsTerminal: modalState.taskIsTerminal ?? selectedTask.isTerminal,
+              })
+            }
+            className="ui-button-danger w-full"
+          >
+            <Trash className="size-4" />
+            {locale === "vi" ? "Xóa công việc" : "Delete task"}
+          </button>
         </div>
       </ModalShell>
     );
