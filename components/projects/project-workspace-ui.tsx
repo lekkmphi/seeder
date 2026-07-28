@@ -752,6 +752,15 @@ function ModalShell({
   maxWidthClassName?: string;
   locale: Locale;
 }) {
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [onClose]);
+
   return (
     <div className="fixed inset-0 z-50 p-4 sm:p-6">
       <button
@@ -767,7 +776,18 @@ function ModalShell({
             maxWidthClassName,
           )}
         >
-          <div className="mb-5 flex shrink-0 items-start justify-between gap-4">
+          <button
+            type="button"
+            aria-label={locale === "vi" ? "Đóng modal" : "Close modal"}
+            onClick={onClose}
+            className="absolute right-4 top-4 z-10 inline-flex size-9 items-center justify-center rounded-md border border-border bg-surface text-muted transition hover:border-border-strong hover:bg-surface-strong hover:text-foreground sm:right-5 sm:top-5"
+          >
+            <X className="size-4" />
+            <span className="sr-only">
+              {locale === "vi" ? "Đóng modal" : "Close modal"}
+            </span>
+          </button>
+          <div className="mb-5 flex shrink-0 items-start justify-between gap-4 pr-12">
             <div className="space-y-2">
               <p className="font-mono text-[11px] font-medium uppercase tracking-[0.04em] text-muted">
                 {locale === "vi" ? "Modal không gian" : "Workspace modal"}
@@ -781,16 +801,6 @@ function ModalShell({
                 </p>
               </div>
             </div>
-            <button
-              type="button"
-              onClick={onClose}
-              className="inline-flex size-9 items-center justify-center rounded-md border border-border bg-surface text-muted transition hover:border-border-strong hover:bg-surface-strong hover:text-foreground"
-            >
-              <X className="size-4" />
-              <span className="sr-only">
-                {locale === "vi" ? "Đóng modal" : "Close modal"}
-              </span>
-            </button>
           </div>
           <div className="min-h-0 overflow-y-auto pr-1">{children}</div>
         </div>
